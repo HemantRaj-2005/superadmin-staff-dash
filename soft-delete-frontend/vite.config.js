@@ -8,7 +8,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://superadmin-staff-dash.onrender.com/',
+        target: 'https://superadmin-staff-dash.onrender.com',
         changeOrigin: true,
       },
     },
