@@ -1,19 +1,63 @@
-import express from "express";
-import cors from "cors";
-import mongoose from "mongoose";
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+// Import routes
+import userRoutes from './routes/users.js';
+import authRoutes from './routes/auth.js';
+import postRoutes from './routes/posts.js';
+
+// Import utilities
+import { connectDB } from './db/databaseConnection.js';
+import { runCleanupJob } from './utils/cleanupjob.js';
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
+
+// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-app.listen(3000, () => {
-  console.log("Server is running on port 3000");
+// Routes
+app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/posts', postRoutes);
+
+// Health check route
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    message: 'Server is running!',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
-app.get("/", (req, res) => {
-  res.status(200).send("Hello World");
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('💥 Error:', err.stack);
+  res.status(500).json({ 
+    message: 'Something went wrong!',
+    error: process.env.NODE_ENV === 'production' ? {} : err.message
+  });
 });
 
+// 404 handler
+// app.use('*', (req, res) => {
+//   res.status(404).json({ message: 'Route not found' });
+// });
 
+// Database connection
+connectDB();
 
+// Start cleanup job for permanent deletion
+runCleanupJob();
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+});
