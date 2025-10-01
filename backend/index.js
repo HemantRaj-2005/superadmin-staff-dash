@@ -18,7 +18,11 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin:process.env.FRONTEND_URL || 'http://localhost:3000',  // React dev server
+  methods: ['GET','POST'],
+  credentials: true
+}));
 app.use(express.json());
 
 // Routes
@@ -55,7 +59,7 @@ connectDB();
 // Start cleanup job for permanent deletion
 runCleanupJob();
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
