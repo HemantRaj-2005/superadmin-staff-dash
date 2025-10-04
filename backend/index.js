@@ -21,9 +21,9 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['https://superadmin-staff-dash.vercel.app'], // your frontend URL
+  origin: 'https://superadmin-staff-dash.vercel.app', // your frontend URL
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  
+  credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
