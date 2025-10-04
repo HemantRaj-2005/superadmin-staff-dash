@@ -3,7 +3,7 @@ import express from 'express';
 import Post from '../models/Post.js';
 import User from '../models/User.js'; // Import User model
 import { authenticate, authorize } from '../middleware/auth.js';
-import { logActivity } from '../middleware/activityLogger.js';
+import { logActivity } from '../middleware/ActivityLogger.js';
 
 const router = express.Router();
 
