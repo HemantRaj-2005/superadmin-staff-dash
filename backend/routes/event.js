@@ -2,7 +2,7 @@
 import express from 'express';
 import Event from '../models/Event.js';
 import { authenticate, authorize } from '../middleware/auth.js';
-import { logActivity } from '../middleware/activityLogger.js';
+import { logActivity } from '../middleware/ActivityLogger.js';
 
 const router = express.Router();
 
