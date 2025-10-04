@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
         // Set default authorization header
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
-        const response = await axios.get(`${process.env.VITE_API_BASE_URL}/api/auth/me`);
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/auth/me`);
         if (response.data) {
           setAdmin(response.data);
           setIsAuthenticated(true);
@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post(`${process.env.VITE_API_BASE_URL}/api/auth/login`, { 
+      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, { 
         email, 
         password 
       });
