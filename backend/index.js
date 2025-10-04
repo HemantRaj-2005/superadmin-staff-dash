@@ -20,11 +20,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Middleware
+const allowedOrigins = ['https://superadmin-staff-dash.vercel.app', 'http://localhost:3000'];
 app.use(cors({
-  origin: 'https://superadmin-staff-dash.vercel.app', // your frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+    else callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
