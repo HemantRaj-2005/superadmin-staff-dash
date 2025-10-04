@@ -1,7 +1,8 @@
+// middleware/auth.js
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import Admin from '../models/Admin.js';
 
-export const auth = async (req, res, next) => {
+export const authenticate = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
@@ -10,32 +11,24 @@ export const auth = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findOne({
-      _id: decoded.userId,
-      isActive: true,
-      deletedAt: null
-    });
-
-    if (!user) {
-      return res.status(401).json({ message: 'Token is not valid or account is deactivated' });
+    const admin = await Admin.findById(decoded.id).select('-password');
+    
+    if (!admin || !admin.isActive) {
+      return res.status(401).json({ message: 'Token is not valid' });
     }
 
-    req.user = user;
+    req.admin = admin;
     next();
   } catch (error) {
     res.status(401).json({ message: 'Token is not valid' });
   }
 };
 
-export const adminAuth = async (req, res, next) => {
-  try {
-    await auth(req, res, () => {
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin access required' });
-      }
-      next();
-    });
-  } catch (error) {
-    res.status(401).json({ message: 'Authentication failed' });
-  }
+export const authorize = (roles = []) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.admin.role)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    next();
+  };
 };

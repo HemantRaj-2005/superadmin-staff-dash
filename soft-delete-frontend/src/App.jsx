@@ -1,51 +1,67 @@
+// App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute.jsx';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Login from './components/Login';
+import Dashboard from './components/Dashboard';
+import UserManagement from './components/UserManagement';
+import ActivityLogs from './components/ActivityLogs';
+import Layout from './components/Layout';
+import PostManagement from './components/PostManagement';
+import EventManagement from './components/EventManagement';
 
-// Components
-import Navbar from './components/Layout/Navbar';
-import Login from './components/auth/Login';
-import Register from './components/auth/Register';
-import Posts from './components/Post/Post';
-import AdminUsers from './components/admin/AdminUsers';
+
+function ProtectedRoute({ children }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" />;
+}
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <div className="min-h-screen bg-gray-50">
-          <Navbar />
-          <main className="container mx-auto px-4 py-8">
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              
-              {/* Protected Routes */}
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Posts />
-                </ProtectedRoute>
-              } />
-              
-              {/* Admin Routes */}
-              <Route path="/admin/users" element={
-                <ProtectedRoute adminOnly={true}>
-                  <AdminUsers />
-                </ProtectedRoute>
-              } />
-              
-              {/* <Route path="/admin/posts" element={
-                <ProtectedRoute adminOnly={true}>
-                  <AdminPosts />
-                </ProtectedRoute>
-              } /> */}
-              
-              {/* Fallback */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/users" element={
+              <ProtectedRoute>
+                <Layout>
+                  <UserManagement />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/activity-logs" element={
+              <ProtectedRoute>
+                <Layout>
+                  <ActivityLogs />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/posts" element={
+  <ProtectedRoute>
+    <Layout>
+      <PostManagement />
+    </Layout>
+  </ProtectedRoute>
+} />
+
+
+            <Route path="/events" element={
+  <ProtectedRoute>
+    <Layout>
+      <EventManagement />
+    </Layout>
+  </ProtectedRoute>
+} />
+          </Routes>
         </div>
       </Router>
     </AuthProvider>

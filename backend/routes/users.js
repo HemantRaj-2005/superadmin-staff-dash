@@ -120,4 +120,91 @@ router.get('/profile', auth, async (req, res) => {
   }
 });
 
+
+// routes/users.js - Add these routes
+
+// Update user
+router.put('/:id', adminAuth, async (req, res) => {
+  try {
+    const { username, email, role, isActive } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { username, email, role, isActive },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Bulk actions
+router.post('/bulk-action', adminAuth, async (req, res) => {
+  try {
+    const { userIds, action } = req.body;
+
+    switch (action) {
+      case 'delete':
+        await User.updateMany(
+          { _id: { $in: userIds } },
+          { 
+            isActive: false,
+            deletedAt: new Date(),
+            scheduledForPermanentDeletion: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+          }
+        );
+        break;
+      case 'activate':
+        await User.updateMany(
+          { _id: { $in: userIds } },
+          { isActive: true }
+        );
+        break;
+      case 'deactivate':
+        await User.updateMany(
+          { _id: { $in: userIds } },
+          { isActive: false }
+        );
+        break;
+      default:
+        return res.status(400).json({ message: 'Invalid action' });
+    }
+
+    res.json({ message: 'Bulk action completed successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// User statistics
+router.get('/stats', adminAuth, async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const activeUsers = await User.countDocuments({ isActive: true, deletedAt: null });
+    const deletedUsers = await User.countDocuments({ deletedAt: { $ne: null } });
+    const adminUsers = await User.countDocuments({ role: 'admin' });
+
+    // Weekly registration stats
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const weeklyRegistrations = await User.countDocuments({
+      createdAt: { $gte: oneWeekAgo }
+    });
+
+    res.json({
+      totalUsers,
+      activeUsers,
+      deletedUsers,
+      adminUsers,
+      weeklyRegistrations
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 export default router;
