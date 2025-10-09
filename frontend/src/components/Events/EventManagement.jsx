@@ -4,7 +4,7 @@ import axios from 'axios';
 import EventTable from './EventTable';
 import EventDetailModal from './EventDetailModal';
 import EventStats from './EventStats';
-import api from '../services/api';
+import api from '..//../services/api';
 
 const EventManagement = () => {
   const [events, setEvents] = useState([]);

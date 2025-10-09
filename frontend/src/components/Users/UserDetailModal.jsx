@@ -5,13 +5,22 @@ const UserDetailModal = ({ user, onClose, onUpdate }) => {
   const [activeTab, setActiveTab] = useState('basic');
   const [editingField, setEditingField] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const [editingEducationIndex, setEditingEducationIndex] = useState(null);
+  const [editingEducationField, setEditingEducationField] = useState(null);
 
   const handleEdit = (field, value) => {
     setEditingField(field);
     setEditValue(value || '');
   };
 
-  const handleSave = () => {
+  const handleEducationEdit = (index, field, value) => {
+    setEditingEducationIndex(index);
+    setEditingEducationField(field);
+    setEditValue(value || '');
+  };
+
+  const handleSave = (e) => {
+    e.preventDefault();
     if (editingField && editValue !== undefined) {
       onUpdate(user._id, { [editingField]: editValue });
     }
@@ -19,8 +28,26 @@ const UserDetailModal = ({ user, onClose, onUpdate }) => {
     setEditValue('');
   };
 
-  const handleCancel = () => {
+  const handleEducationSave = (e) => {
+    e.preventDefault();
+    if (editingEducationIndex !== null && editingEducationField && editValue !== undefined) {
+      const updatedEducation = [...user.education];
+      updatedEducation[editingEducationIndex] = {
+        ...updatedEducation[editingEducationIndex],
+        [editingEducationField]: editValue
+      };
+      onUpdate(user._id, { education: updatedEducation });
+    }
+    setEditingEducationIndex(null);
+    setEditingEducationField(null);
+    setEditValue('');
+  };
+
+  const handleCancel = (e) => {
+    e.preventDefault();
     setEditingField(null);
+    setEditingEducationIndex(null);
+    setEditingEducationField(null);
     setEditValue('');
   };
 
@@ -78,6 +105,68 @@ const UserDetailModal = ({ user, onClose, onUpdate }) => {
     );
   };
 
+  const renderEducationField = (edu, index, field, label, type = 'text') => {
+    const value = edu[field] || '';
+    const displayValue = value || 'Not specified';
+    
+    if (editingEducationIndex === index && editingEducationField === field) {
+      return (
+        <div className="flex items-center space-x-2 mt-1">
+          {type === 'textarea' ? (
+            <textarea
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              rows="3"
+            />
+          ) : type === 'date' ? (
+            <input
+              type="date"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          ) : (
+            <input
+              type={type}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          )}
+          <div className="flex space-x-1">
+            <button
+              onClick={handleEducationSave}
+              className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition-colors"
+            >
+              ✓
+            </button>
+            <button
+              onClick={handleCancel}
+              className="px-2 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex justify-between items-start mt-1">
+        <span className={`text-gray-900 text-sm ${type === 'textarea' ? 'whitespace-pre-wrap' : ''}`}>
+          {displayValue}
+        </span>
+        <button
+          onClick={() => handleEducationEdit(index, field, value)}
+          className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+        >
+          Edit
+        </button>
+      </div>
+    );
+  };
+
   const formatDate = (date) => {
     if (!date) return 'Not provided';
     return new Date(date).toLocaleDateString('en-US', {
@@ -85,6 +174,11 @@ const UserDetailModal = ({ user, onClose, onUpdate }) => {
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  const formatEducationDate = (date) => {
+    if (!date) return 'Not specified';
+    return new Date(date).getFullYear();
   };
 
   const getStatusBadge = (status) => {
@@ -300,58 +394,89 @@ const UserDetailModal = ({ user, onClose, onUpdate }) => {
                         Education #{index + 1}
                       </h4>
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                        {edu.qualification}
+                        {edu.qualification} 
                       </span>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {/* Institute Information */}
                       <div>
                         <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Institute</label>
-                        <p className="text-gray-900 font-medium mt-1">
-                          {edu.institute || edu.otherInstitute || 'Not specified'}
-                        </p>
+                        {renderEducationField(edu, index, 'institute', 'Institute')}
                         {edu.university && (
-                          <p className="text-sm text-gray-600 mt-1">{edu.university}</p>
+                          <div className="mt-2">
+                            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">University</label>
+                            {renderEducationField(edu, index, 'university', 'University')}
+                          </div>
                         )}
                       </div>
                       
+                      {/* Program Information */}
                       <div>
                         <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Program</label>
-                        <p className="text-gray-900 font-medium mt-1">
-                          {edu.program || 'Not specified'}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-1">{edu.specialization}</p>
+                        {renderEducationField(edu, index, 'program', 'Program')}
+                        {edu.specialization && (
+                          <div className="mt-2">
+                            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Specialization</label>
+                            {renderEducationField(edu, index, 'specialization', 'Specialization')}
+                          </div>
+                        )}
                       </div>
                       
+                      {/* Duration */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Duration</label>
-                        <p className="text-gray-900 font-medium mt-1">
-                          {new Date(edu.startYear).getFullYear()} - {new Date(edu.completionYear).getFullYear()}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-1">{edu.programType}</p>
+                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Start Year</label>
+                        {renderEducationField(edu, index, 'startYear', 'Start Year', 'date')}
+                        <div className="mt-2">
+                          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Completion Year</label>
+                          {renderEducationField(edu, index, 'completionYear', 'Completion Year', 'date')}
+                        </div>
                       </div>
                       
+                      {/* Performance */}
                       <div>
                         <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Performance</label>
-                        <p className="text-gray-900 font-medium mt-1">
-                          {edu.percentageOrCGPA || 'Not specified'}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-1">{edu.medium}</p>
+                        {renderEducationField(edu, index, 'percentageOrCGPA', 'Percentage/CGPA')}
+                        {edu.medium && (
+                          <div className="mt-2">
+                            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Medium</label>
+                            {renderEducationField(edu, index, 'medium', 'Medium')}
+                          </div>
+                        )}
                       </div>
                       
+                      {/* Location */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Location</label>
-                        <p className="text-gray-900 font-medium mt-1">
-                          {edu.city}, {edu.state}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-1">Pincode: {edu.pincode}</p>
+                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">City</label>
+                        {renderEducationField(edu, index, 'city', 'City')}
+                        <div className="mt-2">
+                          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">State</label>
+                          {renderEducationField(edu, index, 'state', 'State')}
+                        </div>
                       </div>
                       
+                      {/* Additional Information */}
                       <div>
                         <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Board/University</label>
-                        <p className="text-gray-900 font-medium mt-1">
-                          {edu.board || edu.university || 'Not specified'}
-                        </p>
+                        {renderEducationField(edu, index, 'board', 'Board')}
+                        {edu.programType && (
+                          <div className="mt-2">
+                            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Program Type</label>
+                            {renderEducationField(edu, index, 'programType', 'Program Type')}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Pincode */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Pincode</label>
+                        {renderEducationField(edu, index, 'pincode', 'Pincode')}
+                      </div>
+
+                      {/* Qualification */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Qualification</label>
+                        {renderEducationField(edu, index, 'qualification', 'Qualification')}
                       </div>
                     </div>
                   </div>

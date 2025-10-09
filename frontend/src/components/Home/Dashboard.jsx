@@ -1,9 +1,9 @@
 // components/Dashboard.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useAuth } from '../contexts/AuthContext';
-import Avatar from './Avatar';
-import api from '../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import Avatar from '../Profile/Avatar';
+import api from '../../services/api';
 const Dashboard = () => {
   const [stats, setStats] = useState({
     totalUsers:0,

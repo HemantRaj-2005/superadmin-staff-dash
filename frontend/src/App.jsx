@@ -2,13 +2,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import UserManagement from './components/UserManagement';
-import ActivityLogs from './components/ActivityLogs';
+import Login from './components/auth/Login';
+import Dashboard from './components/Home/Dashboard';
+import UserManagement from './components/Users/UserManagement';
+import ActivityLogs from './components/Activity/ActivityLogs';
 import Layout from './components/Layout';
-import PostManagement from './components/PostManagement';
-import EventManagement from './components/EventManagement';
+import PostManagement from './components/Posts/PostManagement';
+import EventManagement from './components/Events/EventManagement';
 
 
 function ProtectedRoute({ children }) {
@@ -46,21 +46,21 @@ function App() {
             } />
 
             <Route path="/posts" element={
-  <ProtectedRoute>
-    <Layout>
-      <PostManagement />
-    </Layout>
-  </ProtectedRoute>
-} />
+              <ProtectedRoute>
+                <Layout>
+                  <PostManagement />
+                </Layout>
+              </ProtectedRoute>
+            } />
 
 
             <Route path="/events" element={
-  <ProtectedRoute>
-    <Layout>
-      <EventManagement />
-    </Layout>
-  </ProtectedRoute>
-} />
+              <ProtectedRoute>
+                <Layout>
+                  <EventManagement />
+                </Layout>
+              </ProtectedRoute>
+            } />
           </Routes>
         </div>
       </Router>

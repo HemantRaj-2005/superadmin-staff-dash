@@ -1,7 +1,7 @@
 // components/EventStats.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import api from '../services/api';
+import api from '..//../services/api';
 
 const EventStats = () => {
   const [stats, setStats] = useState({

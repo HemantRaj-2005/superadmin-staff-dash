@@ -1,6 +1,6 @@
 // components/UserTable.js (Updated)
 import React from 'react';
-import Avatar from './Avatar';
+import Avatar from '../Profile/Avatar';
 
 const UserTable = ({ users, loading, onUserClick, onDeleteUser }) => {
   if (loading) {

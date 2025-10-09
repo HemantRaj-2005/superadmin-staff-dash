@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import PostTable from './PostTable';
 import PostDetailModal from './PostDetailModal';
-import api from '../services/api';
+import api from '../../services/api';
 
 const PostManagement = () => {
   const [posts, setPosts] = useState([]);
