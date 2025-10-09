@@ -66,6 +66,8 @@ const UserManagement = () => {
   };
 
   const handleUpdateUser = async (userId, updateData) => {
+
+    
     try {
       await api.put(`/users/${userId}`, updateData);
       fetchUsers(); // Refresh the list
