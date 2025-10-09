@@ -1,11 +1,7 @@
-
-
-
-
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://superadmin-staff-dash.onrender.com/api/admin',
+  baseURL: `${import.meta.env.VITE_API_BASE_URL_ADMIN}`,
   timeout: 10000,
 });
 
