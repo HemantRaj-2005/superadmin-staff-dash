@@ -52,6 +52,8 @@ const EventManagement = () => {
         total: response.data.total,
         totalPages: response.data.totalPages
       }));
+
+      console.log(response.data)
     } catch (error) {
       console.error('Error fetching events:', error);
     } finally {

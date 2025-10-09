@@ -23,20 +23,28 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
+      // 1. Get token from localStorage (survives refresh)
       const token = localStorage.getItem('adminToken');
-      if (token) {
-        // Set default authorization header
+      const savedAdmin = localStorage.getItem('adminData');
+      
+      if (token && savedAdmin) {
+        // 2. Set axios default header
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
+        // 3. Verify token is still valid with backend
         const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/auth/me`);
+        
         if (response.data) {
-          setAdmin(response.data);
+          // 4. Update state with saved admin data
+          setAdmin(JSON.parse(savedAdmin));
           setIsAuthenticated(true);
         }
       }
     } catch (error) {
       console.error('Auth check failed:', error);
+      // Token is invalid, clear storage
       localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminData');
       delete axios.defaults.headers.common['Authorization'];
     } finally {
       setLoading(false);
@@ -52,8 +60,14 @@ export const AuthProvider = ({ children }) => {
       
       const { token, admin } = response.data;
       
+      // 1. Save to localStorage (survives refresh)
       localStorage.setItem('adminToken', token);
+      localStorage.setItem('adminData', JSON.stringify(admin));
+      
+      // 2. Set axios default header
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      // 3. Update state
       setAdmin(admin);
       setIsAuthenticated(true);
       
@@ -67,8 +81,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    // 1. Clear localStorage
     localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminData');
+    
+    // 2. Remove axios header
     delete axios.defaults.headers.common['Authorization'];
+    
+    // 3. Reset state
     setAdmin(null);
     setIsAuthenticated(false);
   };

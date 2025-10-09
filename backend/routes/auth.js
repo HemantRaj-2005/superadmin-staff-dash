@@ -2,6 +2,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import Admin from '../models/Admin.js';
+import { logLoginActivity, logLogoutActivity } from '../middleware/ActivityLogger.js';
 
 const router = express.Router();
 
@@ -26,6 +27,9 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    // Log login activity
+    await logLoginActivity(req, admin, token);
+
     res.json({
       token,
       admin: {
@@ -35,6 +39,26 @@ router.post('/login', async (req, res) => {
         role: admin.role
       }
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Admin logout
+router.post('/logout', async (req, res) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const admin = await Admin.findById(decoded.id);
+      
+      if (admin) {
+        await logLogoutActivity(req, admin);
+      }
+    }
+    
+    res.json({ message: 'Logged out successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
