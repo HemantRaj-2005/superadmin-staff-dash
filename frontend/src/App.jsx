@@ -9,32 +9,13 @@ import ActivityLogs from './components/Activity/ActivityLogs';
 import Layout from './components/Layout';
 import PostManagement from './components/Posts/PostManagement';
 import EventManagement from './components/Events/EventManagement';
-import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import api from './services/api';
+import { useNavigationTracking } from './components/Hooks/NavigationTracking';
 
-let lastPathname = '';
-
-export const useNavigationTracking = () => {
-  const location = useLocation();
-  const { admin, isAuthenticated } = useAuth();
-
-  useEffect(() => {
-    if (isAuthenticated && admin && lastPathname !== location.pathname) {
-      const fromPage = lastPathname || 'Login';
-      const toPage = location.pathname;
-      
-      // Track navigation
-      api.post('/api/admin/activity-logs/navigation', {
-        fromPage,
-        toPage
-      }).catch(console.error);
-      
-      lastPathname = location.pathname;
-    }
-  }, [location.pathname, isAuthenticated, admin]);
-};
-
+// Component that wraps protected routes with navigation tracking + layout
+function ProtectedLayout({ children }) {
+  useNavigationTracking(); // track navigation for protected routes
+  return <Layout>{children}</Layout>;
+}
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -53,56 +34,77 @@ function ProtectedRoute({ children }) {
   return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
+function AppContent() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Routes>
+        <Route path="/login" element={<Login />} />
 
+        {/* Protected pages: wrap with ProtectedRoute and ProtectedLayout */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <ProtectedLayout>
+                <Dashboard />
+              </ProtectedLayout>
+            </ProtectedRoute>
+          }
+        />
 
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute>
+              <ProtectedLayout>
+                <UserManagement />
+              </ProtectedLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/activity-logs"
+          element={
+            <ProtectedRoute>
+              <ProtectedLayout>
+                <ActivityLogs />
+              </ProtectedLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/posts"
+          element={
+            <ProtectedRoute>
+              <ProtectedLayout>
+                <PostManagement />
+              </ProtectedLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/events"
+          element={
+            <ProtectedRoute>
+              <ProtectedLayout>
+                <EventManagement />
+              </ProtectedLayout>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </div>
+  );
+}
 
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Layout>
-                  <Dashboard />
-                </Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/users" element={
-              <ProtectedRoute>
-                <Layout>
-                  <UserManagement />
-                </Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/activity-logs" element={
-              <ProtectedRoute>
-                <Layout>
-                  <ActivityLogs />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/posts" element={
-              <ProtectedRoute>
-                <Layout>
-                  <PostManagement />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-
-            <Route path="/events" element={
-              <ProtectedRoute>
-                <Layout>
-                  <EventManagement />
-                </Layout>
-              </ProtectedRoute>
-            } />
-          </Routes>
-        </div>
+        <AppContent />
       </Router>
     </AuthProvider>
   );

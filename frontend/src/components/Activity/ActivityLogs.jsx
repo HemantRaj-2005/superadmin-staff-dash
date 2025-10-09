@@ -190,37 +190,37 @@ const ActivityLogs = () => {
     }
   };
 
-  const exportLogs = async (format = 'json') => {
-    try {
-      const response = await api.get(`/activity-logs/export?format=${format}`, {
-        responseType: format === 'csv' ? 'blob' : 'json'
-      });
+  // const exportLogs = async (format = 'json') => {
+  //   try {
+  //     const response = await api.get(`/activity-logs/export?format=${format}`, {
+  //       responseType: format === 'csv' ? 'blob' : 'json'
+  //     });
       
-      if (format === 'csv') {
-        // Download CSV file
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `activity-logs-${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      } else {
-        // Download JSON file
-        const dataStr = JSON.stringify(response.data, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = window.URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `activity-logs-${new Date().toISOString().split('T')[0]}.json`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      }
-    } catch (error) {
-      console.error('Error exporting logs:', error);
-    }
-  };
+  //     if (format === 'csv') {
+  //       // Download CSV file
+  //       const url = window.URL.createObjectURL(new Blob([response.data]));
+  //       const link = document.createElement('a');
+  //       link.href = url;
+  //       link.setAttribute('download', `activity-logs-${new Date().toISOString().split('T')[0]}.csv`);
+  //       document.body.appendChild(link);
+  //       link.click();
+  //       link.remove();
+  //     } else {
+  //       // Download JSON file
+  //       const dataStr = JSON.stringify(response.data, null, 2);
+  //       const dataBlob = new Blob([dataStr], { type: 'application/json' });
+  //       const url = window.URL.createObjectURL(dataBlob);
+  //       const link = document.createElement('a');
+  //       link.href = url;
+  //       link.setAttribute('download', `activity-logs-${new Date().toISOString().split('T')[0]}.json`);
+  //       document.body.appendChild(link);
+  //       link.click();
+  //       link.remove();
+  //     }
+  //   } catch (error) {
+  //     console.error('Error exporting logs:', error);
+  //   }
+  // };
 
   if (admin?.role !== 'super_admin') {
     return (
@@ -248,7 +248,7 @@ const ActivityLogs = () => {
             <h2 className="text-2xl font-bold text-gray-900">Activity Logs</h2>
             <p className="text-gray-600 mt-1">Monitor all admin activities and changes</p>
           </div>
-          <div className="flex space-x-3">
+          {/* <div className="flex space-x-3">
             <button
               onClick={() => exportLogs('csv')}
               className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-200"
@@ -261,7 +261,7 @@ const ActivityLogs = () => {
             >
               Export JSON
             </button>
-          </div>
+          </div> */}
         </div>
 
         {/* Advanced Filters */}

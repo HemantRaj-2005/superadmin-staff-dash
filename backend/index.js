@@ -11,6 +11,7 @@ import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import statsRoutes from './routes/stats.js';
 import eventRoutes from './routes/event.js'
+import activityLogRoutes from './routes/activityLogs.js'
 
 dotenv.config();
 
@@ -41,6 +42,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin/posts', postRoutes);
 app.use('/api/admin/stats', statsRoutes);
 app.use('/api/admin/events', eventRoutes);
+app.use('/api/admin/activity-logs', activityLogRoutes);
+
 
 
 
@@ -73,7 +76,7 @@ const PORT = process.env.PORT || 5000;
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/admin-panel')
   .then(() => {
     console.log('Connected to MongoDB');
-    app.listen(PORT, () => {
+    app.listen(PORT,() => {
       console.log(`Server running on port ${PORT}`);
     });
   })

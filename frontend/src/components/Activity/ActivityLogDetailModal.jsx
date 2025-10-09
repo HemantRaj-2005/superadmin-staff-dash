@@ -61,7 +61,7 @@ const ActivityLogDetailModal = ({ log, onClose }) => {
           {/* Tabs */}
           <div className="border-b border-gray-200 mb-6">
             <nav className="-mb-px flex space-x-8">
-              {['overview', 'changes', 'technical'].map((tab) => (
+              {['overview', 'changes', ].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}

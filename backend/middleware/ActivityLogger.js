@@ -1,71 +1,9 @@
-// // middleware/activityLogger.js
-// import ActivityLog from '../models/ActivityLog.js';
-
-// // export const logActivity = (action) => {
-// //   return async (req, res, next) => {
-// //     const originalJson = res.json;
-    
-// //     res.json = function(data) {
-// //       // Log after response is sent
-// //       if (res.statusCode < 400) { // Only log successful actions
-// //         ActivityLog.create({
-// //           adminId: req.admin._id,
-// //           action,
-// //           targetUser: req.params.id || req.body.userId,
-// //           details: req.body,
-// //           ipAddress: req.ip,
-// //           userAgent: req.get('User-Agent')
-// //         }).catch(console.error);
-// //       }
-      
-// //       originalJson.call(this, data);
-// //     };
-    
-// //     next();
-// //   };
-// // };
-
-
-// // middleware/activityLogger.js - Add event actions
-// export const logActivity = (action) => {
-//   return async (req, res, next) => {
-//     const originalJson = res.json;
-    
-//     res.json = function(data) {
-//       if (res.statusCode < 400) {
-//         // Extract relevant details based on action type
-//         let details = {};
-        
-//         if (action.includes('EVENT')) {
-//           details = {
-//             eventId: req.params.id,
-//             eventTitle: req.body.event_title || 'Unknown Event',
-//             changes: req.body
-//           };
-//         }
-        
-//         ActivityLog.create({
-//           adminId: req.admin._id,
-//           action,
-//           targetUser: req.params.id,
-//           details,
-//           ipAddress: req.ip,
-//           userAgent: req.get('User-Agent')
-//         }).catch(console.error);
-//       }
-      
-//       originalJson.call(this, data);
-//     };
-    
-//     next();
-//   };
-// };
-
-
+import User from '../models/User.js';
 
 
 // middleware/activityLogger.js
 import ActivityLog from '../models/ActivityLog.js';
+import Admin from '../models/Admin.js';
 
 // Generic activity logger
 export const logActivity = (action, options = {}) => {
@@ -169,6 +107,9 @@ export const logLogoutActivity = async (req, admin) => {
 
 // Navigation logger (to be called from frontend)
 export const logNavigation = async (adminId, fromPage, toPage, ipAddress, userAgent) => {
+  let user=await Admin.findOne({_id:adminId})
+  if(user?.role=='admin')
+{
   const activityLog = new ActivityLog({
     adminId,
     action: 'NAVIGATE',
@@ -184,8 +125,9 @@ export const logNavigation = async (adminId, fromPage, toPage, ipAddress, userAg
       toPage
     }
   });
-  
+
   await activityLog.save();
+   }
 };
 
 // Helper function to generate descriptive messages
@@ -196,6 +138,7 @@ const generateDescription = (action, req, responseData, options) => {
     LOGIN: `${adminName} logged in`,
     LOGOUT: `${adminName} logged out`,
     NAVIGATE: `${adminName} navigated to ${req.originalUrl}`,
+
     VIEW_USER: `${adminName} viewed user details`,
     UPDATE_USER: `${adminName} updated user ${req.params.id}`,
     DELETE_USER: `${adminName} deleted user ${req.params.id}`,
