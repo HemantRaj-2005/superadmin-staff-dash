@@ -19,10 +19,11 @@ const UserDetailModal = ({ user, onClose, onUpdate }) => {
     setEditValue(value || '');
   };
 
+  let data=user[editingField];
   const handleSave = (e) => {
     e.preventDefault();
     if (editingField && editValue !== undefined) {
-      onUpdate(user._id, { [editingField]: editValue });
+      onUpdate(user._id, { [editingField]: editValue});
     }
     setEditingField(null);
     setEditValue('');

@@ -5,7 +5,7 @@ const ActivityLogSchema = new mongoose.Schema({
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Admin',
-    required: true
+    required: false // make optional so system logs / failed middleware don't break
   },
   action: {
     type: String,
@@ -14,7 +14,7 @@ const ActivityLogSchema = new mongoose.Schema({
       'LOGIN', 'LOGOUT', 'NAVIGATE',
       'VIEW_USER', 'UPDATE_USER', 'DELETE_USER',
       'VIEW_POST', 'UPDATE_POST', 'DELETE_POST', 'REMOVE_REACTION',
-      'VIEW_EVENT', 'UPDATE_EVENT', 'DELETE_EVENT','VIEW_USERS',
+      'VIEW_EVENT', 'UPDATE_EVENT', 'DELETE_EVENT',
       'VIEW_ACTIVITY_LOGS', 'EXPORT_DATA'
     ]
   },
@@ -25,7 +25,8 @@ const ActivityLogSchema = new mongoose.Schema({
   },
   resourceId: {
     type: mongoose.Schema.Types.ObjectId,
-    refPath: 'resourceType'
+    refPath: 'resourceType',
+    required: false
   },
   description: {
     type: String,
@@ -33,7 +34,7 @@ const ActivityLogSchema = new mongoose.Schema({
   },
   ipAddress: {
     type: String,
-    required: true
+    required: false // optional so logs can be created when req.ip isn't available
   },
   userAgent: {
     type: String
@@ -47,8 +48,8 @@ const ActivityLogSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['SUCCESS', 'FAILED'],
-    default: 'SUCCESS'
+    enum: ['PENDING', 'SUCCESS', 'FAILED'], // include PENDING so middleware can create initial record
+    default: 'PENDING'
   },
   changes: {
     oldValues: { type: mongoose.Schema.Types.Mixed },
@@ -62,7 +63,7 @@ const ActivityLogSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for better query performance
+// Indexes for better query performance
 ActivityLogSchema.index({ adminId: 1, createdAt: -1 });
 ActivityLogSchema.index({ resourceType: 1, resourceId: 1 });
 ActivityLogSchema.index({ action: 1 });

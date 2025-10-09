@@ -1,116 +1,3 @@
-// // routes/admin.js
-// import express from 'express';
-// import { authenticate, authorize } from '../middleware/auth.js';
-// import { logActivity } from '../middleware/ActivityLogger.js';
-// import User from '../models/User.js';
-// import ActivityLog from '../models/ActivityLog.js';
-
-// const router = express.Router();
-
-// // Get all users with pagination and search
-// router.get('/users', authenticate, async (req, res) => {
-//   try {
-//     const { page = 1, limit = 10, search = '' } = req.query;
-    
-//     const query = {};
-//     if (search) {
-//       query.$or = [
-//         { firstName: { $regex: search, $options: 'i' } },
-//         { lastName: { $regex: search, $options: 'i' } },
-//         { email: { $regex: search, $options: 'i' } }
-//       ];
-//     }
-
-//     const users = await User.find(query)
-//       .select('firstName lastName email profileImage role createdAt')
-//       .limit(limit * 1)
-//       .skip((page - 1) * limit)
-//       .sort({ createdAt: -1 });
-
-//     const total = await User.countDocuments(query);
-
-//     res.json({
-//       users,
-//       totalPages: Math.ceil(total / limit),
-//       currentPage: page,
-//       total
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// });
-
-// // Get single user details
-// router.get('/users/:id', authenticate, async (req, res) => {
-//   try {
-//     const user = await User.findById(req.params.id);
-//     if (!user) {
-//       return res.status(404).json({ message: 'User not found' });
-//     }
-//     res.json(user);
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// });
-
-// // Update user
-// router.put('/users/:id', authenticate, logActivity('UPDATE_USER'), async (req, res) => {
-//   try {
-//     const user = await User.findByIdAndUpdate(
-//       req.params.id,
-//       { $set: req.body },
-//       { new: true, runValidators: true }
-//     );
-    
-//     if (!user) {
-//       return res.status(404).json({ message: 'User not found' });
-//     }
-    
-//     res.json(user);
-//   } catch (error) {
-//     res.status(400).json({ message: error.message });
-//   }
-// });
-
-// // Delete user
-// // router.delete('/users/:id', authenticate, logActivity('DELETE_USER'), async (req, res) => {
-// //   try {
-// //     const user = await User.findByIdAndDelete(req.params.id);
-// //     if (!user) {
-// //       return res.status(404).json({ message: 'User not found' });
-// //     }
-// //     res.json({ message: 'User deleted successfully' });
-// //   } catch (error) {
-// //     res.status(500).json({ message: error.message });
-// //   }
-// // });
-
-// // Get activity logs (super admin only)
-// router.get('/activity-logs', authenticate, authorize(['super_admin']), async (req, res) => {
-//   try {
-//     const { page = 1, limit = 20 } = req.query;
-    
-//     const logs = await ActivityLog.find()
-//       .populate('adminId', 'name email')
-//       .populate('targetUser', 'firstName lastName email')
-//       .sort({ createdAt: -1 })
-//       .limit(limit * 1)
-//       .skip((page - 1) * limit);
-
-//     const total = await ActivityLog.countDocuments();
-
-//     res.json({
-//       logs,
-//       totalPages: Math.ceil(total / limit),
-//       currentPage: page,
-//       total
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// });
-
-// export default router;
 
 
 // routes/admin.js
@@ -132,7 +19,7 @@ const getUserForLogging = async (userId) => {
  * GET /users
  * List users with pagination & search
  */
-router.get('/users', authenticate, logActivity('VIEW_USERS', { resourceType: 'User' }), async (req, res) => {
+router.get('/users', authenticate, async (req, res) => {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
@@ -183,49 +70,67 @@ router.get('/users/:id', authenticate, logActivity('VIEW_USER', { resourceType: 
 /**
  * PUT /users/:id
  * Update user with old-values logging and activity entry
- */
-router.put(
+ */router.put(
   '/users/:id',
   authenticate,
-  // middleware that fetches and attaches old data to req.oldData
-  logUpdateWithOldValues('User', getUserForLogging),
-  logActivity('UPDATE_USER', { resourceType: 'User' }),
+  logUpdateWithOldValues('User', getUserForLogging), // sets req.oldData (plain object)
+  logActivity('UPDATE_USER', { resourceType: 'User' }), // creates pending log and sets req.activityLogId
   async (req, res) => {
     try {
-      const oldUser = req.oldData; // populated by logUpdateWithOldValues middleware
-      const user = await User.findByIdAndUpdate(
+      const oldUser = req.oldData; 
+
+      // Perform the update
+      let user = await User.findByIdAndUpdate(
         req.params.id,
         { $set: req.body },
         { new: true, runValidators: true }
       ).select('-password -refreshTokens');
 
+user=await User.findById(req.params.id)
+
       if (!user) {
+        // mark the activity as failed if we created one
+        if (req.activityLogId) {
+          await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+            $set: { status: 'FAILED', description: `UPDATE_USER failed: user ${req.params.id} not found` }
+          }).catch(console.error);
+        }
         return res.status(404).json({ message: 'User not found' });
       }
 
-      // Find the corresponding (most recent) activity log entry for this action & admin
       try {
-        const activityLog = await ActivityLog.findOne({
-          adminId: req.admin?._id,
-          resourceId: req.params.id,
-          action: 'UPDATE_USER'
-        }).sort({ createdAt: -1 });
+        const newObj = user.toObject();
+        const oldObj = oldUser || null;
 
-        if (activityLog && oldUser) {
-          activityLog.changes = {
-            oldValues: oldUser.toObject ? oldUser.toObject() : oldUser,
-            newValues: user.toObject()
-          };
-          await activityLog.save();
+        if (req.activityLogId) {
+          await ActivityLog.findByIdAndUpdate(
+            req.activityLogId,
+            {
+              $set: {
+                changes: { oldValues: oldObj, newValues: newObj },
+                status: 'SUCCESS',
+                description: `UPDATE_USER performed by ${req.admin?.name || 'Unknown Admin'} on user ${req.params.id}`
+              }
+            },
+            { new: true }
+          ).catch((e) => {
+            console.error('Failed to update ActivityLog with changes:', e);
+          });
         }
       } catch (innerErr) {
-        // If logging update fails, don't block response — still return updated user
-        console.error('Failed to append changes to activity log:', innerErr);
+        console.error('Error while writing changes to ActivityLog:', innerErr);
       }
 
-      res.json(user);
+      return res.json(user);
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      console.error('PUT /users/:id error:', error);
+      // Update activity log status if possible
+      if (req.activityLogId) {
+        await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+          $set: { status: 'FAILED', description: error.message }
+        }).catch(console.error);
+      }
+      return res.status(400).json({ message: error.message });
     }
   }
 );

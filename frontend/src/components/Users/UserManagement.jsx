@@ -27,7 +27,7 @@ const UserManagement = () => {
     setLoading(true);
     setError('');
     try {
-      console.log('Fetching users...');
+      // console.log('Fetching users...');
       const response = await api.get('/users', {
         params: {
           page: pagination.page,

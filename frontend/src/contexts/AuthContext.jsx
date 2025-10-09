@@ -80,8 +80,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout =async () => {
     // 1. Clear localStorage
+ try {
+      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/logout`);
+
+
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminData');
     
@@ -91,7 +95,9 @@ export const AuthProvider = ({ children }) => {
     // 3. Reset state
     setAdmin(null);
     setIsAuthenticated(false);
-  };
+  } catch(error){
+    console.log(error)
+  }};
 
   const value = {
     admin,

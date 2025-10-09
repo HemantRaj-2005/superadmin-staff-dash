@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 
 const ActivityLogDetailModal = ({ log, onClose }) => {
-  const [activeTab, setActiveTab] = useState('overview');
-
+  const [activeTab, setActiveTab] = useState('changes');
   const formatJSON = (obj) => {
     if (!obj) return 'No data';
     return JSON.stringify(obj, null, 2);
@@ -61,7 +60,7 @@ const ActivityLogDetailModal = ({ log, onClose }) => {
           {/* Tabs */}
           <div className="border-b border-gray-200 mb-6">
             <nav className="-mb-px flex space-x-8">
-              {['overview', 'changes', ].map((tab) => (
+              {['changes','overview' ].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -230,11 +229,12 @@ const ActivityLogDetailModal = ({ log, onClose }) => {
                     <p className="text-gray-500">
                       This action didn't involve any data modifications or change tracking is not available.
                     </p>
+                    {setActiveTab('overview')}
                   </div>
                 )}
 
                 {/* Raw Changes Data */}
-                {log.changes && (
+                {/* {log.changes && (
                   <div className="bg-gray-50 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Raw Changes Data</h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -252,7 +252,7 @@ const ActivityLogDetailModal = ({ log, onClose }) => {
                       </div>
                     </div>
                   </div>
-                )}
+                )} */}
               </div>
             )}
 
