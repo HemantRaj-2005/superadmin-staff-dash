@@ -120,10 +120,68 @@ const ActivityLogDetailModal = ({ log, onClose }) => {
                       )}
                     </div>
                   </div>
-                </div>
+                </div> 
+
+                 <div className="bg-gray-50 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Network Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">IP Address & Location</h4>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">IP Address:</span>
+                <span className="text-sm font-mono text-gray-900">{log.ipAddress}</span>
+              </div>
+              {log.ipDetails && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Country:</span>
+                    <span className="text-sm text-gray-900">{log.ipDetails.country}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">City:</span>
+                    <span className="text-sm text-gray-900">{log.ipDetails.city}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">ISP:</span>
+                    <span className="text-sm text-gray-900">{log.ipDetails.isp}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Device & Browser</h4>
+            <div className="space-y-2">
+              {log.userAgentDetails && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Browser:</span>
+                    <span className="text-sm text-gray-900">{log.userAgentDetails.browser}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">OS:</span>
+                    <span className="text-sm text-gray-900">{log.userAgentDetails.os}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Device:</span>
+                    <span className="text-sm text-gray-900">{log.userAgentDetails.device}</span>
+                  </div>
+                </>
+              )}
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">User Agent:</span>
+                <span className="text-sm text-gray-900 truncate ml-2">{log.userAgent}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
                 {/* Technical Details */}
                 <div className="space-y-6">
+                  
                   <div className="bg-gray-50 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Technical Details</h3>
                     <div className="space-y-4">
@@ -265,6 +323,7 @@ const ActivityLogDetailModal = ({ log, onClose }) => {
                   </pre>
                 </div>
 
+
                 <div className="bg-gray-50 rounded-xl p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Full Activity Log Data</h3>
                   <pre className="text-sm bg-white p-4 rounded border border-gray-200 overflow-x-auto max-h-96">
@@ -272,6 +331,9 @@ const ActivityLogDetailModal = ({ log, onClose }) => {
                   </pre>
                 </div>
               </div>
+
+
+
             )}
           </div>
         </div>

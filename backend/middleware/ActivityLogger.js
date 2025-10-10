@@ -1,7 +1,7 @@
 // middleware/activityLogger.js
 import ActivityLog from '../models/ActivityLog.js';
 import Admin from '../models/Admin.js';
-
+import { getClientIp , getIpDetails, parseUserAgent} from '../utils/ipUtils.js';
 // Helper: sanitize sensitive fields before logging
 const sensitiveFields = ['password', 'token', 'refreshToken', 'otp', 'otpVerificationId'];
 const sanitizeBody = (body) => {
@@ -36,12 +36,13 @@ const generateDescription = (action, req, responseData, options = {}) => {
 
 /**
  * Create a pending activity log before the route runs and attach its id on req.
- * Also wraps res.json so we can append final metadata/status after response creation.
  */
 export const logActivity = (action, options = {}) => {
   return async (req, res, next) => {
     const start = Date.now();
-    // create a pending activity log (so we have the ID to update later)
+
+    // create a pending activity log ,ID to update later
+    
     try {
       const activity = await ActivityLog.create({
         adminId: req.admin?._id || null,
@@ -49,8 +50,8 @@ export const logActivity = (action, options = {}) => {
         resourceType: options.resourceType || null,
         resourceId: req.params?.id || options.resourceId || null,
         description: generateDescription(action, req, null, options),
-        ipAddress: req.ip || req.connection?.remoteAddress || null,
-        userAgent: req.get('User-Agent') || null,
+         ipAddress: getClientIp(req), 
+  userAgent: req.get('User-Agent'),
         endpoint: req.originalUrl,
         method: req.method,
         status: 'PENDING',
@@ -135,8 +136,8 @@ export const logLoginActivity = async (req, admin, token) => {
     action: 'LOGIN',
     resourceType: 'System',
     description: `Admin ${admin.name} logged in successfully`,
-    ipAddress: req.ip,
-    userAgent: req.get('User-Agent'),
+   ipAddress: getClientIp(req), 
+  userAgent: req.get('User-Agent'),
     endpoint: '/api/auth/login',
     method: 'POST',
     status: 'SUCCESS',
@@ -151,8 +152,8 @@ export const logLogoutActivity = async (req, admin) => {
     action: 'LOGOUT',
     resourceType: 'System',
     description: `Admin ${admin.name} logged out`,
-    ipAddress: req.ip,
-    userAgent: req.get('User-Agent'),
+    ipAddress: getClientIp(req), 
+  userAgent: req.get('User-Agent'),
     endpoint: '/api/auth/logout',
     method: 'POST',
     status: 'SUCCESS'
@@ -168,8 +169,8 @@ export const logNavigation = async (adminId, fromPage, toPage, ipAddress, userAg
       action: 'NAVIGATE',
       resourceType: 'System',
       description: `Navigated from ${fromPage} to ${toPage}`,
-      ipAddress,
-      userAgent,
+     ipAddress: getClientIp(req), 
+  userAgent: req.get('User-Agent'),
       endpoint: toPage,
       method: 'GET',
       status: 'SUCCESS',

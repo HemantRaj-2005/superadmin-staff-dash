@@ -23,6 +23,8 @@ const ActivityLogsTable = ({ logs, loading, onLogClick }) => {
     return icons[action] || '⚡';
   };
 
+  
+
   const getActionColor = (action) => {
     if (action.includes('DELETE')) return 'bg-red-100 text-red-800';
     if (action.includes('UPDATE')) return 'bg-yellow-100 text-yellow-800';
@@ -40,6 +42,28 @@ const ActivityLogsTable = ({ logs, loading, onLogClick }) => {
       minute: '2-digit',
       second: '2-digit'
     });
+  };
+//ip track
+   const formatIpAddress = (log) => {
+    if (log.ipAddress === '::1' || log.ipAddress === '127.0.0.1') {
+      return (
+        <div>
+          <div className="text-sm text-gray-900 font-mono">{log.ipAddress}</div>
+          <div className="text-xs text-yellow-600">Localhost</div>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <div className="text-sm text-gray-900 font-mono">{log.ipAddress}</div>
+        {log.ipDetails && log.ipDetails.country !== 'Unknown' && (
+          <div className="text-xs text-gray-500">
+            {log.ipDetails.city}, {log.ipDetails.country}
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -154,12 +178,12 @@ const ActivityLogsTable = ({ logs, loading, onLogClick }) => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900 font-mono">
-                    {log.ipAddress}
-                  </div>
-                  <div className="text-xs text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap">
+    {formatIpAddress(log)}  <div className="text-xs text-gray-500">
                     {log.status}
                   </div>
+  </td>
+                 
                 </td>
               </tr>
             ))}

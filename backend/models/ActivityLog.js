@@ -34,10 +34,24 @@ const ActivityLogSchema = new mongoose.Schema({
   },
   ipAddress: {
     type: String,
-    required: false // optional so logs can be created when req.ip isn't available
+    required: true
+  },
+  ipDetails: {
+    country: String,
+    city: String,
+    region: String,
+    timezone: String,
+    isp: String
   },
   userAgent: {
     type: String
+  },
+  userAgentDetails: {
+    browser: String,
+    version: String,
+    os: String,
+    platform: String,
+    device: String
   },
   endpoint: {
     type: String

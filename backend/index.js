@@ -20,6 +20,28 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+//ip setup
+
+app.set('trust proxy', true);
+
+
+const trustProxyConfig = process.env.NODE_ENV === 'production' 
+  ? true  // Trust all proxies in production
+  : 'loopback'; // Only trust loopback in development
+
+app.set('trust proxy', trustProxyConfig);
+
+// Or for specific hosting platforms:
+const getTrustProxySetting = () => {
+  if (process.env.VERCEL) return true;
+  if (process.env.HEROKU) return true; 
+  if (process.env.AWS_EXECUTION_ENV) return true; // AWS
+  if (process.env.NODE_ENV === 'production') return true;
+  return 'loopback';
+};
+
+app.set('trust proxy', getTrustProxySetting());
+
 // Middleware
 const allowedOrigins = ['https://superadmin-staff-dash.vercel.app', 'http://localhost:3000'];
 app.use(cors({
@@ -74,7 +96,7 @@ const PORT = process.env.PORT || 5000;
 
 // Database connection and server start
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/admin-panel')
-  .then(() => {
+.then(() => {
     console.log('Connected to MongoDB');
     app.listen(PORT,() => {
       console.log(`Server running on port ${PORT}`);
@@ -84,5 +106,6 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/admin-pan
     console.error('MongoDB connection error:', error);
     process.exit(1);
   });
-
-export default app;
+  
+  app.set('trust proxy', 1);
+  export default app;
