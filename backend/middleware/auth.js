@@ -18,6 +18,7 @@ export const authenticate = async (req, res, next) => {
     }
 
     req.admin = admin;
+    
     next();
   } catch (error) {
     res.status(401).json({ message: 'Token is not valid' });

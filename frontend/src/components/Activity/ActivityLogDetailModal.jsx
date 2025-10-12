@@ -1,8 +1,17 @@
 // components/ActivityLogDetailModal.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const ActivityLogDetailModal = ({ log, onClose }) => {
   const [activeTab, setActiveTab] = useState('changes');
+
+  // Auto-switch to overview if no changes
+  useEffect(() => {
+    const changes = getChangeDetails();
+    if (activeTab === 'changes' && (!changes || changes.length === 0)) {
+      setActiveTab('overview');
+    }
+  }, [activeTab, log]); // Add log to dependencies
+
   const formatJSON = (obj) => {
     if (!obj) return 'No data';
     return JSON.stringify(obj, null, 2);
@@ -60,7 +69,7 @@ const ActivityLogDetailModal = ({ log, onClose }) => {
           {/* Tabs */}
           <div className="border-b border-gray-200 mb-6">
             <nav className="-mb-px flex space-x-8">
-              {['changes','overview' ].map((tab) => (
+              {['changes', 'overview'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -120,68 +129,67 @@ const ActivityLogDetailModal = ({ log, onClose }) => {
                       )}
                     </div>
                   </div>
-                </div> 
+                </div>
 
-                 <div className="bg-gray-50 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Network Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">IP Address & Location</h4>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">IP Address:</span>
-                <span className="text-sm font-mono text-gray-900">{log.ipAddress}</span>
-              </div>
-              {log.ipDetails && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Country:</span>
-                    <span className="text-sm text-gray-900">{log.ipDetails.country}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">City:</span>
-                    <span className="text-sm text-gray-900">{log.ipDetails.city}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">ISP:</span>
-                    <span className="text-sm text-gray-900">{log.ipDetails.isp}</span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-          
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Device & Browser</h4>
-            <div className="space-y-2">
-              {log.userAgentDetails && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Browser:</span>
-                    <span className="text-sm text-gray-900">{log.userAgentDetails.browser}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">OS:</span>
-                    <span className="text-sm text-gray-900">{log.userAgentDetails.os}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Device:</span>
-                    <span className="text-sm text-gray-900">{log.userAgentDetails.device}</span>
-                  </div>
-                </>
-              )}
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">User Agent:</span>
-                <span className="text-sm text-gray-900 truncate ml-2">{log.userAgent}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-                {/* Technical Details */}
                 <div className="space-y-6">
-                  
+                  <div className="bg-gray-50 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Network Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">IP Address & Location</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">IP Address:</span>
+                            <span className="text-sm font-mono text-gray-900">{log.ipAddress}</span>
+                          </div>
+                          {log.ipDetails && (
+                            <>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Country:</span>
+                                <span className="text-sm text-gray-900">{log.ipDetails.country}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">City:</span>
+                                <span className="text-sm text-gray-900">{log.ipDetails.city}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">ISP:</span>
+                                <span className="text-sm text-gray-900">{log.ipDetails.isp}</span>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Device & Browser</h4>
+                        <div className="space-y-2">
+                          {log.userAgentDetails && (
+                            <>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Browser:</span>
+                                <span className="text-sm text-gray-900">{log.userAgentDetails.browser}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">OS:</span>
+                                <span className="text-sm text-gray-900">{log.userAgentDetails.os}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Device:</span>
+                                <span className="text-sm text-gray-900">{log.userAgentDetails.device}</span>
+                              </div>
+                            </>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">User Agent:</span>
+                            <span className="text-sm text-gray-900 ml-2">{log.userAgent}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Technical Details */}
                   <div className="bg-gray-50 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Technical Details</h3>
                     <div className="space-y-4">
@@ -287,53 +295,15 @@ const ActivityLogDetailModal = ({ log, onClose }) => {
                     <p className="text-gray-500">
                       This action didn't involve any data modifications or change tracking is not available.
                     </p>
-                    {setActiveTab('overview')}
+                    <button
+                      onClick={() => setActiveTab('overview')}
+                      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200"
+                    >
+                      View Overview
+                    </button>
                   </div>
                 )}
-
-                {/* Raw Changes Data */}
-                {/* {log.changes && (
-                  <div className="bg-gray-50 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Raw Changes Data</h3>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Old Values</h4>
-                        <pre className="text-sm bg-white p-4 rounded border border-gray-200 overflow-x-auto max-h-64">
-                          {formatJSON(log.changes.oldValues)}
-                        </pre>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">New Values</h4>
-                        <pre className="text-sm bg-white p-4 rounded border border-gray-200 overflow-x-auto max-h-64">
-                          {formatJSON(log.changes.newValues)}
-                        </pre>
-                      </div>
-                    </div>
-                  </div>
-                )} */}
               </div>
-            )}
-
-            {activeTab === 'technical' && (
-              <div className="space-y-6">
-                <div className="bg-gray-50 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Request Metadata</h3>
-                  <pre className="text-sm bg-white p-4 rounded border border-gray-200 overflow-x-auto max-h-96">
-                    {formatJSON(log.metadata)}
-                  </pre>
-                </div>
-
-
-                <div className="bg-gray-50 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Full Activity Log Data</h3>
-                  <pre className="text-sm bg-white p-4 rounded border border-gray-200 overflow-x-auto max-h-96">
-                    {formatJSON(log)}
-                  </pre>
-                </div>
-              </div>
-
-
-
             )}
           </div>
         </div>

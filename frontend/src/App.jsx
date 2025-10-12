@@ -13,7 +13,7 @@ import { useNavigationTracking } from './components/Hooks/NavigationTracking';
 
 // Component that wraps protected routes with navigation tracking + layout
 function ProtectedLayout({ children }) {
-  useNavigationTracking(); // track navigation for protected routes
+  useNavigationTracking(); 
   return <Layout>{children}</Layout>;
 }
 

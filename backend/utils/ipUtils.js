@@ -1,16 +1,16 @@
 // utils/ipUtils.js
 export const getClientIp = (req) => {
   const headers = [
-    'x-client-ip',           // Custom header
-    'x-forwarded-for',       // Standard proxy header
-    'x-real-ip',             // Nginx
-    'x-cluster-client-ip',   // Rackspace LB, Riverbed Stingray
-    'x-forwarded',           // General forward
-    'forwarded-for',         // RFC 7239
-    'forwarded',             // RFC 7239
-    'cf-connecting-ip',      // Cloudflare
-    'true-client-ip',        // Akamai, Cloudflare
-    'fastly-client-ip',      // Fastly
+    'x-client-ip',           
+    'x-forwarded-for',      
+    'x-real-ip',             
+    'x-cluster-client-ip',   
+    'x-forwarded',           
+    'forwarded-for',         
+    'forwarded',            
+    'cf-connecting-ip',      
+    'true-client-ip',        
+    'fastly-client-ip',     
   ];
 
   let clientIp = null;
@@ -28,7 +28,6 @@ export const getClientIp = (req) => {
     }
   }
 
-  // Fallback to Express's req.ip or connection remoteAddress
   if (!clientIp) {
     clientIp = req.ip || 
                req.connection?.remoteAddress || 
@@ -36,9 +35,7 @@ export const getClientIp = (req) => {
                req.connection?.socket?.remoteAddress;
   }
 
-  // Handle IPv6 loopback and IPv4-mapped IPv6 addresses
   if (clientIp === '::1' || clientIp === '127.0.0.1') {
-    // If we're getting localhost IPs in production, log for debugging
     if (process.env.NODE_ENV === 'production') {
       console.warn('Got localhost IP in production. Headers:', {
         'x-forwarded-for': req.headers['x-forwarded-for'],
@@ -49,11 +46,8 @@ export const getClientIp = (req) => {
     }
   }
 
-  // Clean up the IP (remove IPv6 prefix, port numbers, etc.)
   if (clientIp) {
-    // Remove IPv6 prefix if present
     clientIp = clientIp.replace(/^::ffff:/, '');
-    // Remove port number if present
     clientIp = clientIp.split(':')[0];
   }
 
