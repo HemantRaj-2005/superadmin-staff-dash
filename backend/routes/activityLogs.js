@@ -1,6 +1,6 @@
 // routes/activityLogs.js (new file)
 import express from 'express';
-import { logNavigation } from '../middleware/ActivityLogger.js';
+import { logNavigation } from '../middleware/activityLogger.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();

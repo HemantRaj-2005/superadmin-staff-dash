@@ -102,13 +102,13 @@ const UserManagement = () => {
           </div>
         )}
 
-        {/* Debug Info */}
-        <div className="mb-4 p-4 bg-blue-100 border border-blue-400 text-blue-700 rounded text-sm">
+      
+        {/* <div className="mb-4 p-4 bg-blue-100 border border-blue-400 text-blue-700 rounded text-sm">
           <p><strong>Debug Info:</strong></p>
           <p>Total Users: {pagination.total}</p>
           <p>Current Page: {pagination.page}</p>
           <p>Loading: {loading ? 'Yes' : 'No'}</p>
-        </div>
+        </div> */}
         
 
         {/* Search Bar */}

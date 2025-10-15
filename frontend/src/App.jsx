@@ -10,10 +10,13 @@ import Layout from './components/Layout';
 import PostManagement from './components/Posts/PostManagement';
 import EventManagement from './components/Events/EventManagement';
 import { useNavigationTracking } from './components/Hooks/NavigationTracking';
+import PermissionRoute from './components/RoleManagement/PermissionRoutes';
+import AdminManagement from './components/RoleManagement/AdminManagement';
+import RoleManagement from './components/RoleManagement/RoleManagement';
 
 // Component that wraps protected routes with navigation tracking + layout
 function ProtectedLayout({ children }) {
-  useNavigationTracking(); 
+  // useNavigationTracking();
   return <Layout>{children}</Layout>;
 }
 
@@ -34,13 +37,53 @@ function ProtectedRoute({ children }) {
   return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
+// New SuperAdminRoute component
+function SuperAdminRoute({ children }) {
+  const { isAuthenticated, admin, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+
+  // Check if user is super admin
+  if (admin?.role?.name !== 'Super Admin') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full text-center">
+          <div className="text-6xl mb-4">🚫</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600">
+            Only super admins can access this section.
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            Your role: {admin?.role?.name || 'Unknown'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return children;
+}
+
 function AppContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Routes>
         <Route path="/login" element={<Login />} />
 
-        {/* Protected pages: wrap with ProtectedRoute and ProtectedLayout */}
+        {/* Dashboard (protected) */}
         <Route
           path="/"
           element={
@@ -52,24 +95,16 @@ function AppContent() {
           }
         />
 
+        {/* Permissioned routes — require auth (ProtectedRoute) + permission (PermissionRoute) */}
         <Route
           path="/users"
           element={
             <ProtectedRoute>
-              <ProtectedLayout>
-                <UserManagement />
-              </ProtectedLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/activity-logs"
-          element={
-            <ProtectedRoute>
-              <ProtectedLayout>
-                <ActivityLogs />
-              </ProtectedLayout>
+              <PermissionRoute resource="users" action="view">
+                <ProtectedLayout>
+                  <UserManagement />
+                </ProtectedLayout>
+              </PermissionRoute>
             </ProtectedRoute>
           }
         />
@@ -78,9 +113,11 @@ function AppContent() {
           path="/posts"
           element={
             <ProtectedRoute>
-              <ProtectedLayout>
-                <PostManagement />
-              </ProtectedLayout>
+              <PermissionRoute resource="posts" action="view">
+                <ProtectedLayout>
+                  <PostManagement />
+                </ProtectedLayout>
+              </PermissionRoute>
             </ProtectedRoute>
           }
         />
@@ -89,12 +126,53 @@ function AppContent() {
           path="/events"
           element={
             <ProtectedRoute>
-              <ProtectedLayout>
-                <EventManagement />
-              </ProtectedLayout>
+              <PermissionRoute resource="events" action="view">
+                <ProtectedLayout>
+                  <EventManagement />
+                </ProtectedLayout>
+              </PermissionRoute>
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/activity-logs"
+          element={
+            <ProtectedRoute>
+              <PermissionRoute resource="activity_logs" action="view">
+                <ProtectedLayout>
+                  <ActivityLogs />
+                </ProtectedLayout>
+              </PermissionRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Super Admin only routes - now properly protected */}
+        <Route
+          path="/admins"
+          element={
+            <SuperAdminRoute>
+              <ProtectedLayout>
+                <AdminManagement />
+              </ProtectedLayout>
+            </SuperAdminRoute>
+          }
+        />
+
+        <Route
+          path="/roles"
+          element={
+            <SuperAdminRoute>
+              <ProtectedLayout>
+                <RoleManagement />
+              </ProtectedLayout>
+            </SuperAdminRoute>
+          }
+        />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
   );

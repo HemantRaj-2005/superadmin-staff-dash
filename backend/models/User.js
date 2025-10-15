@@ -21,7 +21,7 @@ const EducationItemSchema = new Schema({
   medium: { type: String },
   otherInstitute: { type: String },
   otherUniversity: { type: String },
-  percentageOrCGPA: { type: Schema.Types.Mixed }, // int or double -> use Mixed to accept both numeric types
+  percentageOrCGPA: { type: Schema.Types.Mixed }, // int or dobule 
   pincode: { type: Number, required: true },
   program: { type: String },
   programType: { type: String },

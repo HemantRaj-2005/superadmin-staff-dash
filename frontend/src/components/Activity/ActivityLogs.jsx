@@ -34,7 +34,7 @@ const ActivityLogs = () => {
   const { admin } = useAuth();
 
   useEffect(() => {
-    if (admin?.role === 'super_admin') {
+    if (admin?.role.name === 'Super Admin') {
       fetchLogs();
     }
   }, [pagination.page, filters, admin]);
@@ -91,7 +91,7 @@ const ActivityLogs = () => {
     }
   };
 
-  if (admin?.role !== 'super_admin') {
+  if (admin?.role.name !== 'Super Admin') {
     return (
       <div className="max-w-7xl mx-auto">
         <div className="bg-red-50 border border-red-200 rounded-xl p-6">

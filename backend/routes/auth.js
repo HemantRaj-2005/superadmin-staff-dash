@@ -2,16 +2,20 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import Admin from '../models/Admin.js';
-import { logLoginActivity, logLogoutActivity } from '../middleware/ActivityLogger.js';
+import Role from '../models/Role.js'
+import { logLoginActivity, logLogoutActivity } from '../middleware/activityLogger.js';
 
 const router = express.Router();
 
-// Admin login
+// routes/admin.js (login)
+// Admin login - Fixed version
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const admin = await Admin.findOne({ email, isActive: true });
+    const admin = await Admin.findOne({ email, isActive: true })
+      .populate('role'); 
+
     if (!admin) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -21,8 +25,12 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // Update last login
+    admin.lastLogin = new Date();
+    await admin.save();
+
     const token = jwt.sign(
-      { id: admin._id, role: admin.role },
+      { id: admin._id, role: admin.role?.name || admin.role }, // Include role name in token
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -30,13 +38,14 @@ router.post('/login', async (req, res) => {
     // Log login activity
     await logLoginActivity(req, admin, token);
 
+    // Return admin with populated role
     res.json({
       token,
       admin: {
         id: admin._id,
         name: admin.name,
         email: admin.email,
-        role: admin.role
+        role: admin.role // Now this will be the full role object with name and permissions
       }
     });
   } catch (error) {
@@ -74,7 +83,7 @@ router.get('/me', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const admin = await Admin.findById(decoded.id).select('-password');
+    const admin = await Admin.findById(decoded.id).select('-password').populate('role');
     
     res.json(admin);
   } catch (error) {

@@ -12,6 +12,8 @@ import adminRoutes from './routes/admin.js';
 import statsRoutes from './routes/stats.js';
 import eventRoutes from './routes/event.js'
 import activityLogRoutes from './routes/activityLogs.js'
+import roleRoutes from './routes/role.js'
+import adminManagementRoutes from './routes/adminManagement.js'
 
 dotenv.config();
 
@@ -55,7 +57,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static files (for React build in production)
 app.use(express.static(path.join(__dirname, '../client/build')));
 
 // Routes
@@ -65,6 +66,8 @@ app.use('/api/admin/posts', postRoutes);
 app.use('/api/admin/stats', statsRoutes);
 app.use('/api/admin/events', eventRoutes);
 app.use('/api/admin/activity-logs', activityLogRoutes);
+app.use('/api/admin/roles', roleRoutes);
+app.use('/api/admin/admins', adminManagementRoutes);
 
 
 

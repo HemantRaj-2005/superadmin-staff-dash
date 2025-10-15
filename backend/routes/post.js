@@ -4,7 +4,7 @@ import Post from '../models/Post.js';
 import User from '../models/User.js';
 import ActivityLog from '../models/ActivityLog.js';
 import { authenticate, authorize } from '../middleware/auth.js';
-import { logActivity, logUpdateWithOldValues } from '../middleware/ActivityLogger.js';
+import { logActivity, logUpdateWithOldValues } from '../middleware/activityLogger.js';
 
 const router = express.Router();
 

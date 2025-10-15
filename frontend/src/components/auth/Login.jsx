@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    email: 'admin@gmail.com', // Pre-fill for testing
+    email: 'superadmin@gmail.com',
     password: 'password'
   });
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,7 @@ const Login = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
-    setError(''); // Clear error when user starts typing
+    setError(''); 
   };
 
   const handleSubmit = async (e) => {
@@ -29,6 +29,7 @@ const Login = () => {
 
     try {
       const result = await login(formData.email, formData.password);
+      
       
       if (result.success) {
         navigate('/');
@@ -121,10 +122,15 @@ const Login = () => {
           </div>
 
           <div className="text-center bg-gray-100 p-4 rounded-md">
-            <p className="text-xs font-medium text-gray-700 mb-2">Demo Credentials:</p>
+            <p className="text-xs font-medium text-gray-700 mb-2">Default Login Credentials:</p>
             <div className="text-xs text-gray-600 space-y-1">
-              <p><strong>Super Admin:</strong> admin@gmail.com / password</p>
-              <p><strong>Regular Admin:</strong> manager@gmail.com / password123</p>
+             
+
+    <p>
+  <strong>Super Admin:</strong> superadmin@gmail.com / password<br></br>
+<strong>User Manager:</strong> usermanager@gmail.com / password123<br></br>
+<strong>Content Moderator:</strong> moderator@gmail.com / password123<br></br>
+<strong>View Only:</strong> viewer@gmail.com / password123</p>
             </div>
           </div>
         </form>

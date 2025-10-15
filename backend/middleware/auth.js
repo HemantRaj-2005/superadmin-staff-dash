@@ -11,7 +11,7 @@ export const authenticate = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const admin = await Admin.findById(decoded.id).select('-password');
+    const admin = await Admin.findById(decoded.id).select('-password').populate('role');
     
     if (!admin || !admin.isActive) {
       return res.status(401).json({ message: 'Token is not valid' });
