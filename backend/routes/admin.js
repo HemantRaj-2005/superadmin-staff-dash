@@ -317,7 +317,7 @@ router.get(
   '/users',
   authenticate,
     requirePermission('users', 'view'),
-    
+
 
   
   
@@ -470,53 +470,183 @@ router.delete(
 /**
  * GET /activity-logs
  * Requires activity_logs:view permission (super admin automatically has this)
- */
+//  */
+// router.get(
+//   '/activity-logs',
+//   requirePermission('activity_logs', 'view'),
+//   async (req, res) => {
+//     try {
+//       const page = parseInt(req.query.page, 10) || 1;
+//       const limit = parseInt(req.query.limit, 10) || 20;
+
+//       const {
+//         action = '',
+//         resourceType = '',
+//         adminId = '',
+//         dateFrom = '',
+//         dateTo = '',
+//         search = ''
+//       } = req.query;
+
+//       const query = {};
+
+//       if (action) query.action = action;
+//       if (resourceType) query.resourceType = resourceType;
+//       if (adminId) query.adminId = adminId;
+
+//       if (dateFrom || dateTo) {
+//         query.createdAt = {};
+//         if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
+//         if (dateTo) query.createdAt.$lte = new Date(dateTo);
+//       }
+
+//       if (search) {
+//         query.description = { $regex: search, $options: 'i' };
+//       }
+
+//       const logs = await ActivityLog.find(query)
+//         .populate('adminId', 'name email role')
+//         .populate('resourceId')
+//         .sort({ createdAt: -1 })
+//         .limit(limit)
+//         .skip((page - 1) * limit);
+
+//       const total = await ActivityLog.countDocuments(query);
+
+//       // Get available filters
+//       const actions = await ActivityLog.distinct('action');
+//       const resourceTypes = await ActivityLog.distinct('resourceType');
+//       const adminIds = await ActivityLog.distinct('adminId');
+
+//       res.json({
+//         logs,
+//         totalPages: Math.ceil(total / limit),
+//         currentPage: page,
+//         total,
+//         filters: {
+//           actions,
+//           resourceTypes,
+//           admins: await Promise.all(
+//             adminIds.map(async (aId) => {
+//               try {
+//                 return await Admin.findById(aId).select('name email role');
+//               } catch {
+//                 return null;
+//               }
+//             })
+//           ).then(list => list.filter(Boolean))
+//         }
+//       });
+//     } catch (error) {
+//       res.status(500).json({ message: error.message });
+//     }
+//   }
+// );
+
+// routes/admin.js (merged activity-logs route)
 router.get(
   '/activity-logs',
   requirePermission('activity_logs', 'view'),
   async (req, res) => {
     try {
+      // Parse pagination params
       const page = parseInt(req.query.page, 10) || 1;
-      const limit = parseInt(req.query.limit, 10) || 20;
+      const limit = Math.min(parseInt(req.query.limit, 10) || 20, 200); // cap limit for safety
+      const skip = (page - 1) * limit;
 
+      // Search & filter params (device filters included)
       const {
         action = '',
         resourceType = '',
         adminId = '',
         dateFrom = '',
         dateTo = '',
-        search = ''
+        search = '',
+        deviceType = '',
+        os = '',
+        browser = ''
       } = req.query;
 
+      // Build Mongo query
       const query = {};
 
       if (action) query.action = action;
       if (resourceType) query.resourceType = resourceType;
       if (adminId) query.adminId = adminId;
 
+      // Date range filter
       if (dateFrom || dateTo) {
         query.createdAt = {};
-        if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
-        if (dateTo) query.createdAt.$lte = new Date(dateTo);
+        if (dateFrom) {
+          const from = new Date(dateFrom);
+          if (!Number.isNaN(from.getTime())) query.createdAt.$gte = from;
+        }
+        if (dateTo) {
+          const to = new Date(dateTo);
+          if (!Number.isNaN(to.getTime())) query.createdAt.$lte = to;
+        }
       }
 
+      // Text search on description
       if (search) {
         query.description = { $regex: search, $options: 'i' };
       }
 
-      const logs = await ActivityLog.find(query)
-        .populate('adminId', 'name email role')
-        .populate('resourceId')
-        .sort({ createdAt: -1 })
-        .limit(limit)
-        .skip((page - 1) * limit);
+      // Device type filter (exact match)
+      if (deviceType) {
+        query['deviceInfo.device.type'] = deviceType;
+      }
 
-      const total = await ActivityLog.countDocuments(query);
+      // OS filter (partial, case-insensitive)
+      if (os) {
+        query['deviceInfo.os.name'] = { $regex: os, $options: 'i' };
+      }
 
-      // Get available filters
-      const actions = await ActivityLog.distinct('action');
-      const resourceTypes = await ActivityLog.distinct('resourceType');
-      const adminIds = await ActivityLog.distinct('adminId');
+      // Browser filter (partial, case-insensitive)
+      if (browser) {
+        query['deviceInfo.browser.name'] = { $regex: browser, $options: 'i' };
+      }
+
+      // Query DB
+      const [logs, total] = await Promise.all([
+        ActivityLog.find(query)
+          .populate('adminId', 'name email role')
+          .populate('resourceId')
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .skip(skip),
+        ActivityLog.countDocuments(query)
+      ]);
+
+      // Build filter options (distinct values)
+      const [
+        actions,
+        resourceTypes,
+        adminIds,
+        deviceTypes,
+        osList,
+        browserList
+      ] = await Promise.all([
+        ActivityLog.distinct('action'),
+        ActivityLog.distinct('resourceType'),
+        ActivityLog.distinct('adminId'),
+        ActivityLog.distinct('deviceInfo.device.type'),
+        ActivityLog.distinct('deviceInfo.os.name'),
+        ActivityLog.distinct('deviceInfo.browser.name')
+      ]);
+
+      // Resolve admin details for the admin filter (filter out nulls)
+      const admins = (await Promise.all(
+        (adminIds || [])
+          .filter(Boolean)
+          .map(async (aId) => {
+            try {
+              return await Admin.findById(aId).select('name email role');
+            } catch {
+              return null;
+            }
+          })
+      )).filter(Boolean);
 
       res.json({
         logs,
@@ -526,19 +656,15 @@ router.get(
         filters: {
           actions,
           resourceTypes,
-          admins: await Promise.all(
-            adminIds.map(async (aId) => {
-              try {
-                return await Admin.findById(aId).select('name email role');
-              } catch {
-                return null;
-              }
-            })
-          ).then(list => list.filter(Boolean))
+          deviceTypes: deviceTypes.filter(Boolean),
+          os: osList.filter(Boolean),
+          browsers: browserList.filter(Boolean),
+          admins
         }
       });
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      console.error('GET /activity-logs error:', error);
+      res.status(500).json({ message: error.message || 'Internal Server Error' });
     }
   }
 );

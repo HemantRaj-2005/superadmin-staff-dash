@@ -362,7 +362,7 @@ router.get(
 );
 
 /**
- * PUT /users/:id
+ 
  * Update user with old-values logging and activity entry
  * Permission: users:edit
  */
@@ -372,7 +372,7 @@ router.put(
   populateAdminPermissions,
   requirePermission('users', 'edit'),
   logUpdateWithOldValues('User', getUserForLogging), // sets req.oldData
-  logActivity('UPDATE_USER', { resourceType: 'User' }), // creates pending log and sets req.activityLogId
+  logActivity('UPDATE_USER', { resourceType: 'User' }), // create pending log and sets req.activityLogId
   async (req, res) => {
     try {
       const oldUser = req.oldData;
@@ -388,7 +388,7 @@ router.put(
       user = await User.findById(req.params.id).select('-password -refreshTokens');
 
       if (!user) {
-        // mark the activity as failed if we created one
+        // mark the activity as failed if
         if (req.activityLogId) {
           await ActivityLog.findByIdAndUpdate(req.activityLogId, {
             $set: { status: 'FAILED', description: `UPDATE_USER failed: user ${req.params.id} not found` }

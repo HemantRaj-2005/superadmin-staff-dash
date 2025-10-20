@@ -681,7 +681,7 @@ const UserDetailModal = ({ user, onClose, onUpdate }) => {
             <button
               onClick={() => {
                 if (window.confirm('Are you sure you want to delete this user?')) {
-                  // You can add delete functionality here
+                  // delete functionality here
                   console.log('Delete user:', user._id);
                 }
               }}

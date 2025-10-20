@@ -15,7 +15,7 @@ const ActivityLogSchema = new mongoose.Schema({
       'VIEW_USER', 'UPDATE_USER', 'DELETE_USER',
       'VIEW_POST', 'UPDATE_POST', 'DELETE_POST', 'REMOVE_REACTION',
       'VIEW_EVENT', 'UPDATE_EVENT', 'DELETE_EVENT',
-      'VIEW_ACTIVITY_LOGS', 'EXPORT_DATA'
+      'VIEW_ACTIVITY_LOGS', 'EXPORT_DATA','UPDATE_ROLE','CREATE_ROLE'
     ]
   },
   resourceType: {
