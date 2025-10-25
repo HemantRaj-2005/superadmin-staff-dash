@@ -276,43 +276,47 @@
 
 // export default ActivityLogDetailModal;
 
-
-
-
 // components/ActivityLogDetailModal.js - Updated with device info
-import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Separator } from '@/components/ui/separator';
-import { 
-  X, 
-  Calendar, 
-  MapPin, 
-  Monitor, 
-  Globe, 
-  Code, 
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
+import {
+  X,
+  Calendar,
+  MapPin,
+  Monitor,
+  Globe,
+  Code,
   FileText,
   Shield,
   User,
   RefreshCw,
-  Network
-} from 'lucide-react';
+  Network,
+} from "lucide-react";
 
 const ActivityLogDetailModal = ({ log, onClose, onRefresh }) => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
 
   const formatJSON = (obj) => {
-    if (!obj) return 'No data';
+    if (!obj) return "No data";
     return JSON.stringify(obj, null, 2);
   };
 
@@ -323,12 +327,12 @@ const ActivityLogDetailModal = ({ log, onClose, onRefresh }) => {
     const changes = [];
 
     if (oldValues && newValues) {
-      Object.keys(newValues).forEach(key => {
+      Object.keys(newValues).forEach((key) => {
         if (JSON.stringify(oldValues[key]) !== JSON.stringify(newValues[key])) {
           changes.push({
             field: key,
             oldValue: oldValues[key],
-            newValue: newValues[key]
+            newValue: newValues[key],
           });
         }
       });
@@ -338,66 +342,85 @@ const ActivityLogDetailModal = ({ log, onClose, onRefresh }) => {
   };
 
   const getDeviceDisplay = (deviceInfo) => {
-    if (!deviceInfo) return 'Unknown Device';
-    
+    if (!deviceInfo) return "Unknown Device";
+
     const { device, os, browser } = deviceInfo;
-    const deviceType = device.type === 'desktop' ? 'Desktop' : 
-                      device.type === 'mobile' ? 'Mobile' : 
-                      device.type === 'tablet' ? 'Tablet' : 'Device';
-    
-    return `${device.vendor || ''} ${device.model || deviceType} • ${os.name} ${os.version} • ${browser.name} ${browser.version}`;
+    const deviceType =
+      device.type === "desktop"
+        ? "Desktop"
+        : device.type === "mobile"
+        ? "Mobile"
+        : device.type === "tablet"
+        ? "Tablet"
+        : "Device";
+
+    return `${device.vendor || ""} ${device.model || deviceType} • ${os.name} ${
+      os.version
+    } • ${browser.name} ${browser.version}`;
   };
 
   const getDeviceIcon = (deviceInfo) => {
     if (!deviceInfo) return <Monitor className="h-5 w-5" />;
-    
+
     const deviceType = deviceInfo.device?.type;
-    if (deviceType === 'mobile') return '📱';
-    if (deviceType === 'tablet') return '📟';
+    if (deviceType === "mobile") return "📱";
+    if (deviceType === "tablet") return "📟";
     return <Monitor className="h-5 w-5" />;
   };
 
   const getStatusBadge = (status) => {
     const statusColors = {
-      success: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800',
-      error: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800',
-      warning: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-800',
-      pending: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800'
+      success:
+        "bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800",
+      error:
+        "bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800",
+      warning:
+        "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-800",
+      pending:
+        "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800",
     };
 
     return (
-      <Badge variant="outline" className={statusColors[status] || statusColors.pending}>
-        {status?.charAt(0)?.toUpperCase() + status?.slice(1) || 'Unknown'}
+      <Badge
+        variant="outline"
+        className={statusColors[status] || statusColors.pending}
+      >
+        {status?.charAt(0)?.toUpperCase() + status?.slice(1) || "Unknown"}
       </Badge>
     );
   };
 
   const getActionBadge = (action) => {
     const actionColors = {
-      create: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300',
-      update: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300',
-      delete: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
-      read: 'bg-gray-100 text-gray-800 dark:bg-gray-950 dark:text-gray-300',
-      login: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300',
-      logout: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300'
+      create:
+        "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300",
+      update: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
+      delete: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
+      read: "bg-gray-100 text-gray-800 dark:bg-gray-950 dark:text-gray-300",
+      login:
+        "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300",
+      logout:
+        "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
     };
 
     return (
-      <Badge className={actionColors[action?.toLowerCase()] || actionColors.read}>
+      <Badge
+        className={actionColors[action?.toLowerCase()] || actionColors.read}
+      >
         {action}
       </Badge>
     );
   };
 
   const formatDate = (date) => {
-    if (!date) return 'Not available';
-    return new Date(date).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+    if (!date) return "Not available";
+    return new Date(date).toLocaleString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     });
   };
 
@@ -437,31 +460,35 @@ const ActivityLogDetailModal = ({ log, onClose, onRefresh }) => {
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[calc(95vh-80px)]">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="space-y-6"
+          >
             <TabsList className="grid w-full grid-cols-4 bg-gray-100 dark:bg-gray-800 p-1">
-              <TabsTrigger 
-                value="overview" 
+              <TabsTrigger
+                value="overview"
                 className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:dark:bg-gray-700"
               >
                 <User className="h-4 w-4" />
                 <span>Overview</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="device" 
+              <TabsTrigger
+                value="device"
                 className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:dark:bg-gray-700"
               >
                 <Monitor className="h-4 w-4" />
                 <span>Device & Location</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="changes" 
+              <TabsTrigger
+                value="changes"
                 className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:dark:bg-gray-700"
               >
                 <RefreshCw className="h-4 w-4" />
                 <span>Changes</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="technical" 
+              <TabsTrigger
+                value="technical"
                 className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:dark:bg-gray-700"
               >
                 <Code className="h-4 w-4" />
@@ -482,22 +509,32 @@ const ActivityLogDetailModal = ({ log, onClose, onRefresh }) => {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Admin</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                        Admin
+                      </label>
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {log.adminId?.name} ({log.adminId?.email})
                       </p>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Action</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                        Action
+                      </label>
                       <div className="mt-1">{getActionBadge(log.action)}</div>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Status</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                        Status
+                      </label>
                       <div className="mt-1">{getStatusBadge(log.status)}</div>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Description</label>
-                      <p className="text-sm text-gray-900 dark:text-white">{log.description}</p>
+                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                        Description
+                      </label>
+                      <p className="text-sm text-gray-900 dark:text-white">
+                        {log.description}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -511,28 +548,39 @@ const ActivityLogDetailModal = ({ log, onClose, onRefresh }) => {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Resource Type</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                        Resource Type
+                      </label>
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {log.resourceType || 'System'}
+                        {log.resourceType || "System"}
                       </p>
                     </div>
                     {log.resourceId && (
                       <div>
-                        <label className="text-xs text-gray-500 dark:text-gray-400">Resource ID</label>
+                        <label className="text-xs text-gray-500 dark:text-gray-400">
+                          Resource ID
+                        </label>
                         <code className="text-sm font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
                           {log.resourceId._id}
                         </code>
                       </div>
                     )}
                     <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Endpoint</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                        Endpoint
+                      </label>
                       <code className="text-sm font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded break-all">
                         {log.endpoint}
                       </code>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Method</label>
-                      <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
+                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                        Method
+                      </label>
+                      <Badge
+                        variant="outline"
+                        className="dark:border-gray-600 dark:text-gray-300"
+                      >
                         {log.method}
                       </Badge>
                     </div>
@@ -548,27 +596,35 @@ const ActivityLogDetailModal = ({ log, onClose, onRefresh }) => {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Timestamp</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                        Timestamp
+                      </label>
                       <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center">
                         <Calendar className="h-3 w-3 mr-1" />
                         {formatDate(log.createdAt)}
                       </p>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">IP Address</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                        IP Address
+                      </label>
                       <code className="text-sm font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
                         {log.ipAddress}
                       </code>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">User Agent</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                        User Agent
+                      </label>
                       <code className="text-xs font-mono bg-gray-100 dark:bg-gray-700 p-2 rounded block break-all">
                         {log.userAgent}
                       </code>
                     </div>
                     {log.metadata?.duration && (
                       <div>
-                        <label className="text-xs text-gray-500 dark:text-gray-400">Duration</label>
+                        <label className="text-xs text-gray-500 dark:text-gray-400">
+                          Duration
+                        </label>
                         <p className="text-sm font-medium text-gray-900 dark:text-white">
                           {log.metadata.duration}ms
                         </p>
@@ -600,13 +656,13 @@ const ActivityLogDetailModal = ({ log, onClose, onRefresh }) => {
                           {getDeviceDisplay(log.deviceInfo)}
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                          {log.deviceInfo?.device?.type || 'Unknown'} Device
+                          {log.deviceInfo?.device?.type || "Unknown"} Device
                         </p>
                       </div>
                     </div>
-                    
+
                     <Separator className="dark:bg-gray-700" />
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
@@ -614,52 +670,55 @@ const ActivityLogDetailModal = ({ log, onClose, onRefresh }) => {
                         </label>
                         <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
                           <p className="font-medium text-sm text-gray-900 dark:text-white">
-                            {log.deviceInfo?.os?.name || 'Unknown'}
+                            {log.deviceInfo?.os?.name || "Unknown"}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {log.deviceInfo?.os?.version || 'Unknown version'}
+                            {log.deviceInfo?.os?.version || "Unknown version"}
                           </p>
                         </div>
                       </div>
-                      
+
                       <div>
                         <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
                           Browser
                         </label>
                         <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
                           <p className="font-medium text-sm text-gray-900 dark:text-white">
-                            {log.deviceInfo?.browser?.name || 'Unknown'}
+                            {log.deviceInfo?.browser?.name || "Unknown"}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {log.deviceInfo?.browser?.version || 'Unknown version'}
+                            {log.deviceInfo?.browser?.version ||
+                              "Unknown version"}
                           </p>
                         </div>
                       </div>
-                      
+
                       <div>
                         <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
                           Device Type
                         </label>
                         <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
                           <p className="font-medium text-sm text-gray-900 dark:text-white capitalize">
-                            {log.deviceInfo?.device?.type || 'desktop'}
+                            {log.deviceInfo?.device?.type || "desktop"}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {log.deviceInfo?.device?.vendor || 'Unknown'} {log.deviceInfo?.device?.model || ''}
+                            {log.deviceInfo?.device?.vendor || "Unknown"}{" "}
+                            {log.deviceInfo?.device?.model || ""}
                           </p>
                         </div>
                       </div>
-                      
+
                       <div>
                         <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
                           Engine
                         </label>
                         <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
                           <p className="font-medium text-sm text-gray-900 dark:text-white">
-                            {log.deviceInfo?.engine?.name || 'Unknown'}
+                            {log.deviceInfo?.engine?.name || "Unknown"}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {log.deviceInfo?.engine?.version || 'Unknown version'}
+                            {log.deviceInfo?.engine?.version ||
+                              "Unknown version"}
                           </p>
                         </div>
                       </div>
@@ -682,41 +741,60 @@ const ActivityLogDetailModal = ({ log, onClose, onRefresh }) => {
                       </div>
                       <div>
                         <h4 className="text-lg font-medium text-gray-900 dark:text-white">
-                          {log.location?.city || 'Unknown Location'}
+                          {log.location?.city || "Unknown Location"}
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                          {log.location?.region && `${log.location.region}, `}{log.location?.country || 'Unknown Country'}
+                          {log.location?.region && `${log.location.region}, `}
+                          {log.location?.country || "Unknown Country"}
                         </p>
                       </div>
                     </div>
-                    
+
                     <Separator className="dark:bg-gray-700" />
-                    
+
                     <div className="grid grid-cols-1 gap-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">Country</label>
-                          <p className="text-sm text-gray-900 dark:text-white">{log.location?.country || 'Unknown'}</p>
+                          <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
+                            Country
+                          </label>
+                          <p className="text-sm text-gray-900 dark:text-white">
+                            {log.location?.country || "Unknown"}
+                          </p>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">Region</label>
-                          <p className="text-sm text-gray-900 dark:text-white">{log.location?.region || 'Unknown'}</p>
+                          <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
+                            Region
+                          </label>
+                          <p className="text-sm text-gray-900 dark:text-white">
+                            {log.location?.region || "Unknown"}
+                          </p>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">City</label>
-                          <p className="text-sm text-gray-900 dark:text-white">{log.location?.city || 'Unknown'}</p>
+                          <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
+                            City
+                          </label>
+                          <p className="text-sm text-gray-900 dark:text-white">
+                            {log.location?.city || "Unknown"}
+                          </p>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">Timezone</label>
-                          <p className="text-sm text-gray-900 dark:text-white">{log.location?.timezone || 'Unknown'}</p>
+                          <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
+                            Timezone
+                          </label>
+                          <p className="text-sm text-gray-900 dark:text-white">
+                            {log.location?.timezone || "Unknown"}
+                          </p>
                         </div>
                       </div>
-                      
+
                       <div>
-                        <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">IP Address</label>
+                        <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
+                          IP Address
+                        </label>
                         <code className="text-sm font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
                           {log.ipAddress}
                         </code>
@@ -744,23 +822,37 @@ const ActivityLogDetailModal = ({ log, onClose, onRefresh }) => {
 
                   <Card className="dark:bg-gray-800 dark:border-gray-700">
                     <CardHeader>
-                      <CardTitle className="text-gray-900 dark:text-white">Field Changes</CardTitle>
+                      <CardTitle className="text-gray-900 dark:text-white">
+                        Field Changes
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <ScrollArea className="h-96">
                         <Table>
                           <TableHeader>
                             <TableRow className="dark:border-gray-700">
-                              <TableHead className="dark:text-gray-300">Field</TableHead>
-                              <TableHead className="dark:text-gray-300">Old Value</TableHead>
-                              <TableHead className="dark:text-gray-300">New Value</TableHead>
+                              <TableHead className="dark:text-gray-300">
+                                Field
+                              </TableHead>
+                              <TableHead className="dark:text-gray-300">
+                                Old Value
+                              </TableHead>
+                              <TableHead className="dark:text-gray-300">
+                                New Value
+                              </TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {changes.map((change, index) => (
-                              <TableRow key={index} className="dark:border-gray-700">
+                              <TableRow
+                                key={index}
+                                className="dark:border-gray-700"
+                              >
                                 <TableCell>
-                                  <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-800">
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-800"
+                                  >
                                     {change.field}
                                   </Badge>
                                 </TableCell>
@@ -786,9 +878,12 @@ const ActivityLogDetailModal = ({ log, onClose, onRefresh }) => {
                 <Card className="dark:bg-gray-800 dark:border-gray-700">
                   <CardContent className="py-8 text-center">
                     <FileText className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400">No changes detected</p>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      No changes detected
+                    </p>
                     <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                      This action didn't involve any data modifications or change tracking is not available.
+                      This action didn't involve any data modifications or
+                      change tracking is not available.
                     </p>
                   </CardContent>
                 </Card>
