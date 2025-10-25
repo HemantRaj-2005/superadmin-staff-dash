@@ -2,17 +2,17 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Login from './components/auth/Login';
-import Dashboard from './components/Home/Dashboard';
-import UserManagement from './components/Users/UserManagement';
-import ActivityLogs from './components/Activity/ActivityLogs';
-import Layout from './components/Layout';
-import PostManagement from './components/Posts/PostManagement';
-import EventManagement from './components/Events/EventManagement';
-import { useNavigationTracking } from './components/Hooks/NavigationTracking';
-import PermissionRoute from './components/RoleManagement/PermissionRoutes';
-import AdminManagement from './components/RoleManagement/AdminManagement';
-import RoleManagement from './components/RoleManagement/RoleManagement';
+import Login from './pages/auth/Login';
+import Dashboard from './pages/Home/Dashboard';
+import UserManagement from './pages/Users/UserManagement';
+import ActivityLogs from './pages/Activity/ActivityLogs';
+import Layout from './pages/Layout';
+import PostManagement from './pages/Posts/PostManagement';
+import EventManagement from './pages/Events/EventManagement';
+import { useNavigationTracking } from './pages/Hooks/NavigationTracking';
+import PermissionRoute from './pages/RoleManagement/PermissionRoutes';
+import AdminManagement from './pages/RoleManagement/AdminManagement';
+import RoleManagement from './pages/RoleManagement/RoleManagement';
 
 // Component that wraps protected routes with navigation tracking + layout
 function ProtectedLayout({ children }) {
