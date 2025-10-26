@@ -71,6 +71,8 @@ const PostManagement = () => {
     }
   };
 
+  
+
   const handleDeletePost = async (postId) => {
     try {
       await api.delete(`/posts/${postId}`);

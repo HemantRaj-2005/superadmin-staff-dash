@@ -5,6 +5,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
 // Routes
 import postRoutes from './routes/post.js';
 import authRoutes from './routes/auth.js';
@@ -14,6 +15,9 @@ import eventRoutes from './routes/event.js'
 import activityLogRoutes from './routes/activityLogs.js'
 import roleRoutes from './routes/role.js'
 import adminManagementRoutes from './routes/adminManagement.js'
+import commentRoutes from './routes/comments.js'
+
+
 
 dotenv.config();
 
@@ -23,16 +27,11 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 //ip setup
-
 app.set('trust proxy', true);
-
-
 const trustProxyConfig = process.env.NODE_ENV === 'production' 
   ? true  // Trust all proxies in production
   : 'loopback'; // Only trust loopback in development
-
 app.set('trust proxy', trustProxyConfig);
-
 // Or for specific hosting platforms:
 const getTrustProxySetting = () => {
   if (process.env.VERCEL) return true;
@@ -68,14 +67,13 @@ app.use('/api/admin/events', eventRoutes);
 app.use('/api/admin/activity-logs', activityLogRoutes);
 app.use('/api/admin/roles', roleRoutes);
 app.use('/api/admin/admins', adminManagementRoutes);
+app.use('/api/admin/comments', commentRoutes);
 
 
 
 
-// Health check route
-app.get('/api/health', (req, res) => {
-  res.json({ message: 'Server is running!' });
-});
+
+
 
 // Serve React app in production
 if (process.env.NODE_ENV === 'production') {

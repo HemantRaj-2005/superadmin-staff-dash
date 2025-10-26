@@ -5,6 +5,8 @@ import User from '../models/User.js';
 import ActivityLog from '../models/ActivityLog.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { logActivity, logUpdateWithOldValues } from '../middleware/activityLogger.js';
+import { requirePermission } from '../middleware/permissions.js';
+import Comment from '../models/Comment.js';
 
 const router = express.Router();
 
@@ -87,93 +89,109 @@ const diffObjects = (oldObj = {}, newObj = {}) => {
   return { oldValues, newValues };
 };
 
-/* -------------------------
-   Routes (GET unchanged)
-   ------------------------- */
 
-// Get all posts with pagination and search
-router.get('/', authenticate, async (req, res) => {
-  try {
-    const { page = 1, limit = 10, search = '', author = '' } = req.query;
+// get posts
+router.get(
+  '/',
+  requirePermission('posts', 'view'),
+  logActivity('VIEW_POSTS', { resourceType: 'Post' }),
+  async (req, res) => {
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        search = '',
+        author = ''
+      } = req.query;
 
-    const query = { isDeleted: { $in: [false, null] } };
+      const query = { isDeleted: { $in: [false, null] } };
 
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { content: { $regex: search, $options: 'i' } }
-      ];
-    }
+      // Search by title or content
+      if (search) {
+        query.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { content: { $regex: search, $options: 'i' } }
+        ];
+      }
 
-    if (author) {
-      query.author = { $regex: author, $options: 'i' };
-    }
+      // Filter by author name/email
+      if (author) {
+        query.author = { $regex: author, $options: 'i' };
+      }
 
-    const posts = await Post.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      const posts = await Post.find(query)
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
 
-    const postsWithUserDetails = await Promise.all(
-      posts.map(async (post) => {
-        try {
+      // Combine author details and comment counts
+      const postsWithExtras = await Promise.all(
+        posts.map(async (post) => {
           let user = null;
-          // try by id
+
+          // Try finding author by ID
           if (post.author) {
-            try { user = await User.findById(post.author); } catch {}
+            try {
+              user = await User.findById(post.author);
+            } catch {}
           }
+
+          // Fallback: try by name or email
           if (!user) {
             user = await User.findOne({
               $or: [
                 { email: post.author },
                 { firstName: post.author },
-                { $expr: { $eq: [{ $concat: ['$firstName', ' ', '$lastName'] }, post.author] } }
+                {
+                  $expr: {
+                    $eq: [{ $concat: ['$firstName', ' ', '$lastName'] }, post.author]
+                  }
+                }
               ]
             });
           }
 
+          // Count comments for this post
+          const commentCount = await Comment.countDocuments({
+            postId: post._id,
+            isDeleted: { $in: [false, null] }
+          });
+
           return {
             ...post.toObject(),
-            authorDetails: user ? {
-              firstName: user.firstName,
-              lastName: user.lastName,
-              email: user.email,
-              profileImage: user.profileImage
-            } : {
-              firstName: 'Unknown',
-              lastName: 'User',
-              email: post.author,
-              profileImage: null
-            }
+            authorDetails: user
+              ? {
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  email: user.email,
+                  profileImage: user.profileImage
+                }
+              : {
+                  firstName: 'Unknown',
+                  lastName: 'User',
+                  email: post.author,
+                  profileImage: null
+                },
+            commentCount
           };
-        } catch (error) {
-          console.error('Error fetching user details:', error);
-          return {
-            ...post.toObject(),
-            authorDetails: {
-              firstName: 'Unknown',
-              lastName: 'User',
-              email: post.author,
-              profileImage: null
-            }
-          };
-        }
-      })
-    );
+        })
+      );
 
-    const total = await Post.countDocuments(query);
+      const total = await Post.countDocuments(query);
 
-    res.json({
-      posts: postsWithUserDetails,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
-      total
-    });
-  } catch (error) {
-    console.error('Error fetching posts:', error);
-    res.status(500).json({ message: error.message });
+      res.json({
+        posts: postsWithExtras,
+        totalPages: Math.ceil(total / limit),
+        currentPage: Number(page),
+        total
+      });
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      res.status(500).json({ message: error.message });
+    }
   }
-});
+);
+
 
 // Get single post details
 router.get('/:id', authenticate, async (req, res) => {

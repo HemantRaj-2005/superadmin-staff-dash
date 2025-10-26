@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Trash2, Heart, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Heart, Image as ImageIcon, MessageCircle } from 'lucide-react';
 
 const PostTable = ({ posts, loading, onPostClick, onDeletePost }) => {
   if (loading) {
@@ -63,6 +63,7 @@ const PostTable = ({ posts, loading, onPostClick, onDeletePost }) => {
     );
   }
 
+  
   const getInitials = (author) => {
     if (!author) return 'U';
     return `${author.firstName?.[0] || ''}${author.lastName?.[0] || ''}`.toUpperCase() || 'U';
@@ -81,6 +82,7 @@ const PostTable = ({ posts, loading, onPostClick, onDeletePost }) => {
               <TableHead className="w-[350px]">Post</TableHead>
               <TableHead>Author</TableHead>
               <TableHead>Reactions</TableHead>
+              <TableHead>Comments</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="w-[120px]">Actions</TableHead>
             </TableRow>
@@ -114,14 +116,20 @@ const PostTable = ({ posts, loading, onPostClick, onDeletePost }) => {
                         <ImageIcon className="h-5 w-5 text-muted-foreground" />
                       </div>
                     )}
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-sm line-clamp-1">
-                        {post.title || 'Untitled Post'}
-                      </div>
-                      <div className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                        {post.content || 'No content'}
-                      </div>
-                    </div>
+                   <div className="min-w-0 flex-1">
+  <div
+    className="font-medium text-sm line-clamp-1 truncate"
+    title={(post.title && post.title.trim()) ? post.title : 'Untitled Post'}
+    aria-label={(post.title && post.title.trim()) ? post.title : 'Untitled Post'}
+  >
+    {(post.title && post.title.trim())
+      ? (post.title.split(/\s+/).length > 10
+          ? post.title.split(/\s+/).slice(0, 10).join(' ') + '...'
+          : post.title)
+      : 'Untitled Post'}
+  </div>
+</div>
+
                   </div>
                 </TableCell>
                 
@@ -155,6 +163,19 @@ const PostTable = ({ posts, loading, onPostClick, onDeletePost }) => {
                     </span>
                     <Badge variant="outline" className="text-xs">
                       {post.reactions?.length || 0} reactions
+                    </Badge>
+                  </div>
+                </TableCell>
+
+                {/* Comments Column */}
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    <MessageCircle className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium">
+                      {post.commentCount || 0}
+                    </span>
+                    <Badge variant="outline" className="text-xs">
+                      {post.commentCount || 0} comments
                     </Badge>
                   </div>
                 </TableCell>
