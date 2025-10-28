@@ -1,227 +1,11 @@
-// import express from 'express';
-// import User from '../models/User.js';
-// import Post from '../models/Post.js';
-// import { auth, adminAuth } from '../middleware/auth.js';
-
-// const router = express.Router();
-
-// // Admin: Soft delete user
-// router.delete('/:id', adminAuth, async (req, res) => {
-//   try {
-//     const user = await User.findById(req.params.id);
-    
-//     if (!user) {
-//       return res.status(404).json({ message: 'User not found' });
-//     }
-
-//     // Soft delete the user
-//     user.isActive = false;
-//     user.deletedAt = new Date();
-//     user.scheduledForPermanentDeletion = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 days
-//     await user.save();
-
-//     // Hide all user's posts
-//     await Post.updateMany(
-//       { author: user._id },
-//       { isVisible: false }
-//     );
-
-//     res.json({ 
-//       message: 'User scheduled for deletion successfully',
-//       scheduledDeletion: user.scheduledForPermanentDeletion
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error', error: error.message });
-//   }
-// });
-
-// // Admin: Restore soft-deleted user
-// router.patch('/:id/restore', adminAuth, async (req, res) => {
-//   try {
-//     const user = await User.findById(req.params.id);
-    
-//     if (!user) {
-//       return res.status(404).json({ message: 'User not found' });
-//     }
-
-//     // Restore the user
-//     user.isActive = true;
-//     user.deletedAt = null;
-//     user.scheduledForPermanentDeletion = null;
-//     await user.save();
-
-//     // Restore all user's posts
-//     await Post.updateMany(
-//       { author: user._id },
-//       { isVisible: true }
-//     );
-
-//     res.json({ message: 'User restored successfully' });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error', error: error.message });
-//   }
-// });
-
-// // Get all active users (for admin)
-// router.get('/', adminAuth, async (req, res) => {
-//   try {
-//     const { page = 1, limit = 10 } = req.query;
-//     const users = await User.find({ deletedAt: null })
-//       .select('-password')
-//       .limit(limit * 1)
-//       .skip((page - 1) * limit)
-//       .sort({ createdAt: -1 });
-
-//     const total = await User.countDocuments({ deletedAt: null });
-
-//     res.json({
-//       users,
-//       totalPages: Math.ceil(total / limit),
-//       currentPage: page,
-//       total
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error', error: error.message });
-//   }
-// });
-
-// // Get soft-deleted users (for admin)
-// router.get('/deleted', adminAuth, async (req, res) => {
-//   try {
-//     const { page = 1, limit = 10 } = req.query;
-//     const deletedUsers = await User.find({ 
-//       deletedAt: { $ne: null } 
-//     })
-//       .select('-password')
-//       .limit(limit * 1)
-//       .skip((page - 1) * limit)
-//       .sort({ deletedAt: -1 });
-
-//     const total = await User.countDocuments({ deletedAt: { $ne: null } });
-
-//     res.json({
-//       users: deletedUsers,
-//       totalPages: Math.ceil(total / limit),
-//       currentPage: page,
-//       total
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error', error: error.message });
-//   }
-// });
-
-// // Get user profile
-// router.get('/profile', auth, async (req, res) => {
-//   try {
-//     const user = await User.findById(req.user._id).select('-password');
-//     res.json(user);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error', error: error.message });
-//   }
-// });
-
-
-// // routes/users.js - Add these routes
-
-// // Update user
-// router.put('/:id', adminAuth, async (req, res) => {
-//   try {
-//     const { username, email, role, isActive } = req.body;
-//     const user = await User.findByIdAndUpdate(
-//       req.params.id,
-//       { username, email, role, isActive },
-//       { new: true, runValidators: true }
-//     ).select('-password');
-
-//     if (!user) {
-//       return res.status(404).json({ message: 'User not found' });
-//     }
-
-//     res.json(user);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error', error: error.message });
-//   }
-// });
-
-// // Bulk actions
-// router.post('/bulk-action', adminAuth, async (req, res) => {
-//   try {
-//     const { userIds, action } = req.body;
-
-//     switch (action) {
-//       case 'delete':
-//         await User.updateMany(
-//           { _id: { $in: userIds } },
-//           { 
-//             isActive: false,
-//             deletedAt: new Date(),
-//             scheduledForPermanentDeletion: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
-//           }
-//         );
-//         break;
-//       case 'activate':
-//         await User.updateMany(
-//           { _id: { $in: userIds } },
-//           { isActive: true }
-//         );
-//         break;
-//       case 'deactivate':
-//         await User.updateMany(
-//           { _id: { $in: userIds } },
-//           { isActive: false }
-//         );
-//         break;
-//       default:
-//         return res.status(400).json({ message: 'Invalid action' });
-//     }
-
-//     res.json({ message: 'Bulk action completed successfully' });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error', error: error.message });
-//   }
-// });
-
-// // User statistics
-// router.get('/stats', adminAuth, async (req, res) => {
-//   try {
-//     const totalUsers = await User.countDocuments();
-//     const activeUsers = await User.countDocuments({ isActive: true, deletedAt: null });
-//     const deletedUsers = await User.countDocuments({ deletedAt: { $ne: null } });
-//     const adminUsers = await User.countDocuments({ role: 'admin' });
-
-//     // Weekly registration stats
-//     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-//     const weeklyRegistrations = await User.countDocuments({
-//       createdAt: { $gte: oneWeekAgo }
-//     });
-
-//     res.json({
-//       totalUsers,
-//       activeUsers,
-//       deletedUsers,
-//       adminUsers,
-//       weeklyRegistrations
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error', error: error.message });
-//   }
-// });
-
-// export default router;
-
-
-
-// routes/users.js
+// routes/users.route.js
 import express from 'express';
-import User from '../models/User.js';
+import User from '../models/model.user.js';
 import Post from '../models/Post.js';
-import Admin from '../models/Admin.js';
 import ActivityLog from '../models/ActivityLog.js';
 import {
-  authenticate,    // admin auth (populates req.admin)
-  authorize,       // role-based authorize helper (if you use it)
-  auth,            // regular user auth (populates req.user)
-  adminAuth        // admin-only shorthand middleware (if available)
+  authenticate,
+  auth
 } from '../middleware/auth.js';
 import { populateAdminPermissions, requirePermission } from '../middleware/permissions.js';
 import { logActivity, logUpdateWithOldValues } from '../middleware/activityLogger.js';
@@ -233,18 +17,8 @@ const getUserForLogging = async (userId) => {
   return await User.findById(userId).select('-password -refreshTokens');
 };
 
-// Apply authentication and permission population to admin routes
-// NOTE: we won't apply this globally because some endpoints (like /profile) are for regular users (auth)
-router.use('/',
-  // only mount these middlewares for admin-protected endpoints under /users except /profile
-  // we'll call them explicitly on routes instead of globally to avoid interfering with user routes
-  (req, res, next) => next()
-);
-
 /**
  * ADMIN / RBAC PROTECTED ROUTES
- * These expect `authenticate` + `populateAdminPermissions` to run before requirePermission checks.
- * We'll explicitly include authenticate + populateAdminPermissions in each admin route to be explicit.
  */
 
 /**
@@ -264,7 +38,7 @@ router.get(
       const limit = parseInt(req.query.limit, 10) || 10;
       const search = req.query.search || '';
 
-      const query = {};
+      const query = { isDeleted: false }; // Only non-deleted users
       if (search) {
         query.$or = [
           { firstName: { $regex: search, $options: 'i' } },
@@ -306,7 +80,7 @@ router.get(
   logActivity('EXPORT_USERS', { resourceType: 'User' }),
   async (req, res) => {
     try {
-      const users = await User.find()
+      const users = await User.find({ isDeleted: false }) // Only non-deleted users
         .select('firstName lastName email role createdAt isActive deletedAt')
         .sort({ createdAt: -1 })
         .limit(1000);
@@ -352,7 +126,7 @@ router.get(
   logActivity('VIEW_USER', { resourceType: 'User' }),
   async (req, res) => {
     try {
-      const user = await User.findById(req.params.id).select('-password -refreshTokens');
+      const user = await User.findOne({ _id: req.params.id, isDeleted: false }).select('-password -refreshTokens');
       if (!user) return res.status(404).json({ message: 'User not found' });
       res.json(user);
     } catch (error) {
@@ -362,7 +136,6 @@ router.get(
 );
 
 /**
- 
  * Update user with old-values logging and activity entry
  * Permission: users:edit
  */
@@ -371,27 +144,23 @@ router.put(
   authenticate,
   populateAdminPermissions,
   requirePermission('users', 'edit'),
-  logUpdateWithOldValues('User', getUserForLogging), // sets req.oldData
-  logActivity('UPDATE_USER', { resourceType: 'User' }), // create pending log and sets req.activityLogId
+  logUpdateWithOldValues('User', getUserForLogging),
+  logActivity('UPDATE_USER', { resourceType: 'User' }),
   async (req, res) => {
     try {
       const oldUser = req.oldData;
 
       // Perform the update
-      let user = await User.findByIdAndUpdate(
-        req.params.id,
+      let user = await User.findOneAndUpdate(
+        { _id: req.params.id, isDeleted: false }, // Only update non-deleted users
         { $set: req.body },
         { new: true, runValidators: true }
       ).select('-password -refreshTokens');
 
-      // re-fetch to ensure latest populated fields (if any)
-      user = await User.findById(req.params.id).select('-password -refreshTokens');
-
       if (!user) {
-        // mark the activity as failed if
         if (req.activityLogId) {
           await ActivityLog.findByIdAndUpdate(req.activityLogId, {
-            $set: { status: 'FAILED', description: `UPDATE_USER failed: user ${req.params.id} not found` }
+            $set: { status: 'FAILED', description: `UPDATE_USER failed: user ${req.params.id} not found or deleted` }
           }).catch(console.error);
         }
         return res.status(404).json({ message: 'User not found' });
@@ -423,7 +192,6 @@ router.put(
       return res.json(user);
     } catch (error) {
       console.error('PUT /users/:id error:', error);
-      // Update activity log status if possible
       if (req.activityLogId) {
         await ActivityLog.findByIdAndUpdate(req.activityLogId, {
           $set: { status: 'FAILED', description: error.message }
@@ -436,7 +204,7 @@ router.put(
 
 /**
  * DELETE /users/:id
- * Soft-delete user (admin) - schedules permanent deletion and hides user's posts
+ * Soft-delete user (admin)
  * Permission: users:delete
  */
 router.delete(
@@ -447,10 +215,9 @@ router.delete(
   logActivity('DELETE_USER', { resourceType: 'User' }),
   async (req, res) => {
     try {
-      const user = await User.findById(req.params.id);
-
-      if (!user) {
-        // mark activity log as failed if applicable
+      const result = await User.softDelete({ _id: req.params.id });
+      
+      if (result.nModified === 0) {
         if (req.activityLogId) {
           await ActivityLog.findByIdAndUpdate(req.activityLogId, {
             $set: { status: 'FAILED', description: `DELETE_USER failed: user ${req.params.id} not found` }
@@ -459,17 +226,8 @@ router.delete(
         return res.status(404).json({ message: 'User not found' });
       }
 
-      // Soft delete the user
-      user.isActive = false;
-      user.deletedAt = new Date();
-      user.scheduledForPermanentDeletion = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 days
-      await user.save();
-
-      // Hide all user's posts
-      await Post.updateMany(
-        { author: user._id },
-        { isVisible: false }
-      );
+      // Hide all user's posts using soft delete
+      await Post.softDelete({ author: req.params.id });
 
       // update activity log success if present
       if (req.activityLogId) {
@@ -483,7 +241,7 @@ router.delete(
 
       res.json({
         message: 'User scheduled for deletion successfully',
-        scheduledDeletion: user.scheduledForPermanentDeletion
+        scheduledDeletion: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) // 90 days from now
       });
     } catch (error) {
       console.error('DELETE /users/:id error:', error);
@@ -500,7 +258,7 @@ router.delete(
 /**
  * PATCH /users/:id/restore
  * Restore a soft-deleted user
- * Permission: users:edit (or a separate 'restore' permission if you have one)
+ * Permission: users:edit
  */
 router.patch(
   '/users/:id/restore',
@@ -510,20 +268,14 @@ router.patch(
   logActivity('RESTORE_USER', { resourceType: 'User' }),
   async (req, res) => {
     try {
-      const user = await User.findById(req.params.id);
-
-      if (!user) return res.status(404).json({ message: 'User not found' });
-
-      user.isActive = true;
-      user.deletedAt = null;
-      user.scheduledForPermanentDeletion = null;
-      await user.save();
+      const result = await User.restore({ _id: req.params.id });
+      
+      if (result.nModified === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
 
       // Restore user's posts
-      await Post.updateMany(
-        { author: user._id },
-        { isVisible: true }
-      );
+      await Post.restore({ author: req.params.id });
 
       // Update activity log if present
       if (req.activityLogId) {
@@ -562,13 +314,19 @@ router.get(
     try {
       const page = parseInt(req.query.page, 10) || 1;
       const limit = parseInt(req.query.limit, 10) || 10;
-      const users = await User.find({ deletedAt: null })
+      const users = await User.find({ 
+        isDeleted: false, 
+        isActive: true 
+      })
         .select('-password -refreshTokens')
         .limit(limit)
         .skip((page - 1) * limit)
         .sort({ createdAt: -1 });
 
-      const total = await User.countDocuments({ deletedAt: null });
+      const total = await User.countDocuments({ 
+        isDeleted: false, 
+        isActive: true 
+      });
 
       res.json({
         users,
@@ -596,13 +354,13 @@ router.get(
     try {
       const page = parseInt(req.query.page, 10) || 1;
       const limit = parseInt(req.query.limit, 10) || 10;
-      const deletedUsers = await User.find({ deletedAt: { $ne: null } })
+      const deletedUsers = await User.findWithDeleted({ isDeleted: true })
         .select('-password -refreshTokens')
         .limit(limit)
         .skip((page - 1) * limit)
         .sort({ deletedAt: -1 });
 
-      const total = await User.countDocuments({ deletedAt: { $ne: null } });
+      const total = await User.countDocuments({ isDeleted: true });
 
       res.json({
         users: deletedUsers,
@@ -633,24 +391,27 @@ router.post(
 
       switch (action) {
         case 'delete':
-          await User.updateMany(
-            { _id: { $in: userIds } },
-            {
-              isActive: false,
-              deletedAt: new Date(),
-              scheduledForPermanentDeletion: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
-            }
-          );
-          // hide posts for those users
-          await Post.updateMany({ author: { $in: userIds } }, { isVisible: false });
+          await User.softDelete({ _id: { $in: userIds } });
+          await Post.softDelete({ author: { $in: userIds } });
           break;
 
         case 'activate':
-          await User.updateMany({ _id: { $in: userIds } }, { isActive: true });
+          await User.updateMany({ 
+            _id: { $in: userIds }, 
+            isDeleted: false 
+          }, { isActive: true });
           break;
 
         case 'deactivate':
-          await User.updateMany({ _id: { $in: userIds } }, { isActive: false });
+          await User.updateMany({ 
+            _id: { $in: userIds }, 
+            isDeleted: false 
+          }, { isActive: false });
+          break;
+
+        case 'restore':
+          await User.restore({ _id: { $in: userIds } });
+          await Post.restore({ author: { $in: userIds } });
           break;
 
         default:
@@ -692,17 +453,22 @@ router.get(
   requirePermission('users', 'view'),
   async (req, res) => {
     try {
-      const totalUsers = await User.countDocuments();
-      const activeUsers = await User.countDocuments({ isActive: true, deletedAt: null });
-      const deletedUsers = await User.countDocuments({ deletedAt: { $ne: null } });
-
-      // adminUsers count (if you store role as a string 'admin' or a role id)
-      const adminUsers = await User.countDocuments({ role: 'admin' });
+      const totalUsers = await User.countDocuments({ isDeleted: false });
+      const activeUsers = await User.countDocuments({ 
+        isActive: true, 
+        isDeleted: false 
+      });
+      const deletedUsers = await User.countDocuments({ isDeleted: true });
+      const adminUsers = await User.countDocuments({ 
+        role: 'admin', 
+        isDeleted: false 
+      });
 
       // Weekly registration stats
       const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const weeklyRegistrations = await User.countDocuments({
-        createdAt: { $gte: oneWeekAgo }
+        createdAt: { $gte: oneWeekAgo },
+        isDeleted: false
       });
 
       res.json({
@@ -720,8 +486,6 @@ router.get(
 
 /**
  * USER-FACING ROUTES
- * - /users/profile for regular authenticated users
- * These use the `auth` middleware (non-admin).
  */
 
 // Get user profile
@@ -730,7 +494,15 @@ router.get(
   auth,
   async (req, res) => {
     try {
-      const user = await User.findById(req.user._id).select('-password -refreshTokens');
+      const user = await User.findOne({ 
+        _id: req.user._id, 
+        isDeleted: false 
+      }).select('-password -refreshTokens');
+      
+      if (!user) {
+        return res.status(404).json({ message: 'User not found or deleted' });
+      }
+      
       res.json(user);
     } catch (error) {
       res.status(500).json({ message: 'Server error', error: error.message });

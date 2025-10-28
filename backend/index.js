@@ -6,16 +6,17 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import './services/cleanUp.service.js'
 // Routes
-import postRoutes from './routes/post.js';
-import authRoutes from './routes/auth.js';
-import adminRoutes from './routes/admin.js';
-import statsRoutes from './routes/stats.js';
-import eventRoutes from './routes/event.js'
-import activityLogRoutes from './routes/activityLogs.js'
-import roleRoutes from './routes/role.js'
-import adminManagementRoutes from './routes/adminManagement.js'
-import commentRoutes from './routes/comments.js'
+import postRoutes from './routes/post.route.js';
+import authRoutes from './routes/auth.route.js';
+import adminRoutes from './routes/admin.route.js';
+import statsRoutes from './routes/stats.route.js';
+import eventRoutes from './routes/event.route.js'
+import activityLogRoutes from './routes/activityLogs.route.js'
+import roleRoutes from './routes/role.route.js'
+import adminManagementRoutes from './routes/adminManagement.route.js'
+import commentRoutes from './routes/comments.route.js'
 
 
 
@@ -68,11 +69,6 @@ app.use('/api/admin/activity-logs', activityLogRoutes);
 app.use('/api/admin/roles', roleRoutes);
 app.use('/api/admin/admins', adminManagementRoutes);
 app.use('/api/admin/comments', commentRoutes);
-
-
-
-
-
 
 
 // Serve React app in production

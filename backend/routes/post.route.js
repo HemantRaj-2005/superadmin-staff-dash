@@ -6,7 +6,7 @@ import ActivityLog from '../models/ActivityLog.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { logActivity, logUpdateWithOldValues } from '../middleware/activityLogger.js';
 import { requirePermission } from '../middleware/permissions.js';
-import Comment from '../models/Comment.js';
+import Comment from '../models/comment.model.js';
 
 const router = express.Router();
 
@@ -89,8 +89,7 @@ const diffObjects = (oldObj = {}, newObj = {}) => {
   return { oldValues, newValues };
 };
 
-
-// get posts
+// Get posts (only non-deleted by default)
 router.get(
   '/',
   requirePermission('posts', 'view'),
@@ -101,10 +100,15 @@ router.get(
         page = 1,
         limit = 10,
         search = '',
-        author = ''
+        author = '',
+        includeDeleted = false // New parameter to include deleted posts
       } = req.query;
 
-      const query = { isDeleted: { $in: [false, null] } };
+      // Build query based on includeDeleted parameter
+      const query = {};
+      if (!includeDeleted || includeDeleted === 'false') {
+        query.isDeleted = false;
+      }
 
       // Search by title or content
       if (search) {
@@ -119,10 +123,16 @@ router.get(
         query.author = { $regex: author, $options: 'i' };
       }
 
-      const posts = await Post.find(query)
-        .sort({ createdAt: -1 })
-        .limit(limit * 1)
-        .skip((page - 1) * limit);
+      // Use findWithDeleted if including deleted posts
+      const posts = includeDeleted === 'true' 
+        ? await Post.findWithDeleted(query)
+            .sort({ createdAt: -1 })
+            .limit(limit * 1)
+            .skip((page - 1) * limit)
+        : await Post.find(query)
+            .sort({ createdAt: -1 })
+            .limit(limit * 1)
+            .skip((page - 1) * limit);
 
       // Combine author details and comment counts
       const postsWithExtras = await Promise.all(
@@ -132,13 +142,14 @@ router.get(
           // Try finding author by ID
           if (post.author) {
             try {
-              user = await User.findById(post.author);
+              user = await User.findOne({ _id: post.author, isDeleted: false });
             } catch {}
           }
 
-          // Fallback: try by name or email
+          // Fallback: try by name or email (only non-deleted users)
           if (!user) {
             user = await User.findOne({
+              isDeleted: false,
               $or: [
                 { email: post.author },
                 { firstName: post.author },
@@ -151,10 +162,10 @@ router.get(
             });
           }
 
-          // Count comments for this post
+          // Count comments for this post (only non-deleted comments)
           const commentCount = await Comment.countDocuments({
             postId: post._id,
-            isDeleted: { $in: [false, null] }
+            isDeleted: false
           });
 
           return {
@@ -177,7 +188,9 @@ router.get(
         })
       );
 
-      const total = await Post.countDocuments(query);
+      const total = includeDeleted === 'true' 
+        ? await Post.countDocuments(query)
+        : await Post.countDocuments(query);
 
       res.json({
         posts: postsWithExtras,
@@ -192,19 +205,93 @@ router.get(
   }
 );
 
+// Get deleted posts (admin only)
+router.get(
+  '/deleted',
+  authenticate,
+  requirePermission('posts', 'view'),
+  async (req, res) => {
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        search = ''
+      } = req.query;
+
+      const query = { isDeleted: true };
+
+      if (search) {
+        query.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { content: { $regex: search, $options: 'i' } }
+        ];
+      }
+
+      const deletedPosts = await Post.findWithDeleted(query)
+        .sort({ deletedAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+
+      const postsWithExtras = await Promise.all(
+        deletedPosts.map(async (post) => {
+          let user = null;
+          try {
+            user = await User.findOne({ _id: post.author, isDeleted: false });
+          } catch {}
+
+          const commentCount = await Comment.countDocuments({
+            postId: post._id,
+            isDeleted: false
+          });
+
+          return {
+            ...post.toObject(),
+            authorDetails: user
+              ? {
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  email: user.email,
+                  profileImage: user.profileImage
+                }
+              : {
+                  firstName: 'Unknown',
+                  lastName: 'User',
+                  email: post.author,
+                  profileImage: null
+                },
+            commentCount
+          };
+        })
+      );
+
+      const total = await Post.countDocuments({ isDeleted: true });
+
+      res.json({
+        posts: postsWithExtras,
+        totalPages: Math.ceil(total / limit),
+        currentPage: Number(page),
+        total
+      });
+    } catch (error) {
+      console.error('Error fetching deleted posts:', error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
 
 // Get single post details
 router.get('/:id', authenticate, async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findOne({ _id: req.params.id, isDeleted: false });
 
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
     let user = null;
     try {
-      user = await User.findById(post.author);
+      user = await User.findOne({ _id: post.author, isDeleted: false });
       if (!user) {
         user = await User.findOne({
+          isDeleted: false,
           $or: [
             { email: post.author },
             { firstName: post.author }
@@ -243,15 +330,16 @@ router.get('/:id', authenticate, async (req, res) => {
 router.put(
   '/:id',
   authenticate,
-  logUpdateWithOldValues('Post', getPostForLogging), // sets req.oldData (plain object in middleware)
-  logActivity('UPDATE_POST', { resourceType: 'Post' }), // creates pending log and sets req.activityLogId
+  logUpdateWithOldValues('Post', getPostForLogging),
+  logActivity('UPDATE_POST', { resourceType: 'Post' }),
   async (req, res) => {
     try {
-      const oldPost = req.oldData || {}; // plain object
+      const oldPost = req.oldData || {};
       const { title, content, imageUrl } = req.body;
 
-      const post = await Post.findByIdAndUpdate(
-        req.params.id,
+      // Only update non-deleted posts
+      const post = await Post.findOneAndUpdate(
+        { _id: req.params.id, isDeleted: false },
         {
           $set: {
             ...(typeof title !== 'undefined' ? { title } : {}),
@@ -266,7 +354,7 @@ router.put(
       if (!post) {
         if (req.activityLogId) {
           await ActivityLog.findByIdAndUpdate(req.activityLogId, {
-            $set: { status: 'FAILED', description: `UPDATE_POST failed: post ${req.params.id} not found` }
+            $set: { status: 'FAILED', description: `UPDATE_POST failed: post ${req.params.id} not found or deleted` }
           }).catch(console.error);
         }
         return res.status(404).json({ message: 'Post not found' });
@@ -300,7 +388,9 @@ router.put(
 
       // attach author details for response
       let user = null;
-      try { user = await User.findById(post.author); } catch (e) { console.error(e); }
+      try { 
+        user = await User.findOne({ _id: post.author, isDeleted: false }); 
+      } catch (e) { console.error(e); }
 
       const postWithDetails = {
         ...post.toObject(),
@@ -331,62 +421,94 @@ router.put(
 );
 
 /* -------------------------
-   Soft delete (store changed fields: isDeleted)
+   Soft delete post
    ------------------------- */
-router.delete('/:id', authenticate, logActivity('DELETE_POST', { resourceType: 'Post' }), async (req, res) => {
-  try {
-    // Fetch old doc to diff afterwards
-    const oldPostDoc = await getPostForLogging(req.params.id);
-    if (!oldPostDoc) {
-      if (req.activityLogId) {
-        await ActivityLog.findByIdAndUpdate(req.activityLogId, { $set: { status: 'FAILED', description: 'DELETE_POST failed: not found' } }).catch(console.error);
-      }
-      return res.status(404).json({ message: 'Post not found' });
-    }
-    const oldPost = oldPostDoc.toObject();
-
-    const post = await Post.findByIdAndUpdate(
-      req.params.id,
-      {
-        $set: { isDeleted: true, deletedAt: new Date() }
-      },
-      { new: true }
-    );
-
-    if (!post) {
-      if (req.activityLogId) {
-        await ActivityLog.findByIdAndUpdate(req.activityLogId, { $set: { status: 'FAILED', description: 'DELETE_POST failed during update' } }).catch(console.error);
-      }
-      return res.status(404).json({ message: 'Post not found' });
-    }
-
-    // compute diff for isDeleted change
-    const newPostObj = post.toObject();
-    const { oldValues, newValues } = diffObjects(oldPost, newPostObj);
-    const sanitizedOld = sanitizeBody(oldValues);
-    const sanitizedNew = sanitizeBody(newValues);
-
-    if (req.activityLogId) {
-      await ActivityLog.findByIdAndUpdate(req.activityLogId, {
-        $set: {
-          changes: { oldValues: sanitizedOld, newValues: sanitizedNew },
-          status: 'SUCCESS',
-          description: `DELETE_POST (soft) by ${req.admin?.name || 'Unknown Admin'} on post ${req.params.id}`
+router.delete(
+  '/:id', 
+  authenticate, 
+  requirePermission('posts', 'delete'),
+  logActivity('DELETE_POST', { resourceType: 'Post' }), 
+  async (req, res) => {
+    try {
+      const result = await Post.softDelete({ _id: req.params.id });
+      
+      if (result.nModified === 0) {
+        if (req.activityLogId) {
+          await ActivityLog.findByIdAndUpdate(req.activityLogId, { 
+            $set: { status: 'FAILED', description: 'DELETE_POST failed: post not found' } 
+          }).catch(console.error);
         }
-      }).catch(console.error);
-    }
+        return res.status(404).json({ message: 'Post not found' });
+      }
 
-    res.json({ message: 'Post deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting post:', error);
-    if (req.activityLogId) {
-      await ActivityLog.findByIdAndUpdate(req.activityLogId, {
-        $set: { status: 'FAILED', description: error.message }
-      }).catch(console.error);
+      // Soft delete associated comments
+      await Comment.softDelete({ postId: req.params.id });
+
+      if (req.activityLogId) {
+        await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+          $set: {
+            status: 'SUCCESS',
+            description: `DELETE_POST (soft) by ${req.admin?.name || 'Unknown Admin'} on post ${req.params.id}`
+          }
+        }).catch(console.error);
+      }
+
+      res.json({ 
+        message: 'Post deleted successfully',
+        scheduledDeletion: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) // 90 days from now
+      });
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      if (req.activityLogId) {
+        await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+          $set: { status: 'FAILED', description: error.message }
+        }).catch(console.error);
+      }
+      res.status(500).json({ message: error.message });
     }
-    res.status(500).json({ message: error.message });
   }
-});
+);
+
+/* -------------------------
+   Restore soft-deleted post
+   ------------------------- */
+router.patch(
+  '/:id/restore',
+  authenticate,
+  requirePermission('posts', 'edit'),
+  logActivity('RESTORE_POST', { resourceType: 'Post' }),
+  async (req, res) => {
+    try {
+      const result = await Post.restore({ _id: req.params.id });
+      
+      if (result.nModified === 0) {
+        return res.status(404).json({ message: 'Post not found' });
+      }
+
+      // Restore associated comments
+      await Comment.restore({ postId: req.params.id });
+
+      if (req.activityLogId) {
+        await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+          $set: {
+            status: 'SUCCESS',
+            description: `RESTORE_POST by ${req.admin?.name || 'Unknown Admin'} on post ${req.params.id}`
+          }
+        }).catch(console.error);
+      }
+
+      res.json({ message: 'Post restored successfully' });
+    } catch (error) {
+      console.error('Error restoring post:', error);
+      if (req.activityLogId) {
+        await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+          $set: { status: 'FAILED', description: error.message }
+        }).catch(console.error);
+      }
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
 
 /* -------------------------
    Remove reaction — record changes
@@ -398,25 +520,29 @@ router.delete('/:postId/reactions/:reactionId',
     try {
       const { postId, reactionId } = req.params;
 
-      // Get old post doc
-      const oldPostDoc = await getPostForLogging(postId);
+      // Get old post doc (only non-deleted posts)
+      const oldPostDoc = await Post.findOne({ _id: postId, isDeleted: false });
       if (!oldPostDoc) {
         if (req.activityLogId) {
-          await ActivityLog.findByIdAndUpdate(req.activityLogId, { $set: { status: 'FAILED', description: 'REMOVE_REACTION failed: post not found' } }).catch(console.error);
+          await ActivityLog.findByIdAndUpdate(req.activityLogId, { 
+            $set: { status: 'FAILED', description: 'REMOVE_REACTION failed: post not found' } 
+          }).catch(console.error);
         }
         return res.status(404).json({ message: 'Post not found' });
       }
       const oldPost = oldPostDoc.toObject();
 
-      const post = await Post.findByIdAndUpdate(
-        postId,
+      const post = await Post.findOneAndUpdate(
+        { _id: postId, isDeleted: false },
         { $pull: { reactions: { _id: reactionId } } },
         { new: true }
       );
 
       if (!post) {
         if (req.activityLogId) {
-          await ActivityLog.findByIdAndUpdate(req.activityLogId, { $set: { status: 'FAILED', description: 'REMOVE_REACTION failed during update' } }).catch(console.error);
+          await ActivityLog.findByIdAndUpdate(req.activityLogId, { 
+            $set: { status: 'FAILED', description: 'REMOVE_REACTION failed during update' } 
+          }).catch(console.error);
         }
         return res.status(404).json({ message: 'Post not found' });
       }
@@ -439,7 +565,9 @@ router.delete('/:postId/reactions/:reactionId',
 
       // attach author details for response
       let user = null;
-      try { user = await User.findById(post.author); } catch (e) { console.error(e); }
+      try { 
+        user = await User.findOne({ _id: post.author, isDeleted: false }); 
+      } catch (e) { console.error(e); }
 
       const postWithDetails = {
         ...post.toObject(),
@@ -470,38 +598,51 @@ router.delete('/:postId/reactions/:reactionId',
 );
 
 /* -------------------------
-   Hard delete (unchanged)
+   Hard delete (permanent)
    ------------------------- */
-router.delete('/:id/hard', authenticate, authorize(['super_admin']), logActivity('HARD_DELETE_POST', { resourceType: 'Post' }), async (req, res) => {
-  try {
-    const post = await Post.findByIdAndDelete(req.params.id);
+router.delete(
+  '/:id/hard', 
+  authenticate, 
+  authorize(['super_admin']), 
+  logActivity('HARD_DELETE_POST', { resourceType: 'Post' }), 
+  async (req, res) => {
+    try {
+      const post = await Post.findByIdAndDelete(req.params.id);
 
-    if (!post) {
-      if (req.activityLogId) {
-        await ActivityLog.findByIdAndUpdate(req.activityLogId, { $set: { status: 'FAILED', description: 'HARD_DELETE_POST failed: not found' } }).catch(console.error);
-      }
-      return res.status(404).json({ message: 'Post not found' });
-    }
-
-    if (req.activityLogId) {
-      // record old->null removal (optional)
-      await ActivityLog.findByIdAndUpdate(req.activityLogId, {
-        $set: {
-          changes: { oldValues: sanitizeBody(post.toObject()), newValues: null },
-          status: 'SUCCESS',
-          description: `HARD_DELETE_POST by ${req.admin?.name || 'Unknown Admin'} on post ${req.params.id}`
+      if (!post) {
+        if (req.activityLogId) {
+          await ActivityLog.findByIdAndUpdate(req.activityLogId, { 
+            $set: { status: 'FAILED', description: 'HARD_DELETE_POST failed: not found' } 
+          }).catch(console.error);
         }
-      }).catch(console.error);
-    }
+        return res.status(404).json({ message: 'Post not found' });
+      }
 
-    res.json({ message: 'Post permanently deleted' });
-  } catch (error) {
-    console.error('Error hard deleting post:', error);
-    if (req.activityLogId) {
-      await ActivityLog.findByIdAndUpdate(req.activityLogId, { $set: { status: 'FAILED', description: error.message } }).catch(console.error);
+      // Also permanently delete associated comments
+      await Comment.deleteMany({ postId: req.params.id });
+
+      if (req.activityLogId) {
+        // record old->null removal (optional)
+        await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+          $set: {
+            changes: { oldValues: sanitizeBody(post.toObject()), newValues: null },
+            status: 'SUCCESS',
+            description: `HARD_DELETE_POST by ${req.admin?.name || 'Unknown Admin'} on post ${req.params.id}`
+          }
+        }).catch(console.error);
+      }
+
+      res.json({ message: 'Post permanently deleted' });
+    } catch (error) {
+      console.error('Error hard deleting post:', error);
+      if (req.activityLogId) {
+        await ActivityLog.findByIdAndUpdate(req.activityLogId, { 
+          $set: { status: 'FAILED', description: error.message } 
+        }).catch(console.error);
+      }
+      res.status(500).json({ message: error.message });
     }
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
 export default router;

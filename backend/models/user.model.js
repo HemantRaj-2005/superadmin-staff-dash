@@ -1,8 +1,6 @@
-// models/User.js
+// models/model.user.js
 import mongoose from 'mongoose';
-
 const { Schema } = mongoose;
-
 
 const AddressSchema = new Schema({
   street: { type: String, required: true },
@@ -110,11 +108,66 @@ const UserSchema = new Schema({
 
   role: { type: String, required: true },
 
-  socialLinks: { type: SocialLinksSchema, required: false }
+  socialLinks: { type: SocialLinksSchema, required: false },
+
+  // SOFT DELETE FIELDS - ADD THESE
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date,
+    default: null
+  }
 }, {
   timestamps: true, 
 });
 
+// Add this middleware to automatically filter out deleted users
+UserSchema.pre(/^find/, function(next) {
+  // Only include this check if we're not explicitly asking for deleted users
+  if (!this.getOptions().withDeleted) {
+    this.where({ isDeleted: { $ne: true } });
+  }
+  next();
+});
+
+// Add static methods for soft delete operations
+UserSchema.statics.softDelete = function(query) {
+  return this.updateMany(query, {
+    $set: {
+      isDeleted: true,
+      deletedAt: new Date()
+    }
+  });
+};
+
+UserSchema.statics.restore = function(query) {
+  return this.updateMany(query, {
+    $set: {
+      isDeleted: false,
+      deletedAt: null
+    }
+  });
+};
+
+// Method to include deleted documents in query
+UserSchema.statics.findWithDeleted = function(conditions = {}) {
+  return this.find(conditions).withDeleted();
+};
+
+// Method to permanently delete users deleted more than 90 days ago
+UserSchema.statics.permanentDeleteOldRecords = async function() {
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  
+  const result = await this.deleteMany({
+    isDeleted: true,
+    deletedAt: { $lte: ninetyDaysAgo }
+  });
+  
+  return result;
+};
 
 const User = mongoose.model('User', UserSchema);
 export default User;
