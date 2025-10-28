@@ -1,8 +1,8 @@
 // routes/auth.js
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import Admin from '../models/Admin.js';
-import Role from '../models/Role.js'
+import Admin from '../models/admin.model.js';
+import Role from '../models/role.model.js'
 import { logLoginActivity, logLogoutActivity } from '../middleware/activityLogger.js';
 
 const router = express.Router();

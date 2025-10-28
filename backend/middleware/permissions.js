@@ -1,5 +1,5 @@
 // middleware/permissions.js
-import Admin from '../models/Admin.js';
+import Admin from '../models/admin.model.js';
 
 // Middleware to check permissions
 export const requirePermission = (resource, action) => {

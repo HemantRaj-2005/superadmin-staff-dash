@@ -127,7 +127,12 @@ const UserSchema = new Schema({
 UserSchema.pre(/^find/, function(next) {
   // Only include this check if we're not explicitly asking for deleted users
   if (!this.getOptions().withDeleted) {
-    this.where({ isDeleted: { $ne: true } });
+    this.where({ 
+      $or: [
+        { isDeleted: { $ne: true } },
+        { isDeleted: { $exists: false } } // Include documents where isDeleted doesn't exist
+      ]
+    });
   }
   next();
 });

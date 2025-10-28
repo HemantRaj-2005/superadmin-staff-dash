@@ -1,8 +1,8 @@
 // routes/posts.js
 import express from 'express';
-import Post from '../models/Post.js';
-import User from '../models/User.js';
-import ActivityLog from '../models/ActivityLog.js';
+import Post from '../models/post.model.js';
+import User from '../models/user.model.js';
+import ActivityLog from '../models/activityLog.model.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { logActivity, logUpdateWithOldValues } from '../middleware/activityLogger.js';
 import { requirePermission } from '../middleware/permissions.js';

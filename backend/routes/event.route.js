@@ -1,7 +1,7 @@
 // routes/events.js
 import express from 'express';
-import Event from '../models/Event.js';
-import ActivityLog from '../models/ActivityLog.js';
+import Event from '../models/event.model.js';
+import ActivityLog from '../models/activityLog.model.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { logActivity, logUpdateWithOldValues } from '../middleware/activityLogger.js';
 

@@ -1,8 +1,8 @@
 // routes/stats.js
 import express from 'express';
-import User from '../models/User.js';
-import Post from '../models/Post.js';
-import Event from '../models/Event.js';
+import User from '../models/user.model.js';
+import Post from '../models/post.model.js';
+import Event from '../models/event.model.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();

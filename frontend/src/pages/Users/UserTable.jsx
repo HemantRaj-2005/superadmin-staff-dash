@@ -1,133 +1,4 @@
-// // components/UserTable.js (Updated)
-// import React from 'react';
-// import Avatar from '../Profile/Avatar';
-
-// const UserTable = ({ users, loading, onUserClick, onDeleteUser }) => {
-//   if (loading) {
-//     return (
-//       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-//         <div className="flex justify-center items-center h-32">
-//           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="bg-white shadow-md rounded-lg overflow-hidden">
-//       <table className="min-w-full divide-y divide-gray-200">
-//         <thead className="bg-gray-50">
-//           <tr>
-//             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-//               User
-//             </th>
-//             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-//               Contact
-//             </th>
-//             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-//               Status
-//             </th>
-//             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-//               Joined
-//             </th>
-//             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-//               Actions
-//             </th>
-//           </tr>
-//         </thead>
-//         <tbody className="bg-white divide-y divide-gray-200">
-//           {users.map((user) => (
-//             <tr 
-//               key={user._id} 
-//               className="hover:bg-gray-50 cursor-pointer transition-colors duration-200"
-//               onClick={() => onUserClick(user)}
-//             >
-//               <td className="px-6 py-4 whitespace-nowrap">
-//                 <div className="flex items-center">
-//                   <Avatar
-//                     src={user.profileImage}
-//                     alt={`${user.firstName} ${user.lastName}`}
-//                     size="md"
-//                   />
-//                   <div className="ml-4">
-//                     <div className="text-sm font-semibold text-gray-900">
-//                       {user.firstName} {user.lastName}
-//                     </div>
-//                     <div className="flex items-center mt-1 space-x-1">
-//                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-//                         user.role === 'admin' 
-//                           ? 'bg-purple-100 text-purple-800'
-//                           : 'bg-blue-100 text-blue-800'
-//                       }`}>
-//                         {user.role}
-//                       </span>
-//                       {user.isGoogleUser && (
-//                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-//                           Google
-//                         </span>
-//                       )}
-//                     </div>
-//                   </div>
-//                 </div>
-//               </td>
-//               <td className="px-6 py-4 whitespace-nowrap">
-//                 <div className="text-sm text-gray-900">{user.email}</div>
-//                 {user.mobileNumber && (
-//                   <div className="text-sm text-gray-500">+{user.mobileNumber}</div>
-//                 )}
-//               </td>
-//               <td className="px-6 py-4 whitespace-nowrap">
-//                 <div className="flex flex-col space-y-1">
-//                   <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-//                     user.isEmailVerified 
-//                       ? 'bg-green-100 text-green-800'
-//                       : 'bg-red-100 text-red-800'
-//                   }`}>
-//                     {user.isEmailVerified ? 'Email Verified' : 'Email Unverified'}
-//                   </span>
-//                   <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-//                     user.isPhoneVerified 
-//                       ? 'bg-green-100 text-green-800'
-//                       : 'bg-red-100 text-red-800'
-//                   }`}>
-//                     {user.isPhoneVerified ? 'Phone Verified' : 'Phone Unverified'}
-//                   </span>
-//                 </div>
-//               </td>
-//               <td className="px-6 py-4 whitespace-nowrap">
-//                 <div className="text-sm text-gray-900">
-//                   {new Date(user.createdAt).toLocaleDateString()}
-//                 </div>
-//                 <div className="text-sm text-gray-500">
-//                   {new Date(user.createdAt).toLocaleTimeString()}
-//                 </div>
-//               </td>
-//               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-//                 <button
-//                   onClick={(e) => {
-//                     e.stopPropagation();
-//                     if (window.confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
-//                       onDeleteUser(user._id);
-//                     }
-//                   }}
-//                   className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition-colors duration-200"
-//                 >
-//                   Delete
-//                 </button>
-//               </td>
-//             </tr>
-//           ))}
-//         </tbody>
-//       </table>
-//     </div>
-//   );
-// };
-
-// export default UserTable;
-
-
-
-// components/UserTable.js - Updated with permission checks
+// pages/Users/UserTable.jsx - Updated with soft delete support
 import React from 'react';
 import {
   Table,
@@ -153,8 +24,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Trash2, Undo, UserX } from 'lucide-react';
 
-const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
+const UserTable = ({ 
+  users, 
+  loading, 
+  onUserClick, 
+  onDeleteUser, 
+  onRestoreUser,
+  canEdit,
+  showDeleted = false 
+}) => {
   if (loading) {
     return (
       <Card>
@@ -183,7 +63,7 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
       <Card>
         <CardContent className="p-8 text-center">
           <div className="text-muted-foreground">
-            No users found
+            {showDeleted ? 'No deleted users found' : 'No users found'}
           </div>
         </CardContent>
       </Card>
@@ -194,6 +74,32 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
     return `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || 'U';
   };
 
+  const getStatusBadge = (user) => {
+    if (user.isDeleted) {
+      return (
+        <Badge variant="destructive" className="bg-red-100 text-red-800 hover:bg-red-100">
+          <UserX className="h-3 w-3 mr-1" />
+          Deleted
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100">
+        {user.role}
+      </Badge>
+    );
+  };
+
+  const getDeletedInfo = (user) => {
+    if (!user.isDeleted) return null;
+    
+    return (
+      <div className="text-xs text-red-600 mt-1">
+        Deleted on {new Date(user.deletedAt).toLocaleDateString()}
+      </div>
+    );
+  };
+
   return (
     <Card>
       <div className="rounded-md border">
@@ -202,10 +108,10 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
             <TableRow>
               <TableHead className="w-[300px]">User</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Joined</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>{showDeleted ? 'Deleted' : 'Joined'}</TableHead>
               {(canEdit || onDeleteUser) && (
-                <TableHead className="w-[150px]">Actions</TableHead>
+                <TableHead className="w-[180px]">Actions</TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -213,12 +119,14 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
             {users.map((user) => (
               <TableRow 
                 key={user._id}
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                className={`cursor-pointer hover:bg-muted/50 transition-colors ${
+                  user.isDeleted ? 'bg-red-50 opacity-75' : ''
+                }`}
                 onClick={() => onUserClick(user)}
               >
                 <TableCell className="font-medium">
                   <div className="flex items-center space-x-3">
-                    <Avatar className="h-10 w-10">
+                    <Avatar className={`h-10 w-10 ${user.isDeleted ? 'opacity-60' : ''}`}>
                       <AvatarImage 
                         src={user.profileImage} 
                         alt={`${user.firstName} ${user.lastName}`}
@@ -230,7 +138,11 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
                     <div>
                       <div className="font-medium">
                         {user.firstName} {user.lastName}
+                        {user.isDeleted && (
+                          <span className="ml-2 text-xs text-red-600">(Deleted)</span>
+                        )}
                       </div>
+                      {getDeletedInfo(user)}
                     </div>
                   </div>
                 </TableCell>
@@ -240,22 +152,20 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge 
-                    variant="secondary" 
-                    className="bg-green-100 text-green-800 hover:bg-green-100"
-                  >
-                    {user.role}
-                  </Badge>
+                  {getStatusBadge(user)}
                 </TableCell>
                 <TableCell>
                   <div className="text-sm text-muted-foreground">
-                    {new Date(user.createdAt).toLocaleDateString()}
+                    {showDeleted 
+                      ? (user.deletedAt ? new Date(user.deletedAt).toLocaleDateString() : 'N/A')
+                      : new Date(user.createdAt).toLocaleDateString()
+                    }
                   </div>
                 </TableCell>
                 {(canEdit || onDeleteUser) && (
                   <TableCell>
                     <div className="flex space-x-2">
-                      {canEdit && (
+                      {canEdit && !user.isDeleted && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -268,7 +178,8 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
                           Edit
                         </Button>
                       )}
-                      {onDeleteUser && (
+                      
+                      {onDeleteUser && !user.isDeleted && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -277,6 +188,7 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
                               onClick={(e) => e.stopPropagation()}
                               className="text-red-600 hover:text-red-900 hover:bg-red-50"
                             >
+                              <Trash2 className="h-4 w-4 mr-1" />
                               Delete
                             </Button>
                           </AlertDialogTrigger>
@@ -285,7 +197,7 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
                               <AlertDialogTitle>Delete User</AlertDialogTitle>
                               <AlertDialogDescription>
                                 Are you sure you want to delete {user.firstName} {user.lastName}? 
-                                This action cannot be undone and all user data will be permanently removed.
+                                This will soft delete the user and hide their posts. The user can be restored later.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -295,6 +207,40 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
                                 className="bg-red-600 hover:bg-red-700"
                               >
                                 Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+
+                      {onRestoreUser && user.isDeleted && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-green-600 hover:text-green-900 hover:bg-green-50"
+                            >
+                              <Undo className="h-4 w-4 mr-1" />
+                              Restore
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Restore User</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to restore {user.firstName} {user.lastName}? 
+                                This will make the user active again and restore their posts.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => onRestoreUser(user._id)}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                Restore
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>

@@ -1,7 +1,7 @@
 // routes/adminManagement.js
 import express from 'express';
-import Admin from '../models/Admin.js';
-import Role from '../models/Role.js';
+import Admin from '../models/admin.model.js';
+import Role from '../models/role.model.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { requireSuperAdmin, populateAdminPermissions } from '../middleware/permissions.js';
 import { logActivity } from '../middleware/activityLogger.js';

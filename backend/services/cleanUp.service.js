@@ -1,8 +1,8 @@
 // jobs/cleanupJob.js
 import cron from 'node-cron';
-import User from '../models/model.user.js';
-import Post from '../models/Post.js';
-import Event from '../models/model.event.js';
+import User from '../models/user.model.js';
+import Post from '../models/post.model.js';
+import Event from '../models/event.model.js';
 import Comment from '../models/comment.model.js';
 
 // Run every day at 2 AM

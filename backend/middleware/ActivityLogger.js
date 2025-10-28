@@ -1,6 +1,6 @@
 // middleware/activityLogger.js
-import ActivityLog from '../models/ActivityLog.js';
-import Admin from '../models/Admin.js';
+import ActivityLog from '../models/activityLog.model.js';
+import Admin from '../models/admin.model.js';
 import { getClientIp , getIpDetails, parseUserAgent} from '../utils/ipUtils.js';
 // Helper: sanitize sensitive fields before logging
 const sensitiveFields = ['password', 'token', 'refreshToken', 'otp', 'otpVerificationId'];

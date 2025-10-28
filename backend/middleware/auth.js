@@ -1,6 +1,6 @@
 // middleware/auth.js
 import jwt from 'jsonwebtoken';
-import Admin from '../models/Admin.js';
+import Admin from '../models/admin.model.js';
 
 export const authenticate = async (req, res, next) => {
   try {
