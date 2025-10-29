@@ -44,7 +44,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import axios from 'axios';
 import api from '@/services/api';
 
 const PostDetailModal = ({ post, onClose, onRemoveReaction, onHardDelete }) => {
@@ -61,6 +60,7 @@ const PostDetailModal = ({ post, onClose, onRemoveReaction, onHardDelete }) => {
     try {
       return new Date(dateString).toLocaleString();
     } catch (error) {
+      console.log(error);
       return 'Invalid Date';
     }
   };
@@ -79,6 +79,7 @@ const PostDetailModal = ({ post, onClose, onRemoveReaction, onHardDelete }) => {
       
       return formatDate(dateString);
     } catch (error) {
+      console.log(error);
       return 'Invalid Date';
     }
   };

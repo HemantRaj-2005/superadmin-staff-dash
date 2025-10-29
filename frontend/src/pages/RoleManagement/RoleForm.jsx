@@ -122,6 +122,7 @@ const RoleForm = ({ role, permissionStructure, onSave, onClose, open = true }) =
       await onSave(formData);
     } catch (error) {
       // Error handling is done in parent component
+      console.log(error);
     } finally {
       setLoading(false);
     }
