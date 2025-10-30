@@ -184,6 +184,36 @@ router.get('/permissions/structure', async (req, res) => {
             { id: 'manage', name: 'Manage Logs', description: 'Full log management access' }
           ]
         },
+        //school
+    {
+  id: 'schools',
+  name: 'School Management',
+  description: 'Manage schools and their data',
+  actions: [
+    { id: 'view', name: 'View Schools', description: 'Can view school list and details' },
+    { id: 'create', name: 'Create Schools', description: 'Can create new schools' },
+    { id: 'edit', name: 'Edit Schools', description: 'Can edit school information' },
+    { id: 'delete', name: 'Delete Schools', description: 'Can delete schools' },
+    { id: 'export', name: 'Export Schools', description: 'Can export school data' },
+    { id: 'manage', name: 'Manage Schools', description: 'Full school management access' }
+  ]
+    },
+
+    //educationalprogeam
+    {
+  id: 'educational_programs',
+  name: 'Educational Program Management',
+  description: 'Manage educational programs and specializations',
+  actions: [
+    { id: 'view', name: 'View Programs', description: 'Can view educational program list and details' },
+    { id: 'create', name: 'Create Programs', description: 'Can create new educational programs' },
+    { id: 'edit', name: 'Edit Programs', description: 'Can edit educational programs' },
+    { id: 'delete', name: 'Delete Programs', description: 'Can delete educational programs' },
+    { id: 'export', name: 'Export Programs', description: 'Can export educational program data' },
+    { id: 'manage', name: 'Manage Programs', description: 'Full educational program management access' }
+  ]
+},
+
         {
           id: 'settings',
           name: 'System Settings',

@@ -67,6 +67,7 @@ const EventManagement = () => {
   useEffect(() => {
     fetchEvents();
     fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, filters]);
 
   useEffect(() => {
@@ -113,7 +114,7 @@ const EventManagement = () => {
   };
 
   const fetchStats = async () => {
-    // This would be called separately for stats
+    // This would be called separately for stats - left as placeholder
   };
 
   const handleFilterChange = (key, value) => {
@@ -162,6 +163,7 @@ const EventManagement = () => {
   };
 
   const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > pagination.totalPages) return;
     setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
@@ -182,23 +184,150 @@ const EventManagement = () => {
     return "Select date range";
   };
 
+  // ---------------- CSV Export Helpers ----------------
+
+  // Convert array of objects -> CSV string
+  const convertObjectsToCSV = (data, columns = null) => {
+    if (!Array.isArray(data) || data.length === 0) return "";
+
+    // Determine keys (use provided columns or union of keys from all objects)
+    const keys =
+      Array.isArray(columns) && columns.length > 0
+        ? columns
+        : Array.from(
+            data.reduce((set, item) => {
+              Object.keys(item || {}).forEach((k) => set.add(k));
+              return set;
+            }, new Set())
+          );
+
+    const escapeCell = (value) => {
+      if (value === null || value === undefined) return "";
+      // stringify objects/arrays so they remain single cell
+      if (typeof value === "object") value = JSON.stringify(value);
+      const s = String(value);
+      if (/[,\"\n]/.test(s)) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    };
+
+    const headerRow = keys.map((k) => escapeCell(k)).join(",") + "\n";
+    const rows = data
+      .map((row) => keys.map((k) => escapeCell(row[k])).join(","))
+      .join("\n");
+
+    // BOM for Excel UTF-8 compatibility
+    return "\uFEFF" + headerRow + rows;
+  };
+
+  // Trigger browser download for CSV string
+  const downloadCSV = (csvString, filename = "data.csv") => {
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Export handler. mode: 'visible' | 'all'
+  const handleExport = async (mode = "visible") => {
+    try {
+      let dataToExport = [];
+
+      if (mode === "visible") {
+        dataToExport = events;
+      } else if (mode === "all") {
+        // Try to fetch all events. NOTE: backend must support a large limit or provide an export endpoint.
+        // We reuse current filters so export matches filtered results.
+        const apiParams = {
+          page: 1,
+          limit: pagination.total || 100000, // if backend supports a large limit
+          search: filters.search,
+          event_type: filters.event_type === "all" ? "" : filters.event_type,
+          status: filters.status === "all" ? "" : filters.status,
+          is_paid: filters.is_paid === "all" ? "" : filters.is_paid,
+          date_range: filters.date_range,
+        };
+
+        const resp = await api.get("/events", { params: apiParams });
+        dataToExport = resp.data.events || [];
+      }
+
+      if (!dataToExport || dataToExport.length === 0) {
+        alert("No events to export.");
+        return;
+      }
+
+      // Optional: define a column order you prefer, otherwise columns come from objects' keys
+      // const columns = ["id", "title", "start_date", "end_date", "location", "event_type", "status", "is_paid"];
+      const columns = null;
+
+      const csv = convertObjectsToCSV(dataToExport, columns);
+      const filename = `events_${format(new Date(), "yyyyMMdd_HHmmss")}.csv`;
+      downloadCSV(csv, filename);
+    } catch (err) {
+      console.error("Export error:", err);
+      alert("Failed to export events. See console for details.");
+    }
+  };
+
+  // ---------------- End CSV Export Helpers ----------------
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Event Management
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">Event Management</h1>
           <p className="text-muted-foreground">
             Manage and organize all events on the platform
           </p>
         </div>
+
         <div className="flex items-center space-x-2">
-          <Button variant="outline" className="flex items-center space-x-2">
-            <Download className="h-4 w-4" />
-            <span>Export</span>
-          </Button>
+          {/* Export Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="flex items-center space-x-2">
+                <Download className="h-4 w-4" />
+                <span>Export</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-48">
+              <div className="space-y-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    handleExport("visible");
+                    // close popover
+                    document.body.click();
+                  }}
+                >
+                  Export Visible ({events.length})
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={async () => {
+                    await handleExport("all");
+                    document.body.click();
+                  }}
+                >
+                  Export All
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <Button className="flex items-center space-x-2">
             <Plus className="h-4 w-4" />
             <span>New Event</span>
@@ -250,9 +379,7 @@ const EventManagement = () => {
                     <Input
                       placeholder="Title, description, location..."
                       value={filters.search}
-                      onChange={(e) =>
-                        handleFilterChange("search", e.target.value)
-                      }
+                      onChange={(e) => handleFilterChange("search", e.target.value)}
                       className="pl-10"
                     />
                   </div>
@@ -263,9 +390,7 @@ const EventManagement = () => {
                   <label className="text-sm font-medium">Event Type</label>
                   <Select
                     value={filters.event_type}
-                    onValueChange={(value) =>
-                      handleFilterChange("event_type", value)
-                    }
+                    onValueChange={(value) => handleFilterChange("event_type", value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All Types" />
@@ -286,9 +411,7 @@ const EventManagement = () => {
                   <label className="text-sm font-medium">Status</label>
                   <Select
                     value={filters.status}
-                    onValueChange={(value) =>
-                      handleFilterChange("status", value)
-                    }
+                    onValueChange={(value) => handleFilterChange("status", value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All Status" />
@@ -309,9 +432,7 @@ const EventManagement = () => {
                   <label className="text-sm font-medium">Payment Type</label>
                   <Select
                     value={filters.is_paid}
-                    onValueChange={(value) =>
-                      handleFilterChange("is_paid", value)
-                    }
+                    onValueChange={(value) => handleFilterChange("is_paid", value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All" />
@@ -351,16 +472,11 @@ const EventManagement = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() =>
-                            setDateRange({ from: undefined, to: undefined })
-                          }
+                          onClick={() => setDateRange({ from: undefined, to: undefined })}
                         >
                           Clear
                         </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => document.body.click()} // Close the popover
-                        >
+                        <Button size="sm" onClick={() => document.body.click()}>
                           Apply
                         </Button>
                       </div>
@@ -375,67 +491,39 @@ const EventManagement = () => {
                   {hasActiveFilters && (
                     <>
                       {filters.search && (
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center space-x-1"
-                        >
+                        <Badge variant="secondary" className="flex items-center space-x-1">
                           <span>Search: "{filters.search}"</span>
-                          <button
-                            onClick={() => handleFilterChange("search", "")}
-                          >
+                          <button onClick={() => handleFilterChange("search", "")}>
                             <X className="h-3 w-3" />
                           </button>
                         </Badge>
                       )}
                       {filters.event_type !== "all" && (
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center space-x-1"
-                        >
+                        <Badge variant="secondary" className="flex items-center space-x-1">
                           <span>Type: {filters.event_type}</span>
-                          <button
-                            onClick={() =>
-                              handleFilterChange("event_type", "all")
-                            }
-                          >
+                          <button onClick={() => handleFilterChange("event_type", "all")}>
                             <X className="h-3 w-3" />
                           </button>
                         </Badge>
                       )}
                       {filters.status !== "all" && (
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center space-x-1"
-                        >
+                        <Badge variant="secondary" className="flex items-center space-x-1">
                           <span>Status: {filters.status}</span>
-                          <button
-                            onClick={() => handleFilterChange("status", "all")}
-                          >
+                          <button onClick={() => handleFilterChange("status", "all")}>
                             <X className="h-3 w-3" />
                           </button>
                         </Badge>
                       )}
                       {filters.is_paid !== "all" && (
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center space-x-1"
-                        >
-                          <span>
-                            Payment:{" "}
-                            {filters.is_paid === "true" ? "Paid" : "Free"}
-                          </span>
-                          <button
-                            onClick={() => handleFilterChange("is_paid", "all")}
-                          >
+                        <Badge variant="secondary" className="flex items-center space-x-1">
+                          <span>Payment: {filters.is_paid === "true" ? "Paid" : "Free"}</span>
+                          <button onClick={() => handleFilterChange("is_paid", "all")}>
                             <X className="h-3 w-3" />
                           </button>
                         </Badge>
                       )}
                       {filters.date_range && (
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center space-x-1"
-                        >
+                        <Badge variant="secondary" className="flex items-center space-x-1">
                           <span>Date: {formatDateRangeDisplay()}</span>
                           <button
                             onClick={() => {
@@ -478,8 +566,8 @@ const EventManagement = () => {
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
                 Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-                {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
-                of {pagination.total} events
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+                {pagination.total} events
               </div>
 
               <Pagination>
@@ -488,9 +576,7 @@ const EventManagement = () => {
                     <PaginationPrevious
                       onClick={() => handlePageChange(pagination.page - 1)}
                       className={
-                        pagination.page === 1
-                          ? "pointer-events-none opacity-50"
-                          : "cursor-pointer"
+                        pagination.page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
                       }
                     />
                   </PaginationItem>

@@ -15,12 +15,14 @@ const ActivityLogSchema = new mongoose.Schema({
       'VIEW_USER', 'UPDATE_USER', 'DELETE_USER',
       'VIEW_POST', 'UPDATE_POST', 'DELETE_POST', 'REMOVE_REACTION',
       'VIEW_EVENT', 'UPDATE_EVENT', 'DELETE_EVENT',
-      'VIEW_ACTIVITY_LOGS', 'EXPORT_DATA','UPDATE_ROLE','CREATE_ROLE','VIEW_POSTS','DELETE_COMMENT'
+      'VIEW_ACTIVITY_LOGS', 'EXPORT_DATA','UPDATE_ROLE','CREATE_ROLE','VIEW_POSTS','DELETE_COMMENT',
+      'DELETE_ROLE','VIEW_SCHOOLS','EXPORT_SCHOOLS','VIEW_EDUCATIONAL_PROGRAMS','CREATE_EDUCATIONAL_PROGRAM','UPDATE_EDUCATIONAL_PROGRAM',
+      'VIEW_EDUCATIONAL_PROGRAMS',
     ]
   },
   resourceType: {
     type: String,
-    enum: ['User', 'Post', 'Event', 'System', 'ActivityLog', null],
+    enum: ['User', 'Post', 'Event', 'System', 'ActivityLog','School','EducationalProgram', null],
     default: null
   },
   resourceId: {

@@ -37,7 +37,7 @@ const PostSchema = new Schema({
   isDeleted:  { type: Boolean, default: false },
   deletedAt:  { type: Date, default: null }
 }, {
-  timestamps: true,   // adds createdAt and updatedAt (matches your JSON schema)
+  timestamps: true,   
 //   versionKey: true    // keeps the __v field (Mongoose default)
 });
 

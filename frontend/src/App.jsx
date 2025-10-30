@@ -13,6 +13,8 @@ import { useNavigationTracking } from './pages/Hooks/NavigationTracking';
 import PermissionRoute from './pages/RoleManagement/PermissionRoutes';
 import AdminManagement from './pages/RoleManagement/AdminManagement';
 import RoleManagement from './pages/RoleManagement/RoleManagement';
+import SchoolManagement from './pages/School/SchoolManagement';
+import EducationalProgramManagement from './pages/EducationPrograms/EducationalProgramManagement';
 
 // Component that wraps protected routes with navigation tracking + layout
 function ProtectedLayout({ children }) {
@@ -171,6 +173,22 @@ function AppContent() {
           }
         />
 
+        <Route path="/schools" element={
+  <PermissionRoute resource="schools" action="view">
+    <Layout>
+      <SchoolManagement />
+    </Layout>
+  </PermissionRoute>
+} />
+
+
+   <Route path="/educationprograms" element={
+  <PermissionRoute resource="educationProgram" action="view">
+    <Layout>
+      <EducationalProgramManagement />
+    </Layout>
+  </PermissionRoute>
+} />
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

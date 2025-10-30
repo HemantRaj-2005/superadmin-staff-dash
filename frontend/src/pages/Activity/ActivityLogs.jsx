@@ -1,308 +1,6 @@
-// // components/ActivityLogs.js
-// import React, { useState, useEffect } from 'react';
-// import axios from 'axios';
-// import { useAuth } from '..//../contexts/AuthContext';
-// import ActivityLogsTable from './ActivityLogsTable';
-// import ActivityLogDetailModal from './ActivityLogDetailModal';
-// import api from '../../services/api';
-
-// const ActivityLogs = () => {
-//   const [logs, setLogs] = useState([]);
-//   const [selectedLog, setSelectedLog] = useState(null);
-//   const [isModalOpen, setIsModalOpen] = useState(false);
-//   const [loading, setLoading] = useState(false);
-//   const [filters, setFilters] = useState({
-//     action: '',
-//     resourceType: '',
-//     adminId: '',
-//     dateFrom: '',
-//     dateTo: '',
-//     search: ''
-//   });
-//   const [availableFilters, setAvailableFilters] = useState({
-//     actions: [],
-//     resourceTypes: [],
-//     admins: []
-//   });
-//   const [pagination, setPagination] = useState({
-//     page: 1,
-//     limit: 20,
-//     total: 0,
-//     totalPages: 0
-//   });
-
-//   const { admin } = useAuth();
-
-//   useEffect(() => {
-//     if (admin?.role.name === 'Super Admin') {
-//       fetchLogs();
-//     }
-//   }, [pagination.page, filters, admin]);
-
-//   const fetchLogs = async () => {
-//     setLoading(true);
-//     try {
-//       const params = {
-//         page: pagination.page,
-//         limit: pagination.limit,
-//         ...filters
-//       };
-
-//       const response = await api.get('/activity-logs', { params });
-      
-//       setLogs(response.data.logs);
-//       setAvailableFilters(response.data.filters);
-//       setPagination(prev => ({
-//         ...prev,
-//         total: response.data.total,
-//         totalPages: response.data.totalPages
-//       }));
-//     } catch (error) {
-//       console.error('Error fetching activity logs:', error);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const handleFilterChange = (key, value) => {
-//     setFilters(prev => ({ ...prev, [key]: value }));
-//     setPagination(prev => ({ ...prev, page: 1 }));
-//   };
-
-//   const clearFilters = () => {
-//     setFilters({
-//       action: '',
-//       resourceType: '',
-//       adminId: '',
-//       dateFrom: '',
-//       dateTo: '',
-//       search: ''
-//     });
-//     setPagination(prev => ({ ...prev, page: 1 }));
-//   };
-
-//   const handleLogClick = async (log) => {
-//     try {
-//       const response = await api.get(`/activity-logs/${log._id}`);
-//       setSelectedLog(response.data);
-//       setIsModalOpen(true);
-//     } catch (error) {
-//       console.error('Error fetching log details:', error);
-//     }
-//   };
-
-//   if (admin?.role.name !== 'Super Admin') {
-//     return (
-//       <div className="max-w-7xl mx-auto">
-//         <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-//           <div className="flex items-center">
-//             <div className="flex-shrink-0">
-//               <span className="text-red-600 text-2xl">🚫</span>
-//             </div>
-//             <div className="ml-4">
-//               <h3 className="text-lg font-medium text-red-800">Access Denied</h3>
-//               <p className="text-red-700 mt-1">Only super admins can view activity logs.</p>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="max-w-7xl mx-auto">
-//       <div className="mb-6">
-//         <div className="flex justify-between items-center mb-6">
-//           <div>
-//             <h2 className="text-2xl font-bold text-gray-900">Activity Logs</h2>
-//             <p className="text-gray-600 mt-1">Monitor all admin activities and changes</p>
-//           </div>
-//         </div>
-
-//         {/* Advanced Filters */}
-//         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-//           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-//             {/* Action Filter */}
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">
-//                 Action Type
-//               </label>
-//               <select
-//                 value={filters.action}
-//                 onChange={(e) => handleFilterChange('action', e.target.value)}
-//                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//               >
-//                 <option value="">All Actions</option>
-//                 {availableFilters.actions.map(action => (
-//                   <option key={action} value={action}>{action}</option>
-//                 ))}
-//               </select>
-//             </div>
-
-//             {/* Resource Type Filter */}
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">
-//                 Resource Type
-//               </label>
-//               <select
-//                 value={filters.resourceType}
-//                 onChange={(e) => handleFilterChange('resourceType', e.target.value)}
-//                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//               >
-//                 <option value="">All Resources</option>
-//                 {availableFilters.resourceTypes.map(type => (
-//                   <option key={type} value={type}>{type}</option>
-//                 ))}
-//               </select>
-//             </div>
-
-//             {/* Admin Filter */}
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">
-//                 Admin
-//               </label>
-//               <select
-//                 value={filters.adminId}
-//                 onChange={(e) => handleFilterChange('adminId', e.target.value)}
-//                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//               >
-//                 <option value="">All Admins</option>
-//                 {availableFilters.admins.map(admin => (
-//                   <option key={admin._id} value={admin._id}>
-//                     {admin.name} ({admin.email})
-//                   </option>
-//                 ))}
-//               </select>
-//             </div>
-
-//             {/* Search */}
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">
-//                 Search Description
-//               </label>
-//               <input
-//                 type="text"
-//                 placeholder="Search in descriptions..."
-//                 value={filters.search}
-//                 onChange={(e) => handleFilterChange('search', e.target.value)}
-//                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//               />
-//             </div>
-//           </div>
-
-//           {/* Date Range Filters */}
-//           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">
-//                 Date From
-//               </label>
-//               <input
-//                 type="date"
-//                 value={filters.dateFrom}
-//                 onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-//                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">
-//                 Date To
-//               </label>
-//               <input
-//                 type="date"
-//                 value={filters.dateTo}
-//                 onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-//                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//               />
-//             </div>
-//             <div className="flex items-end">
-//               <button
-//                 onClick={clearFilters}
-//                 className="w-full px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition duration-200"
-//               >
-//                 Clear All Filters
-//               </button>
-//             </div>
-//           </div>
-
-//           {/* Filter Stats */}
-//           <div className="flex justify-between items-center text-sm text-gray-500">
-//             <span>Showing {logs.length} of {pagination.total} activities</span>
-//             <span>Page {pagination.page} of {pagination.totalPages}</span>
-//           </div>
-//         </div>
-
-//         {/* Activity Logs Table */}
-//         <ActivityLogsTable
-//           logs={logs}
-//           loading={loading}
-//           onLogClick={handleLogClick}
-//         />
-
-//         {/* Pagination */}
-//         <div className="flex justify-between items-center mt-6">
-//           <button
-//             onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-//             disabled={pagination.page === 1}
-//             className="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition duration-200"
-//           >
-//             Previous
-//           </button>
-          
-//           <div className="flex items-center space-x-2">
-//             {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-//               .filter(page => 
-//                 page === 1 || 
-//                 page === pagination.totalPages || 
-//                 Math.abs(page - pagination.page) <= 2
-//               )
-//               .map((page, index, array) => (
-//                 <React.Fragment key={page}>
-//                   {index > 0 && array[index - 1] !== page - 1 && (
-//                     <span className="px-2 text-gray-500">...</span>
-//                   )}
-//                   <button
-//                     onClick={() => setPagination(prev => ({ ...prev, page }))}
-//                     className={`px-3 py-1 rounded-lg transition duration-200 ${
-//                       pagination.page === page
-//                         ? 'bg-blue-500 text-white'
-//                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-//                     }`}
-//                   >
-//                     {page}
-//                   </button>
-//                 </React.Fragment>
-//               ))}
-//           </div>
-          
-//           <button
-//             onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-//             disabled={pagination.page === pagination.totalPages}
-//             className="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition duration-200"
-//           >
-//             Next
-//           </button>
-//         </div>
-//       </div>
-
-//       {/* Activity Log Detail Modal */}
-//       {isModalOpen && selectedLog && (
-//         <ActivityLogDetailModal
-//           log={selectedLog}
-//           onClose={() => setIsModalOpen(false)}
-//         />
-//       )}
-//     </div>
-//   );
-// };
-
-// export default ActivityLogs;
-
-
-
-
 // components/ActivityLogs.js
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, X, BarChart3, AlertCircle } from 'lucide-react';
+import { Search, Filter, X, BarChart3, AlertCircle, Download } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ActivityLogsTable from './ActivityLogsTable';
 import ActivityLogDetailModal from './ActivityLogDetailModal';
@@ -315,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { format } from 'date-fns';
 
 const ActivityLogs = () => {
   const [logs, setLogs] = useState([]);
@@ -322,6 +22,7 @@ const ActivityLogs = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // The actual filters used by the fetch
   const [filters, setFilters] = useState({
     action: 'all',
     resourceType: 'all',
@@ -333,6 +34,9 @@ const ActivityLogs = () => {
     os: 'all',
     browser: 'all'
   });
+
+  // uiFilters: controlled inputs in the UI. Apply button will copy uiFilters -> filters.
+  const [uiFilters, setUiFilters] = useState({ ...filters });
 
   const [availableFilters, setAvailableFilters] = useState({
     actions: [],
@@ -352,11 +56,18 @@ const ActivityLogs = () => {
 
   const { admin } = useAuth();
 
+  // Fetch when filters (applied) or page changes
   useEffect(() => {
     if (admin?.role?.name === 'Super Admin') {
       fetchLogs();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, filters, admin]);
+
+  // Keep uiFilters synced whenever filters changes (so UI reflects programmatic resets or updates)
+  useEffect(() => {
+    setUiFilters((prev) => ({ ...prev, ...filters }));
+  }, [filters]);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -400,13 +111,19 @@ const ActivityLogs = () => {
     }
   };
 
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+  // Update uiFilters when inputs change (does NOT trigger fetch)
+  const handleUIFilterChange = (key, value) => {
+    setUiFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Apply button: copy uiFilters -> filters and reset to page 1
+  const applyFilters = () => {
+    setFilters({ ...uiFilters });
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const clearFilters = () => {
-    setFilters({
+    const cleared = {
       action: 'all',
       resourceType: 'all',
       adminId: 'all',
@@ -416,7 +133,9 @@ const ActivityLogs = () => {
       deviceType: 'all',
       os: 'all',
       browser: 'all'
-    });
+    };
+    setFilters(cleared);
+    setUiFilters(cleared);
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
@@ -431,6 +150,7 @@ const ActivityLogs = () => {
   };
 
   const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > pagination.totalPages) return;
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
@@ -459,6 +179,110 @@ const ActivityLogs = () => {
     );
   }
 
+  // ---------------- CSV Export Helpers ----------------
+
+  // Convert array of objects -> CSV string
+  const convertObjectsToCSV = (data, columns = null) => {
+    if (!Array.isArray(data) || data.length === 0) return "";
+
+    // Determine keys (use provided columns or union of keys from all objects)
+    const keys =
+      Array.isArray(columns) && columns.length > 0
+        ? columns
+        : Array.from(
+            data.reduce((set, item) => {
+              Object.keys(item || {}).forEach((k) => set.add(k));
+              return set;
+            }, new Set())
+          );
+
+    const escapeCell = (value) => {
+      if (value === null || value === undefined) return "";
+      // stringify objects/arrays so they remain single cell
+      if (typeof value === "object") {
+        try {
+          value = JSON.stringify(value);
+        } catch (e) {
+          value = String(value);
+        }
+      }
+      const s = String(value);
+      if (/[,\"\n]/.test(s)) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    };
+
+    const headerRow = keys.map((k) => escapeCell(k)).join(",") + "\n";
+    const rows = data
+      .map((row) => keys.map((k) => escapeCell(row[k])).join(","))
+      .join("\n");
+
+    // BOM for Excel UTF-8 compatibility
+    return "\uFEFF" + headerRow + rows;
+  };
+
+  // Trigger browser download for CSV string
+  const downloadCSV = (csvString, filename = "data.csv") => {
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Export handler. mode: 'visible' | 'all'
+  const handleExport = async (mode = "visible") => {
+    try {
+      let dataToExport = [];
+
+      if (mode === "visible") {
+        dataToExport = logs;
+      } else if (mode === "all") {
+        // Try to fetch all logs. NOTE: backend must support this or provide a dedicated export endpoint.
+        // Reuse current filters so exported set matches UI filters.
+        const apiParams = {
+          page: 1,
+          limit: pagination.total || 100000, // adjust depending on backend capability
+          search: filters.search,
+          action: filters.action === 'all' ? '' : filters.action,
+          resourceType: filters.resourceType === 'all' ? '' : filters.resourceType,
+          adminId: filters.adminId === 'all' ? '' : filters.adminId,
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+          deviceType: filters.deviceType === 'all' ? '' : filters.deviceType,
+          os: filters.os === 'all' ? '' : filters.os,
+          browser: filters.browser === 'all' ? '' : filters.browser
+        };
+
+        const resp = await api.get('/activity-logs', { params: apiParams });
+        dataToExport = resp.data.logs || [];
+      }
+
+      if (!dataToExport || dataToExport.length === 0) {
+        alert("No logs to export.");
+        return;
+      }
+
+      // Optional: pick columns in desired order, otherwise will use union of keys found in logs
+      // const columns = ['_id', 'action', 'resourceType', 'admin', 'description', 'ip', 'deviceType', 'os', 'browser', 'createdAt'];
+      const columns = null;
+
+      const csv = convertObjectsToCSV(dataToExport, columns);
+      const filename = `activity_logs_${format(new Date(), "yyyyMMdd_HHmmss")}.csv`;
+      downloadCSV(csv, filename);
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('Failed to export logs. See console for details.');
+    }
+  };
+
+  // ---------------- End CSV Export Helpers ----------------
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -469,9 +293,50 @@ const ActivityLogs = () => {
             Monitor all admin activities and changes
           </p>
         </div>
-        <Badge variant="secondary" className="text-sm">
-          {pagination.total} total activities
-        </Badge>
+
+        <div className="flex items-center space-x-2">
+          <Badge variant="secondary" className="text-sm">
+            {pagination.total} total activities
+          </Badge>
+
+          {/* Export Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="flex items-center space-x-2">
+                <Download className="h-4 w-4" />
+                <span>Export</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-48">
+              <div className="space-y-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    handleExport('visible');
+                    // close popover
+                    document.body.click();
+                  }}
+                >
+                  Export Visible ({logs.length})
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={async () => {
+                    await handleExport('all');
+                    document.body.click();
+                  }}
+                >
+                  Export All
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -511,8 +376,8 @@ const ActivityLogs = () => {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search in descriptions..."
-                      value={filters.search}
-                      onChange={(e) => handleFilterChange('search', e.target.value)}
+                      value={uiFilters.search}
+                      onChange={(e) => handleUIFilterChange('search', e.target.value)}
                       className="pl-10"
                     />
                   </div>
@@ -522,8 +387,8 @@ const ActivityLogs = () => {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Action Type</label>
                   <Select
-                    value={filters.action}
-                    onValueChange={(value) => handleFilterChange('action', value)}
+                    value={uiFilters.action}
+                    onValueChange={(value) => handleUIFilterChange('action', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All Actions" />
@@ -541,8 +406,8 @@ const ActivityLogs = () => {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Resource Type</label>
                   <Select
-                    value={filters.resourceType}
-                    onValueChange={(value) => handleFilterChange('resourceType', value)}
+                    value={uiFilters.resourceType}
+                    onValueChange={(value) => handleUIFilterChange('resourceType', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All Resources" />
@@ -560,8 +425,8 @@ const ActivityLogs = () => {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Admin</label>
                   <Select
-                    value={filters.adminId}
-                    onValueChange={(value) => handleFilterChange('adminId', value)}
+                    value={uiFilters.adminId}
+                    onValueChange={(value) => handleUIFilterChange('adminId', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All Admins" />
@@ -584,8 +449,8 @@ const ActivityLogs = () => {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Device Type</label>
                   <Select
-                    value={filters.deviceType}
-                    onValueChange={(value) => handleFilterChange('deviceType', value)}
+                    value={uiFilters.deviceType}
+                    onValueChange={(value) => handleUIFilterChange('deviceType', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All Devices" />
@@ -603,8 +468,8 @@ const ActivityLogs = () => {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Operating System</label>
                   <Select
-                    value={filters.os}
-                    onValueChange={(value) => handleFilterChange('os', value)}
+                    value={uiFilters.os}
+                    onValueChange={(value) => handleUIFilterChange('os', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All OS" />
@@ -622,8 +487,8 @@ const ActivityLogs = () => {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Browser</label>
                   <Select
-                    value={filters.browser}
-                    onValueChange={(value) => handleFilterChange('browser', value)}
+                    value={uiFilters.browser}
+                    onValueChange={(value) => handleUIFilterChange('browser', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All Browsers" />
@@ -644,24 +509,37 @@ const ActivityLogs = () => {
                   <label className="text-sm font-medium">Date From</label>
                   <Input
                     type="date"
-                    value={filters.dateFrom}
-                    onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                    value={uiFilters.dateFrom}
+                    onChange={(e) => handleUIFilterChange('dateFrom', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Date To</label>
                   <Input
                     type="date"
-                    value={filters.dateTo}
-                    onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                    value={uiFilters.dateTo}
+                    onChange={(e) => handleUIFilterChange('dateTo', e.target.value)}
                   />
                 </div>
+
+                {/* Apply / Clear controls */}
                 <div className="flex items-end space-x-2">
+                 <Button
+  variant="primary"
+  onClick={applyFilters}
+  className="flex-1 flex items-center justify-center transition-all duration-300 
+             hover:shadow-[0_0_15px_#3b82f6] active:shadow-[0_0_25px_#2563eb] 
+             hover:scale-105 active:scale-95"
+>
+  Apply Filters
+</Button>
+
+
                   <Button
                     variant="outline"
                     onClick={clearFilters}
                     disabled={!hasActiveFilters}
-                    className="flex-1 flex items-center space-x-2"
+                    className="flex-1 flex items-center space-x-2 justify-center"
                   >
                     <X className="h-4 w-4" />
                     <span>Clear Filters</span>
@@ -675,7 +553,7 @@ const ActivityLogs = () => {
                   {filters.search && (
                     <Badge variant="secondary" className="flex items-center space-x-1">
                       <span>Search: "{filters.search}"</span>
-                      <button onClick={() => handleFilterChange('search', '')}>
+                      <button onClick={() => { setUiFilters(prev => ({ ...prev, search: '' })); setFilters(prev => ({ ...prev, search: '' })); }}>
                         <X className="h-3 w-3" />
                       </button>
                     </Badge>
@@ -683,7 +561,7 @@ const ActivityLogs = () => {
                   {filters.action !== 'all' && (
                     <Badge variant="secondary" className="flex items-center space-x-1">
                       <span>Action: {filters.action}</span>
-                      <button onClick={() => handleFilterChange('action', 'all')}>
+                      <button onClick={() => { setUiFilters(prev => ({ ...prev, action: 'all' })); setFilters(prev => ({ ...prev, action: 'all' })); }}>
                         <X className="h-3 w-3" />
                       </button>
                     </Badge>
@@ -691,7 +569,7 @@ const ActivityLogs = () => {
                   {filters.resourceType !== 'all' && (
                     <Badge variant="secondary" className="flex items-center space-x-1">
                       <span>Resource: {filters.resourceType}</span>
-                      <button onClick={() => handleFilterChange('resourceType', 'all')}>
+                      <button onClick={() => { setUiFilters(prev => ({ ...prev, resourceType: 'all' })); setFilters(prev => ({ ...prev, resourceType: 'all' })); }}>
                         <X className="h-3 w-3" />
                       </button>
                     </Badge>
@@ -699,7 +577,7 @@ const ActivityLogs = () => {
                   {filters.adminId !== 'all' && (
                     <Badge variant="secondary" className="flex items-center space-x-1">
                       <span>Admin: {availableFilters.admins.find(a => a._id === filters.adminId)?.name}</span>
-                      <button onClick={() => handleFilterChange('adminId', 'all')}>
+                      <button onClick={() => { setUiFilters(prev => ({ ...prev, adminId: 'all' })); setFilters(prev => ({ ...prev, adminId: 'all' })); }}>
                         <X className="h-3 w-3" />
                       </button>
                     </Badge>
@@ -707,7 +585,7 @@ const ActivityLogs = () => {
                   {filters.deviceType !== 'all' && (
                     <Badge variant="secondary" className="flex items-center space-x-1">
                       <span>Device: {filters.deviceType}</span>
-                      <button onClick={() => handleFilterChange('deviceType', 'all')}>
+                      <button onClick={() => { setUiFilters(prev => ({ ...prev, deviceType: 'all' })); setFilters(prev => ({ ...prev, deviceType: 'all' })); }}>
                         <X className="h-3 w-3" />
                       </button>
                     </Badge>
@@ -715,7 +593,7 @@ const ActivityLogs = () => {
                   {filters.os !== 'all' && (
                     <Badge variant="secondary" className="flex items-center space-x-1">
                       <span>OS: {filters.os}</span>
-                      <button onClick={() => handleFilterChange('os', 'all')}>
+                      <button onClick={() => { setUiFilters(prev => ({ ...prev, os: 'all' })); setFilters(prev => ({ ...prev, os: 'all' })); }}>
                         <X className="h-3 w-3" />
                       </button>
                     </Badge>
@@ -723,17 +601,17 @@ const ActivityLogs = () => {
                   {filters.browser !== 'all' && (
                     <Badge variant="secondary" className="flex items-center space-x-1">
                       <span>Browser: {filters.browser}</span>
-                      <button onClick={() => handleFilterChange('browser', 'all')}>
+                      <button onClick={() => { setUiFilters(prev => ({ ...prev, browser: 'all' })); setFilters(prev => ({ ...prev, browser: 'all' })); }}>
                         <X className="h-3 w-3" />
                       </button>
                     </Badge>
                   )}
                   {(filters.dateFrom || filters.dateTo) && (
                     <Badge variant="secondary" className="flex items-center space-x-1">
-                      <span>Date: {filters.dateFrom} to {filters.dateTo}</span>
+                      <span>Date: {filters.dateFrom || '—'} to {filters.dateTo || '—'}</span>
                       <button onClick={() => {
-                        handleFilterChange('dateFrom', '');
-                        handleFilterChange('dateTo', '');
+                        setUiFilters(prev => ({ ...prev, dateFrom: '', dateTo: '' }));
+                        setFilters(prev => ({ ...prev, dateFrom: '', dateTo: '' }));
                       }}>
                         <X className="h-3 w-3" />
                       </button>

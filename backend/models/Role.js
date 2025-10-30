@@ -53,7 +53,10 @@ RoleSchema.statics.getDefaultRoles = function() {
         { resource: 'events', actions: ['view', 'create', 'edit', 'delete', 'export', 'manage'] },
         { resource: 'activity_logs', actions: ['view', 'export', 'manage'] },
         { resource: 'settings', actions: ['view', 'edit', 'manage'] },
-        { resource: 'roles', actions: ['view', 'create', 'edit', 'delete', 'manage'] }
+        { resource: 'roles', actions: ['view', 'create', 'edit', 'delete', 'manage'] },
+                { resource: 'schools', actions: ['view', 'create', 'edit', 'delete', 'export','manage'] },
+
+
       ]
     },
     USER_MANAGER: {

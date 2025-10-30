@@ -16,6 +16,8 @@ import activityLogRoutes from './routes/activityLogs.js'
 import roleRoutes from './routes/role.js'
 import adminManagementRoutes from './routes/adminManagement.js'
 import commentRoutes from './routes/comments.js'
+import schoolRoutes from './routes/schools.js';
+import educationalProgram from './routes/educationalPrograms.js'
 
 
 
@@ -68,6 +70,9 @@ app.use('/api/admin/activity-logs', activityLogRoutes);
 app.use('/api/admin/roles', roleRoutes);
 app.use('/api/admin/admins', adminManagementRoutes);
 app.use('/api/admin/comments', commentRoutes);
+app.use('/api/admin/schools', schoolRoutes);
+app.use('/api/admin/educational-programs',educationalProgram)
+
 
 
 
