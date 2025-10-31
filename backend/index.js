@@ -18,8 +18,7 @@ import adminManagementRoutes from './routes/adminManagement.js'
 import commentRoutes from './routes/comments.js'
 import schoolRoutes from './routes/schools.js';
 import educationalProgram from './routes/educationalPrograms.js'
-
-
+import city from './routes/worldCity.js'
 
 dotenv.config();
 
@@ -72,8 +71,7 @@ app.use('/api/admin/admins', adminManagementRoutes);
 app.use('/api/admin/comments', commentRoutes);
 app.use('/api/admin/schools', schoolRoutes);
 app.use('/api/admin/educational-programs',educationalProgram)
-
-
+app.use('/api/admin/cities',city)
 
 
 

@@ -67,6 +67,14 @@ const Sidebar = () => {
     icon: '🏫',
     requiredPermission: { resource: 'educationProgram', action: 'view' }
   },
+
+  
+   { 
+    name: 'WorldCity', 
+    href: '/worldcity', 
+    icon: '🏙️',
+    requiredPermission: { resource: 'worldCity', action: 'view' }
+  },
   ];
 
   // Admin-only sections for super admin
