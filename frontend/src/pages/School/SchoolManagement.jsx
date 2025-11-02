@@ -1,6 +1,5 @@
-// components/SchoolManagement.js
+// src/pages/School/SchoolManagement.jsx
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import SchoolTable from './SchoolTable';
 import SchoolDetailModal from './SchoolDetailModal';
@@ -8,6 +7,16 @@ import SchoolForm from './SchoolForm';
 import SchoolStats from './SchoolStats';
 import BulkImportModal from './BulkImportModal';
 import api from '@/services/api';
+
+// Shadcn UI Components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Download, Upload, Plus, Filter, X, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 
 const SchoolManagement = () => {
   const [schools, setSchools] = useState([]);
@@ -18,8 +27,8 @@ const SchoolManagement = () => {
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
-    state: '',
-    district: '',
+    state: 'all',
+    district: 'all',
     sortBy: 'school_name',
     sortOrder: 'asc'
   });
@@ -29,10 +38,14 @@ const SchoolManagement = () => {
   });
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 10,
+    limit: 20,
     total: 0,
     totalPages: 0
   });
+  
+  // Search states for dropdowns
+  const [stateSearch, setStateSearch] = useState('');
+  const [districtSearch, setDistrictSearch] = useState('');
 
   const { checkPermission } = useAuth();
 
@@ -44,10 +57,17 @@ const SchoolManagement = () => {
   const fetchSchools = async () => {
     setLoading(true);
     try {
+      // Convert filter values for API (convert 'all' to empty string)
+      const apiFilters = {
+        ...filters,
+        state: filters.state === 'all' ? '' : filters.state,
+        district: filters.district === 'all' ? '' : filters.district
+      };
+
       const params = {
         page: pagination.page,
         limit: pagination.limit,
-        ...filters
+        ...apiFilters
       };
 
       const response = await api.get('/schools/', { params });
@@ -73,16 +93,23 @@ const SchoolManagement = () => {
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setPagination(prev => ({ ...prev, page: 1 }));
+    
+    // Reset district when state changes
+    if (key === 'state' && value === 'all') {
+      setFilters(prev => ({ ...prev, district: 'all' }));
+    }
   };
 
   const clearFilters = () => {
     setFilters({
       search: '',
-      state: '',
-      district: '',
+      state: 'all',
+      district: 'all',
       sortBy: 'school_name',
       sortOrder: 'asc'
     });
+    setStateSearch('');
+    setDistrictSearch('');
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
@@ -169,199 +196,322 @@ const SchoolManagement = () => {
     }
   };
 
+  // Filter states based on search
+  const filteredStates = availableFilters.states.filter(state =>
+    state.toLowerCase().includes(stateSearch.toLowerCase())
+  );
+
+  // Filter districts based on search
+  const filteredDistricts = availableFilters.districts.filter(district =>
+    district.toLowerCase().includes(districtSearch.toLowerCase())
+  );
+
+  const hasActiveFilters = filters.search || filters.state !== 'all' || filters.district !== 'all';
+
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">School Management</h2>
-            <p className="text-gray-600 mt-1">Manage schools and their information</p>
-          </div>
-          <div className="flex space-x-3">
-            {checkPermission('schools', 'export') && (
-              <button
-                onClick={exportSchools}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-200"
-              >
-                Export CSV
-              </button>
-            )}
-            {checkPermission('schools', 'create') && (
-              <button
-                onClick={() => setIsImportOpen(true)}
-                className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition duration-200"
-              >
-                Bulk Import
-              </button>
-            )}
-            {checkPermission('schools', 'create') && (
-              <button
-                onClick={handleCreateSchool}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200"
-              >
-                Add School
-              </button>
-            )}
-          </div>
+    <div className="space-y-6 p-6">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight">School Management</h1>
+          <p className="text-muted-foreground">
+            Manage schools and their information across the platform
+          </p>
         </div>
-
-        {/* School Statistics */}
-        <SchoolStats />
-
-        {/* Advanced Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-            {/* Search */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search Schools
-              </label>
-              <input
-                type="text"
-                placeholder="Name, district, state, or UDISE code..."
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* State Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                State
-              </label>
-              <select
-                value={filters.state}
-                onChange={(e) => handleFilterChange('state', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All States</option>
-                {availableFilters.states.map(state => (
-                  <option key={state} value={state}>{state}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* District Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                District
-              </label>
-              <select
-                value={filters.district}
-                onChange={(e) => handleFilterChange('district', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Districts</option>
-                {availableFilters.districts.map(district => (
-                  <option key={district} value={district}>{district}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Sort By */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sort By
-              </label>
-              <select
-                value={filters.sortBy}
-                onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="school_name">School Name</option>
-                <option value="state">State</option>
-                <option value="district">District</option>
-                <option value="udise_code">UDISE Code</option>
-                <option value="createdAt">Created Date</option>
-              </select>
-            </div>
-
-            {/* Sort Order */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Order
-              </label>
-              <select
-                value={filters.sortOrder}
-                onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="asc">Ascending</option>
-                <option value="desc">Descending</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Filter Actions */}
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-500">
-              Showing {schools.length} of {pagination.total} schools
-            </div>
-            <button
-              onClick={clearFilters}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition duration-200"
+        
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* {checkPermission('schools', 'export') && (
+            <Button
+              onClick={exportSchools}
+              variant="outline"
+              className="flex items-center gap-2"
             >
-              Clear Filters
-            </button>
-          </div>
-        </div>
-
-        {/* Schools Table */}
-        <SchoolTable
-          schools={schools}
-          loading={loading}
-          onSchoolClick={handleSchoolClick}
-          onEditSchool={checkPermission('schools', 'edit') ? handleEditSchool : null}
-          onDeleteSchool={checkPermission('schools', 'delete') ? handleDeleteSchool : null}
-        />
-
-        {/* Pagination */}
-        <div className="flex justify-between items-center mt-6">
-          <button
-            onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-            disabled={pagination.page === 1}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition duration-200"
-          >
-            Previous
-          </button>
-          
-          <div className="flex items-center space-x-2">
-            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-              .filter(page => 
-                page === 1 || 
-                page === pagination.totalPages || 
-                Math.abs(page - pagination.page) <= 2
-              )
-              .map((page, index, array) => (
-                <React.Fragment key={page}>
-                  {index > 0 && array[index - 1] !== page - 1 && (
-                    <span className="px-2 text-gray-500">...</span>
-                  )}
-                  <button
-                    onClick={() => setPagination(prev => ({ ...prev, page }))}
-                    className={`px-3 py-1 rounded-lg transition duration-200 ${
-                      pagination.page === page
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                </React.Fragment>
-              ))}
-          </div>
-          
-          <button
-            onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-            disabled={pagination.page === pagination.totalPages}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition duration-200"
-          >
-            Next
-          </button>
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          )} */}
+          {checkPermission('schools', 'create') && (
+            <Button
+              onClick={() => setIsImportOpen(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Bulk Import
+            </Button>
+          )}
+          {checkPermission('schools', 'create') && (
+            <Button
+              onClick={handleCreateSchool}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add School
+            </Button>
+          )}
         </div>
       </div>
 
+      <Separator />
+
+      {/* School Statistics */}
+      <SchoolStats />
+
+      {/* Filters Section */}
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-lg">Filters & Search</CardTitle>
+            </div>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="flex items-center gap-2 h-8"
+              >
+                <X className="h-3 w-3" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
+          <CardDescription>
+            Filter and search through the school database
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Search Input */}
+          <div className="space-y-2">
+            <Label htmlFor="search">Search Schools</Label>
+            <Input
+              id="search"
+              placeholder="Search by name, district, state, or UDISE code..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          {/* Filter Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* State Filter with Search */}
+            <div className="space-y-2">
+              <Label htmlFor="state">State</Label>
+              <Select
+                value={filters.state}
+                onValueChange={(value) => handleFilterChange('state', value)}
+              >
+                <SelectTrigger id="state">
+                  <SelectValue placeholder="All States" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {/* Search input for states */}
+                  <div className="flex items-center border-b px-3 py-2">
+                    <Search className="h-4 w-4 text-muted-foreground mr-2" />
+                    <input
+                      placeholder="Search states..."
+                      className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground text-sm"
+                      value={stateSearch}
+                      onChange={(e) => setStateSearch(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <SelectItem value="all">All States</SelectItem>
+                  {filteredStates.map((state) => (
+                    <SelectItem key={state} value={state}>
+                      {state}
+                    </SelectItem>
+                  ))}
+                  {filteredStates.length === 0 && (
+                    <div className="py-2 px-3 text-sm text-muted-foreground text-center">
+                      No states found
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* District Filter with Search */}
+            <div className="space-y-2">
+              <Label htmlFor="district">District</Label>
+              <Select
+                value={filters.district}
+                onValueChange={(value) => handleFilterChange('district', value)}
+                disabled={!filters.state || filters.state === 'all'}
+              >
+                <SelectTrigger id="district">
+                  <SelectValue 
+                    placeholder={
+                      !filters.state || filters.state === 'all' 
+                        ? "Select state first" 
+                        : "All Districts"
+                    } 
+                  />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {/* Search input for districts */}
+                  <div className="flex items-center border-b px-3 py-2">
+                    <Search className="h-4 w-4 text-muted-foreground mr-2" />
+                    <input
+                      placeholder="Search districts..."
+                      className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground text-sm"
+                      value={districtSearch}
+                      onChange={(e) => setDistrictSearch(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <SelectItem value="all">All Districts</SelectItem>
+                  {filteredDistricts.map((district) => (
+                    <SelectItem key={district} value={district}>
+                      {district}
+                    </SelectItem>
+                  ))}
+                  {filteredDistricts.length === 0 && (
+                    <div className="py-2 px-3 text-sm text-muted-foreground text-center">
+                      {!filters.state || filters.state === 'all' 
+                        ? 'Please select a state first' 
+                        : 'No districts found'
+                      }
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sort By */}
+            <div className="space-y-2">
+              <Label htmlFor="sortBy">Sort By</Label>
+              <Select
+                value={filters.sortBy}
+                onValueChange={(value) => handleFilterChange('sortBy', value)}
+              >
+                <SelectTrigger id="sortBy">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="school_name">School Name</SelectItem>
+                  <SelectItem value="state">State</SelectItem>
+                  <SelectItem value="district">District</SelectItem>
+                  <SelectItem value="udise_code">UDISE Code</SelectItem>
+                  <SelectItem value="createdAt">Created Date</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sort Order */}
+            <div className="space-y-2">
+              <Label htmlFor="sortOrder">Order</Label>
+              <Select
+                value={filters.sortOrder}
+                onValueChange={(value) => handleFilterChange('sortOrder', value)}
+              >
+                <SelectTrigger id="sortOrder">
+                  <SelectValue placeholder="Sort order" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="asc">Ascending</SelectItem>
+                  <SelectItem value="desc">Descending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Results Count */}
+          <div className="flex items-center justify-between pt-2">
+            <div className="text-sm text-muted-foreground">
+              Showing <span className="font-medium text-foreground">{schools.length}</span> of{' '}
+              <span className="font-medium text-foreground">{pagination.total}</span> schools
+            </div>
+            
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Filter className="h-3 w-3" />
+                Filters Active
+              </Badge>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Schools Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Schools</CardTitle>
+          <CardDescription>
+            Manage all schools in the system. Click on a school to view details.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <SchoolTable
+            schools={schools}
+            loading={loading}
+            onSchoolClick={handleSchoolClick}
+            onEditSchool={checkPermission('schools', 'edit') ? handleEditSchool : null}
+            onDeleteSchool={checkPermission('schools', 'delete') ? handleDeleteSchool : null}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                disabled={pagination.page === 1}
+                className="flex items-center gap-2"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              
+              <div className="flex items-center gap-2">
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                  .filter(page => 
+                    page === 1 || 
+                    page === pagination.totalPages || 
+                    Math.abs(page - pagination.page) <= 2
+                  )
+                  .map((page, index, array) => (
+                    <React.Fragment key={page}>
+                      {index > 0 && array[index - 1] !== page - 1 && (
+                        <span className="px-2 text-muted-foreground">...</span>
+                      )}
+                      <Button
+                        variant={pagination.page === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPagination(prev => ({ ...prev, page }))}
+                        className="w-10 h-10 p-0"
+                      >
+                        {page}
+                      </Button>
+                    </React.Fragment>
+                  ))}
+              </div>
+              
+              <Button
+                variant="outline"
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                disabled={pagination.page === pagination.totalPages}
+                className="flex items-center gap-2"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="text-center text-sm text-muted-foreground mt-4">
+              Page {pagination.page} of {pagination.totalPages} • {pagination.total} total schools
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Modals */}
       {/* School Detail Modal */}
       {isModalOpen && selectedSchool && (
         <SchoolDetailModal
