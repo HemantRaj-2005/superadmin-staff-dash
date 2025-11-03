@@ -19,7 +19,7 @@ import commentRoutes from './routes/comments.js'
 import schoolRoutes from './routes/schools.js';
 import educationalProgram from './routes/educationalPrograms.js'
 import city from './routes/worldCity.js'
-
+import organisation from './routes/organisation.js'
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -72,6 +72,8 @@ app.use('/api/admin/comments', commentRoutes);
 app.use('/api/admin/schools', schoolRoutes);
 app.use('/api/admin/educational-programs',educationalProgram)
 app.use('/api/admin/cities',city)
+app.use('/api/admin/organisations',organisation)
+
 
 
 

@@ -87,7 +87,7 @@ const diffObjects = (oldObj = {}, newObj = {}) => {
 router.get(
   '/',
   requirePermission('cities', 'view'),
-  logActivity('VIEW_CITIES', { resourceType: 'City' }),
+  logActivity('VIEW_CITIES', { resourceType: 'Worldcity' }),
   async (req, res) => {
     try {
       const {
@@ -205,7 +205,7 @@ router.get('/:id', authenticate, async (req, res) => {
 router.post(
   '/',
   authenticate,
-  logActivity('CREATE_CITY', { resourceType: 'City' }),
+  logActivity('CREATE_CITY', { resourceType: 'Worldcity' }),
   async (req, res) => {
     try {
       const {
@@ -286,7 +286,7 @@ router.put(
   '/:id',
   authenticate,
   logUpdateWithOldValues('City', getCityForLogging),
-  logActivity('UPDATE_CITY', { resourceType: 'City' }),
+  logActivity('UPDATE_CITY', { resourceType: 'Worldcity' }),
   async (req, res) => {
     try {
       const oldCity = req.oldData || {};
@@ -356,7 +356,7 @@ router.put(
 );
 
 // Delete city
-router.delete('/:id', authenticate, logActivity('DELETE_CITY', { resourceType: 'City' }), async (req, res) => {
+router.delete('/:id', authenticate, logActivity('DELETE_CITY', { resourceType: 'Worldcity' }), async (req, res) => {
   try {
     const city = await WorldCity.findByIdAndDelete(req.params.id);
 

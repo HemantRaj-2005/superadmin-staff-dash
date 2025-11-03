@@ -89,10 +89,10 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
 
   // Mock data for demonstration
   const schoolStats = {
-    students: 1250,
-    teachers: 45,
-    classes: 35,
-    established: '1998'
+    students: 0,
+    teachers: 0,
+    classes: 0,
+    established: ''
   };
 
   return (
@@ -367,10 +367,10 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                           <span className="text-sm font-medium">Category</span>
                           <Badge variant="outline">{school.category || '—'}</Badge>
                         </div>
-                        <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                        {/* <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                           <span className="text-sm font-medium">Management</span>
                           <Badge variant="outline">{school.management || '—'}</Badge>
-                        </div>
+                        </div> */}
                         <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                           <span className="text-sm font-medium">Board</span>
                           <Badge variant="outline">{school.board || '—'}</Badge>

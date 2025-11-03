@@ -1,6 +1,5 @@
-// components/Sidebar.js
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ModeToggle } from '../mode-toggle';
 import { Badge } from '../ui/badge';
@@ -9,9 +8,9 @@ import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  ChevronLeft,
+  ChevronRight,
   Menu,
   Home,
   Users,
@@ -25,119 +24,73 @@ import {
   Activity
 } from 'lucide-react';
 
+const NAV_ITEM_CLASS =
+  'flex items-center gap-3 w-full text-sm font-medium py-2 px-3 rounded-md transition-colors';
+const NAV_ACTIVE_CLASS = 'bg-primary/10 text-primary dark:bg-primary/20';
+
 const Sidebar = () => {
   const location = useLocation();
   const { admin, checkPermission } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Support both role formats
-  const isSuperAdmin = Boolean(admin) && 
-    (admin?.role?.name === 'Super Admin' || admin?.role === 'super_admin');
+  const isSuperAdmin = Boolean(admin) && (admin?.role?.name === 'Super Admin' || admin?.role === 'super_admin');
 
-  // Safe permission check using the checkPermission function from AuthContext
-  const can = (resource, action) => {
-    if (isSuperAdmin) return true;
-    return checkPermission ? checkPermission(resource, action) : false;
-  };
+  const can = useCallback(
+    (resource, action) => {
+      if (isSuperAdmin) return true;
+      return checkPermission ? checkPermission(resource, action) : false;
+    },
+    [checkPermission, isSuperAdmin]
+  );
 
-  // Icon mapping for consistent icons
-  const iconMap = {
-    '🏠': <Home className="h-4 w-4" />,
-    '👥': <Users className="h-4 w-4" />,
-    '📝': <FileText className="h-4 w-4" />,
-    '📅': <Calendar className="h-4 w-4" />,
-    '🏫': <Building className="h-4 w-4" />,
-    '🏙️': <MapPin className="h-4 w-4" />,
-    '📊': <Activity className="h-4 w-4" />,
-    '👨‍💼': <Shield className="h-4 w-4" />,
-    '🔐': <Settings className="h-4 w-4" />,
-  };
+  const navigation = useMemo(() => [
+    { name: 'Dashboard', href: '/', icon: Home, permission: null },
+    { name: 'User Management', href: '/users', icon: Users, permission: { resource: 'users', action: 'view' } },
+    { name: 'Post Management', href: '/posts', icon: FileText, permission: { resource: 'posts', action: 'view' } },
+    { name: 'Event Management', href: '/events', icon: Calendar, permission: { resource: 'events', action: 'view' } },
+    { name: 'School Management', href: '/schools', icon: Building, permission: { resource: 'schools', action: 'view' } },
+    { name: 'Education Programs', href: '/educationprograms', icon: GraduationCap, permission: { resource: 'educationProgram', action: 'view' } },
+    { name: 'World City', href: '/worldcity', icon: MapPin, permission: { resource: 'worldCity', action: 'view' } },
+    { name: 'Organisations', href: '/organisations', icon: Building, permission: { resource: 'organisation', action: 'view' } },
+  ], []);
 
-  // Base navigation with permission metadata
-  const navigation = [
-    { 
-      name: 'Dashboard', 
-      href: '/', 
-      icon: '🏠', 
-      permission: null 
-    },
-    { 
-      name: 'User Management', 
-      href: '/users', 
-      icon: '👥', 
-      permission: { resource: 'users', action: 'view' } 
-    },
-    { 
-      name: 'Post Management', 
-      href: '/posts', 
-      icon: '📝', 
-      permission: { resource: 'posts', action: 'view' } 
-    },
-    { 
-      name: 'Event Management', 
-      href: '/events', 
-      icon: '📅', 
-      permission: { resource: 'events', action: 'view' } 
-    },
-    { 
-      name: 'School Management', 
-      href: '/schools', 
-      icon: '🏫',
-      permission: { resource: 'schools', action: 'view' }
-    },
-    { 
-      name: 'Education Programs', 
-      href: '/educationprograms', 
-      icon: '🏫',
-      permission: { resource: 'educationProgram', action: 'view' }
-    },
-    { 
-      name: 'World City', 
-      href: '/worldcity', 
-      icon: '🏙️',
-      permission: { resource: 'worldCity', action: 'view' }
-    },
-  ];
+  const extraAdminItems = useMemo(() => [
+    { name: 'Admin Management', href: '/admins', icon: Shield, permission: null, superAdminOnly: true },
+    { name: 'Role Management', href: '/roles', icon: Settings, permission: null, superAdminOnly: true },
+  ], []);
 
-  // Admin-only sections for super admin
-  if (isSuperAdmin) {
-    navigation.push(
-      { 
-        name: 'Admin Management', 
-        href: '/admins', 
-        icon: '👨‍💼', 
-        permission: null,
-        superAdminOnly: true 
-      },
-      { 
-        name: 'Role Management', 
-        href: '/roles', 
-        icon: '🔐', 
-        permission: null,
-        superAdminOnly: true 
-      }
-    );
-  }
+  const allNavigation = useMemo(() => {
+    const base = [...navigation];
+    if (isSuperAdmin) base.push(...extraAdminItems);
+    if (isSuperAdmin || can('activity_logs', 'view')) {
+      base.push({ name: 'Activity Logs', href: '/activity-logs', icon: Activity, permission: null });
+    }
+    return base;
+  }, [navigation, extraAdminItems, isSuperAdmin, can]);
 
-  // Activity Logs - available to super admins and anyone with view permission
-  if (isSuperAdmin || can('activity_logs', 'view')) {
-    navigation.push({ 
-      name: 'Activity Logs', 
-      href: '/activity-logs', 
-      icon: '📊', 
-      permission: null 
+  const visibleNavigation = useMemo(() => {
+    return allNavigation.filter((item) => {
+      if (!item.permission) return true;
+      const { resource, action } = item.permission;
+      return can(resource, action);
     });
-  }
+  }, [allNavigation, can]);
 
-  // Filter out items the current admin doesn't have permission to view
-  const visibleNavigation = navigation.filter((item) => {
-    if (!item.permission) return true; // No permission required
-    
-    const { resource, action } = item.permission;
-    return can(resource, action);
-  });
+  useEffect(() => {
+    const handleResize = () => {
+      // auto-collapse on small screens
+      if (window.innerWidth < 1024) setIsCollapsed(true);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  // Debug info for development
+  useEffect(() => {
+    // on route change, if on mobile keep sidebar collapsed to avoid blocking content
+    if (window.innerWidth < 1024) setIsCollapsed(true);
+  }, [location.pathname]);
+
   const getRoleName = () => {
     if (admin?.role?.name) return admin.role.name;
     if (admin?.role === 'super_admin') return 'Super Admin';
@@ -145,183 +98,163 @@ const Sidebar = () => {
     return admin?.role || 'Unknown';
   };
 
-  // Get initials for avatar
   const getInitials = () => {
-    return admin?.name
-      ?.split(' ')
-      .map(n => n[0])
+    if (!admin?.name) return 'A';
+    return admin.name
+      .split(' ')
+      .map((p) => p[0] || '')
+      .slice(0, 2)
       .join('')
-      .toUpperCase() || 'A';
+      .toUpperCase();
   };
 
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
+  const toggleSidebar = (e) => {
+    if (e && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+    }
+    setIsCollapsed((s) => !s);
   };
 
   return (
     <>
-      {/* Mobile overlay */}
       {!isCollapsed && (
-        <div 
+        <div
           className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsCollapsed(true)}
+          aria-hidden
         />
       )}
 
-      {/* Sidebar */}
-      <div className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        bg-background border-r flex flex-col
-        transition-all duration-300 ease-in-out
-        ${isCollapsed ? '-translate-x-full lg:translate-x-0 lg:w-20' : 'translate-x-0 w-64'}
-      `}>
-        {/* Header */}
+      <aside
+        className={`fixed lg:static inset-y-0 left-0 z-50 bg-background border-r flex flex-col transition-transform duration-300 ease-in-out ${
+          isCollapsed ? '-translate-x-full lg:translate-x-0 lg:w-20' : 'translate-x-0 w-64'
+        }`}
+        aria-label="Primary navigation"
+      >
         <div className="p-4 border-b bg-muted/50 flex items-center justify-between">
-          <div className={`flex items-center space-x-2 ${isCollapsed ? 'justify-center w-full' : ''}`}>
+          <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center w-full' : 'w-full'}`}>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
               A
             </div>
-            {!isCollapsed && (
-              <span className="text-xl font-bold">Alumns</span>
-            )}
+            {!isCollapsed && <span className="text-xl font-bold">Alumns</span>}
           </div>
-          
-          {/* Toggle button - hidden when collapsed */}
-          {!isCollapsed && (
-            <Button
-              variant="ghost"
-              size="icon"
+
+          {!isCollapsed ? (
+            <button
               onClick={toggleSidebar}
-              className="h-8 w-8"
+              onKeyDown={toggleSidebar}
+              aria-expanded={!isCollapsed}
+              aria-label="Collapse sidebar"
+              className="p-1 rounded-md hover:bg-muted"
             >
               <ChevronLeft className="h-4 w-4" />
-            </Button>
-          )}
+            </button>
+          ) : null}
         </div>
 
-        {/* Debug info - remove in production */}
-        {!isCollapsed && process.env.NODE_ENV === 'development' && (
+        {process.env.NODE_ENV === 'development' && !isCollapsed && (
           <Card className="mx-4 mt-4 bg-warning/20 border-warning/30">
             <CardContent className="p-2">
-              <p className="text-xs text-warning-foreground text-center">
-                Role: {getRoleName()}
-              </p>
+              <p className="text-xs text-warning-foreground text-center">Role: {getRoleName()}</p>
             </CardContent>
           </Card>
         )}
 
-        {/* Navigation */}
         <ScrollArea className="flex-1 px-3 py-4">
-          <nav className="space-y-1">
+          <nav className="space-y-1" role="navigation" aria-label="Main">
             {visibleNavigation.map((item) => {
-              const isActive = location.pathname === item.href;
-              const IconComponent = iconMap[item.icon];
-              
+              const Icon = item.icon;
+
               return (
-                <Button
+                <NavLink
                   key={item.name}
-                  asChild
-                  variant={isActive ? "secondary" : "ghost"}
-                  className={`
-                    w-full justify-start h-10
-                    ${isCollapsed ? 'px-3' : 'px-3'}
-                  `}
+                  to={item.href}
+                  className={({ isActive }) =>
+                    `${NAV_ITEM_CLASS} ${isActive ? NAV_ACTIVE_CLASS : 'text-muted-foreground hover:text-foreground'}`
+                  }
                   title={isCollapsed ? item.name : undefined}
                 >
-                  <Link to={item.href}>
-                    <span className={isCollapsed ? '' : 'mr-3'}>
-                      {IconComponent}
-                    </span>
-                    {!isCollapsed && (
-                      <>
-                        <span className="flex-1 text-left">{item.name}</span>
-                        {item.superAdminOnly && (
-                          <Badge 
-                            variant="secondary" 
-                            className="ml-2 bg-purple-500 hover:bg-purple-600 text-white text-xs"
-                          >
-                            SA
-                          </Badge>
-                        )}
-                      </>
-                    )}
-                  </Link>
-                </Button>
+                  <span className="flex items-center">
+                    <Icon className="h-4 w-4" />
+                  </span>
+
+                  {!isCollapsed && (
+                    <>
+                      <span className="flex-1 text-left">{item.name}</span>
+                      {item.superAdminOnly && (
+                        <Badge variant="secondary" className="ml-2 bg-purple-500 hover:bg-purple-600 text-white text-xs">SA</Badge>
+                      )}
+                    </>
+                  )}
+                </NavLink>
               );
             })}
           </nav>
 
           <Separator className="my-4" />
-          
+
           <div className={`px-3 ${isCollapsed ? 'flex justify-center' : ''}`}>
             <ModeToggle isCollapsed={isCollapsed} />
           </div>
         </ScrollArea>
 
-        {/* Footer */}
         <div className={`p-4 border-t bg-muted/20 ${isCollapsed ? 'text-center' : ''}`}>
           {isCollapsed ? (
             <div className="space-y-3">
               <Avatar className="h-8 w-8 mx-auto">
-                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                  {getInitials()}
-                </AvatarFallback>
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm">{getInitials()}</AvatarFallback>
               </Avatar>
-              <Button
-                variant="ghost"
-                size="icon"
+
+              <button
+                aria-label="Open sidebar"
                 onClick={toggleSidebar}
-                className="h-8 w-8"
+                className="p-2 rounded-md hover:bg-muted"
               >
                 <ChevronRight className="h-4 w-4" />
-              </Button>
+              </button>
             </div>
           ) : (
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                  {getInitials()}
-                </AvatarFallback>
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm">{getInitials()}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{admin?.name}</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {getRoleName()}
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {admin?.email}
-                </p>
+                <p className="text-sm font-medium truncate">{admin?.name || 'Admin'}</p>
+                <p className="text-xs text-muted-foreground truncate">{getRoleName()}</p>
+                <p className="text-xs text-muted-foreground truncate">{admin?.email}</p>
               </div>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Mobile toggle button - shown when sidebar is collapsed on mobile */}
-      {isCollapsed && (
-        <Button
-          variant="secondary"
-          size="icon"
-          onClick={toggleSidebar}
-          className="fixed bottom-4 left-4 z-40 lg:hidden h-10 w-10 shadow-lg"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-      )}
+        {/* Mobile toggle button - shown when sidebar is collapsed on mobile */}
+        {isCollapsed && (
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={toggleSidebar}
+            className="fixed bottom-4 left-4 z-40 lg:hidden h-10 w-10 shadow-lg"
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
 
-      {/* Desktop toggle button - shown when sidebar is collapsed on desktop */}
-      {isCollapsed && (
-        <Button
-          variant="secondary"
-          size="icon"
-          onClick={toggleSidebar}
-          className="fixed top-4 left-4 z-30 hidden lg:flex h-8 w-8 shadow-lg"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      )}
+        {/* Desktop toggle button - shown when sidebar is collapsed on desktop */}
+        {isCollapsed && (
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={toggleSidebar}
+            className="fixed top-4 left-4 z-30 hidden lg:flex h-8 w-8 shadow-lg"
+            aria-label="Open menu"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        )}
+      </aside>
     </>
   );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);
