@@ -134,9 +134,7 @@ const PostManagement = () => {
                 </CardDescription>
               </div>
             </div>
-            <Badge variant="secondary" className="text-sm">
-              {pagination.total} posts
-            </Badge>
+          
           </div>
         </CardHeader>
         
@@ -228,30 +226,8 @@ const PostManagement = () => {
                   </div>
                 </CardContent>
               </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Current Page</p>
-                      <p className="text-2xl font-bold">{pagination.page}</p>
-                    </div>
-                    <Badge variant="outline" className="text-lg">
-                      / {pagination.totalPages}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Results</p>
-                      <p className="text-2xl font-bold">{posts.length}</p>
-                    </div>
-                    <div className={`h-3 w-3 rounded-full ${loading ? 'bg-yellow-500' : 'bg-green-500'}`} />
-                  </div>
-                </CardContent>
-              </Card>
+             
+             
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">

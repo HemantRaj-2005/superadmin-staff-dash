@@ -35,7 +35,7 @@ const NAV_ACTIVE_CLASS =
 const Sidebar = () => {
   const location = useLocation();
   const { admin, checkPermission } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const isSuperAdmin =
@@ -94,6 +94,12 @@ const Sidebar = () => {
         href: "/organisations",
         icon: Building,
         permission: { resource: "organisation", action: "view" },
+      },
+      {
+        name: "Institute Management",
+        href: "/institutes",
+        icon: Building, // Using the Building icon as it fits
+        permission: { resource: "institute", action: "view" },
       },
     ],
     []
@@ -154,8 +160,9 @@ const Sidebar = () => {
 
   useEffect(() => {
     const handleResize = () => {
+      // Close mobile drawer when resizing to desktop
       if (window.innerWidth >= 1024) {
-        setIsOpen(false);
+        setIsMobileOpen(false);
       }
     };
     window.addEventListener("resize", handleResize);
@@ -163,8 +170,9 @@ const Sidebar = () => {
   }, []);
 
   useEffect(() => {
-    if (window.innerWidth >= 1024) {
-      setIsOpen(false);
+    // Close mobile drawer when route changes
+    if (window.innerWidth < 1024) {
+      setIsMobileOpen(false);
     }
   }, [location.pathname]);
 
@@ -185,85 +193,52 @@ const Sidebar = () => {
       .toUpperCase();
   };
 
-  const toggleSidebar = () => {
-    setIsOpen((s) => !s);
+  const toggleMobileSidebar = () => {
+    setIsMobileOpen((s) => !s);
   };
 
-  const closeSidebar = () => {
-    setIsOpen(false);
+  const closeMobileSidebar = () => {
+    setIsMobileOpen(false);
   };
 
   return (
     <>
-      {/* Overlay */}
-      {isOpen && (
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
-          onClick={closeSidebar}
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
+          onClick={closeMobileSidebar}
           aria-hidden
         />
       )}
 
-      {/* Fixed Trigger Button */}
+      {/* Mobile Trigger Button - Only show on mobile */}
       <Button
         variant="secondary"
         size="icon"
-        onClick={toggleSidebar}
-        style={{
-          position: "fixed",
-          left: "16px",
-          top: "16px",
-          zIndex: 50,
-        }}
-        className="h-12 w-12 shadow-lg rounded-full"
+        onClick={toggleMobileSidebar}
+        className="lg:hidden fixed left-4 top-4 h-12 w-12 shadow-lg rounded-full z-50"
         aria-label="Toggle navigation menu"
       >
         <Menu className="h-6 w-6" />
       </Button>
 
-      {/* Navigation Drawer */}
+      {/* Navigation Sidebar */}
+      {/* Desktop: Always visible, Mobile: Drawer */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 bg-background border-r shadow-2xl flex flex-col transition-transform duration-300 ease-in-out w-72 lg:w-80 h-full ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`
+          fixed inset-y-0 left-0 z-40 bg-background border-r shadow-xl flex flex-col 
+          transition-transform duration-300 ease-in-out w-72 lg:w-80 h-full
+          lg:translate-x-0 lg:static lg:z-auto
+          ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
+        `}
         aria-label="Primary navigation"
       >
-        {/* Header */}
-        <div className="p-4 border-b bg-gradient-to-r from-muted/50 to-transparent flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-bold text-lg shadow-md">
-              A
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-              Alumns
-            </span>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={closeSidebar}
-            aria-label="Close menu"
-            className="h-8 w-8 rounded-full hover:bg-accent"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+        {/* Header Removed */}
 
         {/* Main Scrollable Content */}
         <div className="flex-1 overflow-hidden">
           <ScrollArea className="h-full w-full px-3 py-4">
-            {/* Dev Role Indicator */}
-            {process.env.NODE_ENV === "development" && (
-              <Card className="mx-4 mt-3 bg-warning/10 border-warning/20 shadow-sm mb-3">
-                <CardContent className="p-3">
-                  <p className="text-xs font-medium text-warning-foreground text-center">
-                    Role: {getRoleName()}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Search Bar */}
             <div className="p-3 mb-3">
               <div className="relative">
@@ -292,7 +267,7 @@ const Sidebar = () => {
                         isActive ? NAV_ACTIVE_CLASS : "text-muted-foreground"
                       }`
                     }
-                    onClick={closeSidebar}
+                    onClick={closeMobileSidebar}
                   >
                     <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50 group-hover:bg-accent/50 transition-colors">
                       <Icon className="h-4 w-4" />
@@ -311,59 +286,21 @@ const Sidebar = () => {
               })}
             </nav>
 
-            <Separator className="my-6" />
-
-            {/* Quick Actions */}
-            <div className="space-y-2 mb-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
-                Quick Actions
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex-1 justify-start"
-                  onClick={closeSidebar}
-                >
-                  <Bell className="h-4 w-4 mr-2" />
-                  Notifications
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex-1 justify-start"
-                  onClick={closeSidebar}
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </Button>
-              </div>
-            </div>
-
-            {/* Mode Toggle */}
-           
-              <ModeToggle />
-
-
-            {/* Filler content to test scrolling */}
-            {/* <div className="space-y-4 mb-4">
-              {Array.from({ length: 20 }).map((_, i) => (
-                <div key={i} className="p-2 bg-muted/20 rounded text-xs">
-                  Test content {i + 1} to enable scrolling
-                </div>
-              ))}
-            </div> */}
+            {/* MODIFICATION: 
+              The ModeToggle and "MODE" header were removed from here.
+            */}
           </ScrollArea>
         </div>
 
         {/* User Profile Footer */}
         <div className="p-4 border-t bg-linear-to-b from-muted/20 to-transparent shrink-0">
           <div className="flex items-center gap-3 group">
-            <Avatar className="h-10 w-10 flex-shrink-0 shadow-md">
+            <Avatar className="h-10 w- flex-shrink-0 shadow-md">
               <AvatarFallback className="bg-linear-to-br from-primary to-primary/80 text-primary-foreground text-sm font-semibold">
                 {getInitials()}
               </AvatarFallback>
             </Avatar>
+
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate group-hover:text-primary transition-colors">
                 {admin?.name || "Admin"}
@@ -374,6 +311,14 @@ const Sidebar = () => {
               <p className="text-xs text-muted-foreground truncate">
                 {admin?.email}
               </p>
+            </div>
+
+            {/* MODIFICATION: 
+              Added the ModeToggle here. It will use the default
+              shadcn/ui styling (icon button) and fit perfectly.
+            */}
+            <div className="flex-shrink-0">
+              <ModeToggle />
             </div>
           </div>
         </div>

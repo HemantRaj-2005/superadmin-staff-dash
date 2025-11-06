@@ -103,13 +103,13 @@ const SchoolStats = () => {
           gradient="bg-gradient-to-br from-purple-500 to-purple-600"
         />
 
-        <StatCard
+        {/* <StatCard
           title="Recent Additions"
           value={stats.recentSchools.length}
           subtitle="Last 5 schools"
           icon={<Calendar className="h-6 w-6 text-white" />}
           gradient="bg-gradient-to-br from-orange-500 to-orange-600"
-        />
+        /> */}
       </div>
 
       {/* Additional Stats in Tabs */}

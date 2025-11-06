@@ -20,6 +20,7 @@ import schoolRoutes from './routes/schools.js';
 import educationalProgram from './routes/educationalPrograms.js'
 import city from './routes/worldCity.js'
 import organisation from './routes/organisation.js'
+import institute from './routes/institute.js'
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -73,6 +74,8 @@ app.use('/api/admin/schools', schoolRoutes);
 app.use('/api/admin/educational-programs',educationalProgram)
 app.use('/api/admin/cities',city)
 app.use('/api/admin/organisations',organisation)
+app.use('/api/admin/institutes',organisation)
+
 
 
 

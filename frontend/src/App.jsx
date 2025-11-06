@@ -17,6 +17,7 @@ import SchoolManagement from './pages/School/SchoolManagement';
 import EducationalProgramManagement from './pages/EducationPrograms/EducationalProgramManagement';
 import CityManagement from './pages/City/CityManagement';
 import OrganisationManagement from './pages/Organisation/OrganisationManagement';
+import InstituteManagement from './pages/Institute/InstituteManagement';
 
 // Component that wraps protected routes with navigation tracking + layout
 function ProtectedLayout({ children }) {
@@ -202,6 +203,15 @@ function AppContent() {
           </PermissionRoute>
         } />
 
+         <Route path="/institutes" element={
+          <PermissionRoute resource="institutes" action="view">
+            <Layout>
+              <InstituteManagement />
+            </Layout>
+          </PermissionRoute>
+        } />
+
+institutes
         <Route path="/educationprograms" element={
           <PermissionRoute resource="educationProgram" action="view">
             <Layout>

@@ -194,7 +194,7 @@ const SpecializationsModal = ({ program, onClose, onAddSpecialization }) => {
                           </CardDescription>
                         </div>
                         <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
+                          {/* <Button
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
@@ -208,7 +208,7 @@ const SpecializationsModal = ({ program, onClose, onAddSpecialization }) => {
                             onClick={(e) => handleDeleteClick(specialization, e)}
                           >
                             <Trash2 className="h-4 w-4" />
-                          </Button>
+                          </Button> */}
                         </div>
                       </div>
                     </CardHeader>

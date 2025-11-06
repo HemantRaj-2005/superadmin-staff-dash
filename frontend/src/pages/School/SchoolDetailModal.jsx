@@ -51,7 +51,6 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
   };
 
   const openMaps = () => {
-    // Include school name for better location accuracy
     const query = encodeURIComponent(`${school.school_name || ''} ${school.district || ''} ${school.state || ''}`);
     const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
     window.open(url, '_blank', 'noopener,noreferrer');

@@ -181,8 +181,8 @@ const SchoolManagement = () => {
       const response = await api.post('/schools/bulk-import', {
         schools: schoolsData
       });
-      
-      alert(`Bulk import completed: ${response.data.successful} successful, ${response.data.failed} failed`);
+      // ${response.data.successful} 
+      alert(`Bulk import completed: successful, ${response.data.failed} failed`);
       setIsImportOpen(false);
       fetchSchools(); // Refresh the list
       

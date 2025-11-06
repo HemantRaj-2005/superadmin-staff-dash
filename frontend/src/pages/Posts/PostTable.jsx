@@ -38,7 +38,10 @@ const PostTable = ({ posts, loading, onPostClick, onDeletePost }) => {
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-3 w-1/2" />
                 </div>
+                {/* Skeleton for Post ID */}
+                <Skeleton className="h-4 w-24" /> 
                 <Skeleton className="h-8 w-20" />
+                <Skeleton className="h-6 w-24" />
                 <Skeleton className="h-6 w-24" />
                 <Skeleton className="h-8 w-16" />
               </div>
@@ -80,6 +83,8 @@ const PostTable = ({ posts, loading, onPostClick, onDeletePost }) => {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[350px]">Post</TableHead>
+              {/* 1. Add new TableHead for Post ID */}
+              <TableHead className="w-[180px]">Post ID</TableHead>
               <TableHead>Author</TableHead>
               <TableHead>Reactions</TableHead>
               <TableHead>Comments</TableHead>
@@ -116,23 +121,29 @@ const PostTable = ({ posts, loading, onPostClick, onDeletePost }) => {
                         <ImageIcon className="h-5 w-5 text-muted-foreground" />
                       </div>
                     )}
-                   <div className="min-w-0 flex-1">
-  <div
-    className="font-medium text-sm line-clamp-1 truncate"
-    title={(post.title && post.title.trim()) ? post.title : 'Untitled Post'}
-    aria-label={(post.title && post.title.trim()) ? post.title : 'Untitled Post'}
-  >
-    {(post.title && post.title.trim())
-      ? (post.title.split(/\s+/).length > 10
-          ? post.title.split(/\s+/).slice(0, 10).join(' ') + '...'
-          : post.title)
-      : 'Untitled Post'}
-  </div>
-</div>
-
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className="font-medium text-sm line-clamp-1 truncate"
+                        title={(post.title && post.title.trim()) ? post.title : 'Untitled Post'}
+                        aria-label={(post.title && post.title.trim()) ? post.title : 'Untitled Post'}
+                      >
+                        {(post.title && post.title.trim())
+                          ? (post.title.split(/\s+/).length > 10
+                              ? post.title.split(/\s+/).slice(0, 10).join(' ') + '...'
+                              : post.title)
+                          : 'Untitled Post'}
+                      </div>
+                    </div>
                   </div>
                 </TableCell>
                 
+                {/* 2. Add new TableCell for Post ID */}
+                <TableCell>
+                  <div className="text-xs text-muted-foreground truncate" title={post._id}>
+                    {post._id}
+                  </div>
+                </TableCell>
+
                 <TableCell>
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-8 w-8">
