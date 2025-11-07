@@ -1,28 +1,24 @@
-import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
-  X, 
-  Building2,
-  Save
-} from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { X, Building2, Save } from "lucide-react";
 
 const InstituteCreateModal = ({ onClose, onCreate }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    Hospitals: '',
-    city: '',
-    City: '',
-    state: '',
-    State: ''
+    name: "",
+    Hospitals: "",
+    city: "",
+    City: "",
+    state: "",
+    State: "",
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -34,7 +30,7 @@ const InstituteCreateModal = ({ onClose, onCreate }) => {
 
     // Basic validation
     const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Institute name is required';
+    if (!formData.name.trim()) newErrors.name = "Institute name is required";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -45,31 +41,61 @@ const InstituteCreateModal = ({ onClose, onCreate }) => {
     try {
       // Prepare data - trim all string values
       const submitData = Object.fromEntries(
-        Object.entries(formData).map(([key, value]) => [key, value?.trim() || ''])
+        Object.entries(formData).map(([key, value]) => [
+          key,
+          value?.trim() || "",
+        ])
       );
 
       await onCreate(submitData);
     } catch (error) {
-      console.error('Error creating institute:', error);
-      setErrors({ submit: error.response?.data?.message || 'Failed to create institute' });
+      console.error("Error creating institute:", error);
+      setErrors({
+        submit: error.response?.data?.message || "Failed to create institute",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
   const inputFields = [
-    { id: 'name', label: 'Institute Name', required: true, placeholder: 'Enter institute name' },
-    { id: 'city', label: 'City (Lowercase)', required: false, placeholder: 'Enter city name' },
-    { id: 'City', label: 'City (Capitalized)', required: false, placeholder: 'Enter city name' },
-    { id: 'state', label: 'State (Lowercase)', required: false, placeholder: 'Enter state name' },
-    { id: 'State', label: 'State (Capitalized)', required: false, placeholder: 'Enter state name' }
+    {
+      id: "name",
+      label: "Institute Name",
+      required: true,
+      placeholder: "Enter institute name",
+    },
+    {
+      id: "city",
+      label: "City (Lowercase)",
+      required: false,
+      placeholder: "Enter city name",
+    },
+    {
+      id: "City",
+      label: "City (Capitalized)",
+      required: false,
+      placeholder: "Enter city name",
+    },
+    {
+      id: "state",
+      label: "State (Lowercase)",
+      required: false,
+      placeholder: "Enter state name",
+    },
+    {
+      id: "State",
+      label: "State (Capitalized)",
+      required: false,
+      placeholder: "Enter state name",
+    },
   ];
 
   return (
@@ -112,20 +138,23 @@ const InstituteCreateModal = ({ onClose, onCreate }) => {
               {inputFields.map((field) => (
                 <div key={field.id} className="space-y-2">
                   <Label htmlFor={field.id} className="text-sm font-medium">
-                    {field.label} {field.required && <span className="text-red-500">*</span>}
+                    {field.label}{" "}
+                    {field.required && <span className="text-red-500">*</span>}
                   </Label>
                   <Input
                     id={field.id}
                     value={formData[field.id]}
                     onChange={(e) => handleChange(field.id, e.target.value)}
                     className={`border-2 focus:border-blue-500 transition-colors ${
-                      errors[field.id] ? 'border-red-500' : ''
+                      errors[field.id] ? "border-red-500" : ""
                     }`}
                     placeholder={field.placeholder}
                     disabled={loading}
                   />
                   {errors[field.id] && (
-                    <p className="text-sm text-red-600 dark:text-red-400">{errors[field.id]}</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                      {errors[field.id]}
+                    </p>
                   )}
                 </div>
               ))}
@@ -139,14 +168,21 @@ const InstituteCreateModal = ({ onClose, onCreate }) => {
                   Field Information
                 </CardTitle>
                 <CardDescription className="text-blue-700 dark:text-blue-300">
-                  The database supports both lowercase and capitalized field names for compatibility.
-                  Fill in the fields that are relevant to your data.
+                  The database supports both lowercase and capitalized field
+                  names for compatibility. Fill in the fields that are relevant
+                  to your data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-sm text-blue-700 dark:text-blue-300 space-y-2">
-                  <p><strong>Note:</strong> Only "Institute Name" is required. Other fields are optional.</p>
-                  <p>The system will automatically use capitalized fields if available, falling back to lowercase fields.</p>
+                  <p>
+                    <strong>Note:</strong> Only "Institute Name" is required.
+                    Other fields are optional.
+                  </p>
+                  <p>
+                    The system will automatically use capitalized fields if
+                    available, falling back to lowercase fields.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -168,7 +204,7 @@ const InstituteCreateModal = ({ onClose, onCreate }) => {
               className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
             >
               <Save className="h-4 w-4 mr-2" />
-              {loading ? 'Creating...' : 'Create Institute'}
+              {loading ? "Creating..." : "Create Institute"}
             </Button>
           </div>
         </form>
