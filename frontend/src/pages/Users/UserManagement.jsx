@@ -1,8 +1,12 @@
 // components/UserManagement.js
 import React, { useState, useEffect } from "react";
-// 1. Import new components for the dropdown
-import { Search, Users, AlertCircle, FileDown, ChevronDown } from "lucide-react";
-import axios from "axios";
+import {
+  Search,
+  Users,
+  AlertCircle,
+  FileDown,
+  ChevronDown,
+} from "lucide-react";
 import UserTable from "./UserTable";
 import UserDetailModal from "./UserDetailModal";
 import api from "../../services/api";
@@ -25,7 +29,6 @@ import {
 } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-// 1. Import DropdownMenu components
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +54,28 @@ const UserManagement = () => {
   useEffect(() => {
     fetchUsers();
   }, [pagination.page, searchTerm]);
+
+  // Function to log search activity
+  const logSearchActivity = async (searchQuery) => {
+    if (!searchQuery.trim()) return; // Don't log empty searches
+    
+    try {
+      await api.post("/activity-logs", {
+        action: "SEARCH_USERS",
+        description: `Searched for users with query: "${searchQuery}"`,
+        module: "USER_MANAGEMENT",
+        details: {
+          searchQuery: searchQuery,
+          timestamp: new Date().toISOString(),
+          resultsCount: users.length,
+          totalUsers: pagination.total
+        },
+      });
+    } catch (error) {
+      console.error("Error logging search activity:", error);
+      // Don't show this error to the user as it shouldn't affect their search experience
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -81,49 +106,67 @@ const UserManagement = () => {
     }
   };
 
-  // ... (handleUserClick, handleUpdateUser, etc. remain the same) ...
-  
   const handleUserClick = async (user) => {
-    try {
-      console.log("Fetching user details for:", user._id);
-      const response = await api.get(`/users/${user._id}`);
-      setSelectedUser(response.data);
-      setIsModalOpen(true);
-    } catch (error) {
-      console.error("Error fetching user details:", error);
-      setError("Failed to fetch user details");
-    }
-  };
+    try {
+      console.log("Fetching user details for:", user._id);
+      const response = await api.get(`/users/${user._id}`);
+      setSelectedUser(response.data);
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+      setError("Failed to fetch user details");
+    }
+  };
 
-  const handleUpdateUser = async (userId, updateData) => {
-    try {
-      await api.put(`/users/${userId}`, updateData);
-      fetchUsers(); // Refresh the list
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Error updating user:", error);
-      setError("Failed to update user");
-    }
-  };
+  const handleUpdateUser = async (userId, updateData) => {
+    try {
+      await api.put(`/users/${userId}`, updateData);
+      fetchUsers(); // Refresh the list
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      setError("Failed to update user");
+    }
+  };
 
-  const handleDeleteUser = async (userId) => {
-    try {
-      await api.delete(`/users/${userId}`);
-      fetchUsers(); // Refresh the list
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      setError("Failed to delete user");
-    }
-  };
+  const handleDeleteUser = async (userId) => {
+    try {
+      await api.delete(`/users/${userId}`);
+      fetchUsers(); // Refresh the list
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      setError("Failed to delete user");
+    }
+  };
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setPagination((prev) => ({ ...prev, page: 1 })); 
-  };
+  // Handle input change (without logging)
+  const handleInputChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
 
-  const handlePageChange = (newPage) => {
-    setPagination((prev) => ({ ...prev, page: newPage }));
-  };
+  // Handle search submission (Enter key or search button)
+  const handleSearchSubmit = () => {
+    setPagination((prev) => ({ ...prev, page: 1 }));
+    
+    // Log the search activity
+    if (searchTerm.trim()) {
+      logSearchActivity(searchTerm);
+    }
+    
+    // Trigger the API call to fetch users
+    fetchUsers();
+  };
+
+  // Handle Enter key press in search input
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit();
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination((prev) => ({ ...prev, page: newPage }));
+  };
 
   const convertToCSV = (data) => {
     if (!data || data.length === 0) {
@@ -145,10 +188,10 @@ const UserManagement = () => {
         if (header === "role" && typeof val === "object" && val !== null) {
           val = val.name || val._id || "object";
         }
-        if (typeof val === 'boolean') {
-          val = val ? 'Yes' : 'No';
+        if (typeof val === "boolean") {
+          val = val ? "Yes" : "No";
         }
-        if (header === 'createdAt') {
+        if (header === "createdAt") {
           val = new Date(val).toLocaleString();
         }
         if (val === null || val === undefined) {
@@ -165,17 +208,15 @@ const UserManagement = () => {
     return csv;
   };
 
-  // 3. Update export function to handle 'page' or 'all'
   const handleExportCSV = async (exportType) => {
     setIsExporting(true);
     setError("");
-    
+
     let usersToExport = [];
     let fileName = "users_export.csv";
 
     try {
-      if (exportType === 'page') {
-        // Use the users already in state
+      if (exportType === "page") {
         usersToExport = users;
         fileName = `users_page_${pagination.page}.csv`;
         if (usersToExport.length === 0) {
@@ -183,15 +224,14 @@ const UserManagement = () => {
           setIsExporting(false);
           return;
         }
-      } else if (exportType === 'all') {
-        // Fetch all users
+      } else if (exportType === "all") {
         const response = await api.get("/users", {
           params: {
             search: searchTerm,
-            all: true, 
+            all: true,
           },
         });
-        
+
         usersToExport = response.data.users || response.data;
         fileName = "users_export_all.csv";
         if (!usersToExport || usersToExport.length === 0) {
@@ -207,12 +247,11 @@ const UserManagement = () => {
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute("download", fileName); // Use dynamic file name
+      link.setAttribute("download", fileName);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
     } catch (err) {
       console.error(`Error exporting ${exportType} CSV:`, err);
       setError(
@@ -233,14 +272,13 @@ const UserManagement = () => {
                 <Users className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-2xl">User Management</CardTitle>
+                <CardTitle className="text-2xl">Alumns Management</CardTitle>
                 <CardDescription>
-                  Manage and view all registered users
+                  Manage and view all registered Alumns
                 </CardDescription>
               </div>
             </div>
 
-            {/* 4. Replace single Button with a DropdownMenu */}
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -257,14 +295,14 @@ const UserManagement = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
-                    onClick={() => handleExportCSV('page')}
+                    onClick={() => handleExportCSV("page")}
                     disabled={isExporting || users.length === 0}
                     className="cursor-pointer"
                   >
                     Export Current Page ({users.length} users)
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => handleExportCSV('all')}
+                    onClick={() => handleExportCSV("all")}
                     disabled={isExporting || pagination.total === 0}
                     className="cursor-pointer"
                   >
@@ -272,15 +310,11 @@ const UserManagement = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-            
             </div>
           </div>
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* ... (Rest of the component: Error, Search, Stats, Table, Pagination) ... */}
-          
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -288,19 +322,30 @@ const UserManagement = () => {
             </Alert>
           )}
 
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search users by name or email..."
-              value={searchTerm}
-              onChange={handleSearch}
-              className="pl-10 h-11"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search users by name or email..."
+                value={searchTerm}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                className="pl-10 h-11"
+              />
+            </div>
+            <Button 
+              onClick={handleSearchSubmit}
+              disabled={loading}
+              className="h-11"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Search
+            </Button>
           </div>
 
           {!loading && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -324,25 +369,8 @@ const UserManagement = () => {
                       <p className="text-2xl font-bold">0</p>
                     </div>
                     <Badge variant="outline" className="text-lg">
-                      / {pagination.totalPages}
+                      / {pagination.total}
                     </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Results
-                      </p>
-                      <p className="text-2xl font-bold">{users.length}</p>
-                    </div>
-                    <div
-                      className={`h-3 w-3 rounded-full ${
-                        loading ? "bg-yellow-500" : "bg-green-500"
-                      }`}
-                    />
                   </div>
                 </CardContent>
               </Card>

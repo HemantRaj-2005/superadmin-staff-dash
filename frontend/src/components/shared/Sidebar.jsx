@@ -54,7 +54,7 @@ const Sidebar = () => {
     () => [
       { name: "Dashboard", href: "/", icon: Home, permission: null },
       {
-        name: "User Management",
+        name: "Alumns Management",
         href: "/users",
         icon: Users,
         permission: { resource: "users", action: "view" },
