@@ -25,7 +25,15 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
+const UserTable = ({ 
+  users, 
+  loading, 
+  onUserClick, 
+  onDeleteUser, 
+  onRestoreUser, 
+  canEdit, 
+  showDeletedActions 
+}) => {
   if (loading) {
     return (
       <Card>
@@ -40,7 +48,7 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
                 </div>
                 <Skeleton className="h-6 w-20" />
                 <Skeleton className="h-4 w-24" />
-                {canEdit && <Skeleton className="h-8 w-16" />}
+                {(canEdit || showDeletedActions) && <Skeleton className="h-8 w-16" />}
               </div>
             ))}
           </div>
@@ -76,7 +84,7 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Joined</TableHead>
-              {(canEdit || onDeleteUser) && (
+              {(canEdit || showDeletedActions) && (
                 <TableHead className="w-[150px]">Actions</TableHead>
               )}
             </TableRow>
@@ -129,7 +137,7 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
                     {new Date(user.createdAt).toLocaleDateString()}
                   </div>
                 </TableCell>
-                {(canEdit || onDeleteUser) && (
+                {(canEdit || showDeletedActions) && (
                   <TableCell>
                     <div className="flex space-x-2">
                       {canEdit && (
@@ -145,6 +153,19 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
                           Edit
                         </Button>
                       )}
+                      {showDeletedActions && onRestoreUser && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRestoreUser(user._id);
+                          }}
+                          className="text-green-600 hover:text-green-900 hover:bg-green-50"
+                        >
+                          Restore
+                        </Button>
+                      )}
                       {onDeleteUser && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -154,15 +175,19 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
                               onClick={(e) => e.stopPropagation()}
                               className="text-red-600 hover:text-red-900 hover:bg-red-50"
                             >
-                              Delete
+                              {showDeletedActions ? 'Permanently Delete' : 'Delete'}
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete User</AlertDialogTitle>
+                              <AlertDialogTitle>
+                                {showDeletedActions ? 'Permanently Delete User' : 'Delete User'}
+                              </AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to delete {user.firstName} {user.lastName}? 
-                                This action cannot be undone and all user data will be permanently removed.
+                                {showDeletedActions 
+                                  ? `Are you sure you want to permanently delete ${user.firstName} ${user.lastName}? This action cannot be undone and all user data will be permanently removed from the database.`
+                                  : `Are you sure you want to delete ${user.firstName} ${user.lastName}? This action cannot be undone and all user data will be permanently removed.`
+                                }
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -171,7 +196,7 @@ const UserTable = ({ users, loading, onUserClick, onDeleteUser, canEdit }) => {
                                 onClick={() => onDeleteUser(user._id)}
                                 className="bg-red-600 hover:bg-red-700"
                               >
-                                Delete
+                                {showDeletedActions ? 'Permanently Delete' : 'Delete'}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>

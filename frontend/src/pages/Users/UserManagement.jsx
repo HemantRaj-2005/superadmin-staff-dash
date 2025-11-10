@@ -1,4 +1,4 @@
-// // components/UserManagement.js
+// // src/pages/Users/UserManagement.jsx
 import React, { useState, useEffect } from "react";
 import {
   Search,
@@ -544,7 +544,7 @@ const UserManagement = () => {
                 onDeleteUser={handlePermanentDelete}
                 onRestoreUser={handleRestoreUser}
                 canEdit={false}
-                showDeletedActions={true}
+                showDeletedActions={false}
               />
             </TabsContent>
           </Tabs>
