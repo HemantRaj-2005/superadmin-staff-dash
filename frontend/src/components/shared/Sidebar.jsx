@@ -95,12 +95,12 @@ const Sidebar = () => {
         icon: Building,
         permission: { resource: "organisation", action: "view" },
       },
-      {
-        name: "Institute Management",
-        href: "/institutes",
-        icon: Building, // Using the Building icon as it fits
-        permission: { resource: "institute", action: "view" },
-      },
+      // {
+      //   name: "Institute Management",
+      //   href: "/institutes",
+      //   icon: Building, // Using the Building icon as it fits
+      //   permission: { resource: "institute", action: "view" },
+      // },
     ],
     []
   );

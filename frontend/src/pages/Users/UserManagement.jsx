@@ -1,4 +1,4 @@
-// components/UserManagement.js
+// // components/UserManagement.js
 import React, { useState, useEffect } from "react";
 import {
   Search,
@@ -6,9 +6,12 @@ import {
   AlertCircle,
   FileDown,
   ChevronDown,
+  Trash2,
+  RefreshCw,
 } from "lucide-react";
 import UserTable from "./UserTable";
 import UserDetailModal from "./UserDetailModal";
+import DeletedUsersModal from "./DeletedUsersModal";
 import api from "../../services/api";
 import {
   Card,
@@ -35,14 +38,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeletedUsersModalOpen, setIsDeletedUsersModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("active"); // 'active' or 'deleted'
+  const [cleanupStats, setCleanupStats] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -53,12 +60,15 @@ const UserManagement = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [pagination.page, searchTerm]);
+    if (activeTab === "active") {
+      fetchCleanupStats();
+    }
+  }, [pagination.page, searchTerm, activeTab]);
 
   // Function to log search activity
   const logSearchActivity = async (searchQuery) => {
     if (!searchQuery.trim()) return; // Don't log empty searches
-    
+
     try {
       await api.post("/activity-logs", {
         action: "SEARCH_USERS",
@@ -68,7 +78,7 @@ const UserManagement = () => {
           searchQuery: searchQuery,
           timestamp: new Date().toISOString(),
           resultsCount: users.length,
-          totalUsers: pagination.total
+          totalUsers: pagination.total,
         },
       });
     } catch (error) {
@@ -81,11 +91,13 @@ const UserManagement = () => {
     setLoading(true);
     setError("");
     try {
-      const response = await api.get("/users", {
+      const endpoint = activeTab === "deleted" ? "/users/deleted" : "/users";
+      const response = await api.get(endpoint, {
         params: {
           page: pagination.page,
           limit: pagination.limit,
           search: searchTerm,
+          includeDeleted: activeTab === "deleted",
         },
       });
 
@@ -106,7 +118,26 @@ const UserManagement = () => {
     }
   };
 
+  const fetchCleanupStats = async () => {
+    try {
+      const response = await api.get("/users/cleanup/stats");
+      setCleanupStats(response.data);
+    } catch (error) {
+      console.error("Error fetching cleanup stats:", error);
+    }
+  };
+
   const handleUserClick = async (user) => {
+    // If we are on the 'deleted' tab, just use the user data we
+    // already have from the table. No new API call is needed.
+    if (activeTab === "deleted") {
+      console.log("Showing details for deleted user (no fetch):", user._id);
+      setSelectedUser(user);
+      setIsModalOpen(true);
+      return; // Stop the function here
+    }
+
+    // --- This part will now ONLY run for 'active' users ---
     try {
       console.log("Fetching user details for:", user._id);
       const response = await api.get(`/users/${user._id}`);
@@ -129,13 +160,79 @@ const UserManagement = () => {
     }
   };
 
-  const handleDeleteUser = async (userId) => {
+  const handleSoftDeleteUser = async (userId) => {
+    if (
+      window.confirm(
+        "Are you sure you want to move this user to trash? They can be restored within 90 days."
+      )
+    ) {
+      try {
+        await api.delete(`/users/${userId}`);
+        fetchUsers();
+        fetchCleanupStats();
+      } catch (error) {
+        console.error("Error soft deleting user:", error);
+        setError(
+          "Failed to move user to trash: " +
+            (error.response?.data?.message || error.message)
+        );
+      }
+    }
+  };
+
+  const handleRestoreUser = async (userId) => {
     try {
-      await api.delete(`/users/${userId}`);
-      fetchUsers(); // Refresh the list
+      await api.post(`/users/${userId}/restore`);
+      fetchUsers();
+      fetchCleanupStats();
+      setIsDeletedUsersModalOpen(false);
     } catch (error) {
-      console.error("Error deleting user:", error);
-      setError("Failed to delete user");
+      console.error("Error restoring user:", error);
+      setError(
+        "Failed to restore user: " +
+          (error.response?.data?.message || error.message)
+      );
+    }
+  };
+
+  const handlePermanentDelete = async (userId) => {
+    if (
+      window.confirm(
+        "Are you sure you want to permanently delete this user? This action cannot be undone."
+      )
+    ) {
+      try {
+        await api.delete(`/users/${userId}/permanent`);
+        fetchUsers();
+        fetchCleanupStats();
+      } catch (error) {
+        console.error("Error permanently deleting user:", error);
+        setError(
+          "Failed to permanently delete user: " +
+            (error.response?.data?.message || error.message)
+        );
+      }
+    }
+  };
+
+  const runManualCleanup = async () => {
+    if (
+      window.confirm(
+        "Run manual user cleanup? This will permanently delete users that were soft-deleted more than 90 days ago."
+      )
+    ) {
+      try {
+        const response = await api.post("/users/cleanup/run");
+        alert(response.data.message);
+        fetchUsers();
+        fetchCleanupStats();
+      } catch (error) {
+        console.error("Error running cleanup:", error);
+        setError(
+          "Failed to run cleanup: " +
+            (error.response?.data?.message || error.message)
+        );
+      }
     }
   };
 
@@ -147,19 +244,19 @@ const UserManagement = () => {
   // Handle search submission (Enter key or search button)
   const handleSearchSubmit = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
-    
+
     // Log the search activity
     if (searchTerm.trim()) {
       logSearchActivity(searchTerm);
     }
-    
+
     // Trigger the API call to fetch users
     fetchUsers();
   };
 
   // Handle Enter key press in search input
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearchSubmit();
     }
   };
@@ -180,6 +277,7 @@ const UserManagement = () => {
       "verified",
       "isPublic",
       "createdAt",
+      "deletedAt",
     ];
     let csv = headers.join(",") + "\n";
     data.forEach((user) => {
@@ -191,8 +289,8 @@ const UserManagement = () => {
         if (typeof val === "boolean") {
           val = val ? "Yes" : "No";
         }
-        if (header === "createdAt") {
-          val = new Date(val).toLocaleString();
+        if (header === "createdAt" || header === "deletedAt") {
+          val = val ? new Date(val).toLocaleString() : "";
         }
         if (val === null || val === undefined) {
           val = "";
@@ -218,14 +316,15 @@ const UserManagement = () => {
     try {
       if (exportType === "page") {
         usersToExport = users;
-        fileName = `users_page_${pagination.page}.csv`;
+        fileName = `users_${activeTab}_page_${pagination.page}.csv`;
         if (usersToExport.length === 0) {
-          setError("No users on the current page to export.");
+          setError(`No users on the current page to export.`);
           setIsExporting(false);
           return;
         }
       } else if (exportType === "all") {
-        const response = await api.get("/users", {
+        const endpoint = activeTab === "deleted" ? "/users/deleted" : "/users";
+        const response = await api.get(endpoint, {
           params: {
             search: searchTerm,
             all: true,
@@ -233,7 +332,7 @@ const UserManagement = () => {
         });
 
         usersToExport = response.data.users || response.data;
-        fileName = "users_export_all.csv";
+        fileName = `users_${activeTab}_export_all.csv`;
         if (!usersToExport || usersToExport.length === 0) {
           setError("No users found to export.");
           setIsExporting(false);
@@ -322,6 +421,17 @@ const UserManagement = () => {
             </Alert>
           )}
 
+          {/* // -----------------------------------------------------------------
+            //   START: MODIFIED SECTION
+            // -----------------------------------------------------------------
+            //
+            // The "Cleanup Stats" block was removed from here.
+            // The "Active User Stats" block below was modified to include
+            // "In Trash" and the grid was changed to 3 columns.
+            //
+            // -----------------------------------------------------------------
+          */}
+
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -334,7 +444,7 @@ const UserManagement = () => {
                 className="pl-10 h-11"
               />
             </div>
-            <Button 
+            <Button
               onClick={handleSearchSubmit}
               disabled={loading}
               className="h-11"
@@ -344,8 +454,13 @@ const UserManagement = () => {
             </Button>
           </div>
 
-          {!loading && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* // -----------------------------------------------------------------
+            //   START: MODIFIED SECTION
+            // -----------------------------------------------------------------
+          */}
+          {!loading && activeTab === "active" && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Card 1: Total Users */}
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -359,6 +474,8 @@ const UserManagement = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Card 2: Online Users */}
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -374,16 +491,61 @@ const UserManagement = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Card 3: In Trash (conditionally rendered) */}
+              {cleanupStats && (
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          In Trash
+                        </p>
+                        <p className="text-2xl font-bold">
+                          {cleanupStats.totalDeletedUsers}
+                        </p>
+                      </div>
+                      <Trash2 className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
+          {/* // -----------------------------------------------------------------
+            //   END: MODIFIED SECTION
+            // -----------------------------------------------------------------
+          */}
 
-          <UserTable
-            users={users}
-            loading={loading}
-            onUserClick={handleUserClick}
-            onDeleteUser={handleDeleteUser}
-            canEdit={true}
-          />
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="active">Active Users</TabsTrigger>
+              <TabsTrigger value="deleted">Deleted Users</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="active">
+              <UserTable
+                users={users}
+                loading={loading}
+                onUserClick={handleUserClick}
+                onDeleteUser={handleSoftDeleteUser}
+                canEdit={true}
+                showDeletedActions={false}
+              />
+            </TabsContent>
+
+            <TabsContent value="deleted">
+              <UserTable
+                users={users}
+                loading={loading}
+                onUserClick={handleUserClick}
+                onDeleteUser={handlePermanentDelete}
+                onRestoreUser={handleRestoreUser}
+                canEdit={false}
+                showDeletedActions={true}
+              />
+            </TabsContent>
+          </Tabs>
 
           {pagination.totalPages > 0 && (
             <div className="flex items-center justify-between">
@@ -440,6 +602,16 @@ const UserManagement = () => {
           user={selectedUser}
           onClose={() => setIsModalOpen(false)}
           onUpdate={handleUpdateUser}
+          onDelete={handleSoftDeleteUser}
+          isDeleted={activeTab === "deleted"}
+        />
+      )}
+
+      {isDeletedUsersModalOpen && (
+        <DeletedUsersModal
+          onClose={() => setIsDeletedUsersModalOpen(false)}
+          onRestoreUser={handleRestoreUser}
+          onPermanentDelete={handlePermanentDelete}
         />
       )}
     </div>

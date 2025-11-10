@@ -88,7 +88,7 @@ const diffObjects = (oldObj = {}, newObj = {}) => {
 router.get(
   '/grouped/programs',
   requirePermission('educational-programs', 'view'),
-  logActivity('VIEW_GROUPED_EDUCATIONAL_PROGRAMS', { resourceType: 'EducationalProgram' }),
+  logActivity('VIEW_GROUPED_EDUCATIONAL_PROGRAMS', { resourceType: 'Educationalprogram' }),
   async (req, res) => {
     try {
       const {
@@ -155,12 +155,7 @@ router.get(
       const totalCount = result[0]?.totalCount[0]?.count || 0;
       const totalPages = Math.ceil(totalCount / limit);
 
-      console.log('Grouped programs result:', {
-        programsCount: programs.length,
-        totalCount,
-        totalPages,
-        currentPage: page
-      });
+      
 
       res.json({
         programs,
@@ -179,7 +174,7 @@ router.get(
 router.get(
   '/',
   requirePermission('educational-programs', 'view'),
-  logActivity('VIEW_EDUCATIONAL_PROGRAMS', { resourceType: 'EducationalProgram' }),
+  logActivity('VIEW_EDUCATIONAL_PROGRAMS', { resourceType: 'Educationalprogram' }),
   async (req, res) => {
     try {
       const {
@@ -252,7 +247,7 @@ router.get('/:id', authenticate, async (req, res) => {
 router.post(
   '/',
   authenticate,
-  logActivity('CREATE_EDUCATIONAL_PROGRAM', { resourceType: 'EducationalProgram' }),
+  logActivity('CREATE_EDUCATIONAL_PROGRAM', { resourceType: 'Educationalprogram' }),
   async (req, res) => {
     try {
       const { Program, Specialization } = req.body;
@@ -310,7 +305,7 @@ router.put(
   '/:id',
   authenticate,
   logUpdateWithOldValues('EducationalProgram', getProgramForLogging),
-  logActivity('UPDATE_EDUCATIONAL_PROGRAM', { resourceType: 'EducationalProgram' }),
+  logActivity('UPDATE_EDUCATIONAL_PROGRAM', { resourceType: 'Educationalprogram' }),
   async (req, res) => {
     try {
       const oldProgram = req.oldData || {};
@@ -376,7 +371,7 @@ router.put(
 );
 
 // Soft delete educational program
-router.delete('/:id', authenticate, logActivity('DELETE_EDUCATIONAL_PROGRAM', { resourceType: 'EducationalProgram' }), async (req, res) => {
+router.delete('/:id', authenticate, logActivity('DELETE_EDUCATIONAL_PROGRAM', { resourceType: 'Educationalprogram' }), async (req, res) => {
   try {
     // Fetch old doc to diff afterwards
     const oldProgramDoc = await getProgramForLogging(req.params.id);
@@ -436,7 +431,7 @@ router.delete('/:id', authenticate, logActivity('DELETE_EDUCATIONAL_PROGRAM', { 
 });
 
 // Hard delete educational program
-router.delete('/:id/hard', authenticate, authorize(['super_admin']), logActivity('HARD_DELETE_EDUCATIONAL_PROGRAM', { resourceType: 'EducationalProgram' }), async (req, res) => {
+router.delete('/:id/hard', authenticate, authorize(['super_admin']), logActivity('HARD_DELETE_EDUCATIONAL_PROGRAM', { resourceType: 'Educationalprogram' }), async (req, res) => {
   try {
     const program = await EducationalProgram.findByIdAndDelete(req.params.id);
 
