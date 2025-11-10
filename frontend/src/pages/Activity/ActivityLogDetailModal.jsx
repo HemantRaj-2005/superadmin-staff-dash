@@ -1,6 +1,6 @@
 
 
-// components/ActivityLogDetailModal.js - Updated with device info
+// src/pages/ActivityLogDetailModal.jsx - Updated with device info
 import React, { useState } from "react";
 import {
   Card,

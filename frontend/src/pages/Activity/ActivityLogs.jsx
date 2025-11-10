@@ -1,6 +1,6 @@
-// components/ActivityLogs.js
+// components/ActivityLogs.js (responsive compact filters version)
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, X, BarChart3, AlertCircle, Download } from 'lucide-react';
+import { Search, Filter, X, BarChart3, AlertCircle, Upload, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ActivityLogsTable from './ActivityLogsTable';
 import ActivityLogDetailModal from './ActivityLogDetailModal';
@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -21,6 +20,7 @@ const ActivityLogs = () => {
   const [selectedLog, setSelectedLog] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // The actual filters used by the fetch
   const [filters, setFilters] = useState({
@@ -137,6 +137,7 @@ const ActivityLogs = () => {
     setFilters(cleared);
     setUiFilters(cleared);
     setPagination(prev => ({ ...prev, page: 1 }));
+    setShowAdvancedFilters(false);
   };
 
   const handleLogClick = async (log) => {
@@ -168,7 +169,7 @@ const ActivityLogs = () => {
 
   if (admin?.role?.name !== 'Super Admin') {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-4 sm:p-6">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
@@ -284,27 +285,27 @@ const ActivityLogs = () => {
   // ---------------- End CSV Export Helpers ----------------
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Activity Logs</h1>
-          <p className="text-muted-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">Activity Logs</h1>
+          <p className="text-muted-foreground text-sm sm:text-base truncate">
             Monitor all admin activities and changes
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Badge variant="secondary" className="text-sm">
-            {pagination.total} total activities
+        <div className="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0">
+          <Badge variant="secondary" className="text-xs sm:text-sm whitespace-nowrap">
+            {pagination.total} total
           </Badge>
 
           {/* Export Popover */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="flex items-center space-x-2">
-                <Download className="h-4 w-4" />
-                <span>Export</span>
+              <Button variant="outline" size="sm" className="flex items-center space-x-2 whitespace-nowrap">
+                <Upload className="h-4 w-4" />
+                <span className="hidden xs:inline">Export</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-48">
@@ -341,15 +342,15 @@ const ActivityLogs = () => {
 
       {/* Main Content */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3 sm:pb-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-primary" />
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg">
+                <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
-              <div>
-                <CardTitle>Activity Logs</CardTitle>
-                <CardDescription>
+              <div className="min-w-0">
+                <CardTitle className="text-base sm:text-lg truncate">Activity Logs</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   Page {pagination.page} of {pagination.totalPages} • {logs.length} showing
                 </CardDescription>
               </div>
@@ -357,41 +358,35 @@ const ActivityLogs = () => {
           </div>
         </CardHeader>
         
-        <CardContent className="space-y-6">
-          {/* Filters Section */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-sm font-medium flex items-center">
-                <Filter className="h-4 w-4 mr-2" />
-                Filters & Search
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Main Filters Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Search */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Search Description</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search in descriptions..."
-                      value={uiFilters.search}
-                      onChange={(e) => handleUIFilterChange('search', e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+        <CardContent className="space-y-4 p-4 sm:p-6">
+          {/* Compact Filters Section */}
+          <div className="bg-muted/30 rounded-lg p-3 sm:p-4 space-y-3 sm:space-y-4">
+            {/* Main Search and Quick Filters Row */}
+            <div className="flex flex-col xs:flex-row gap-3 items-start xs:items-end">
+              {/* Search Input */}
+              <div className="flex-1 w-full xs:min-w-0">
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search descriptions..."
+                    value={uiFilters.search}
+                    onChange={(e) => handleUIFilterChange('search', e.target.value)}
+                    className="pl-8 h-9 text-sm w-full"
+                  />
                 </div>
+              </div>
 
-                {/* Action Filter */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Action Type</label>
+              {/* Quick Filters - Responsive grid */}
+              <div className="grid grid-cols-2 xs:flex xs:flex-wrap gap-2 w-full xs:w-auto">
+                <div className="min-w-[120px] xs:w-28">
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Action</label>
                   <Select
                     value={uiFilters.action}
                     onValueChange={(value) => handleUIFilterChange('action', value)}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Actions" />
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Actions</SelectItem>
@@ -402,15 +397,14 @@ const ActivityLogs = () => {
                   </Select>
                 </div>
 
-                {/* Resource Type Filter */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Resource Type</label>
+                <div className="min-w-[120px] xs:w-32">
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Resource</label>
                   <Select
                     value={uiFilters.resourceType}
                     onValueChange={(value) => handleUIFilterChange('resourceType', value)}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Resources" />
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Resources</SelectItem>
@@ -421,21 +415,20 @@ const ActivityLogs = () => {
                   </Select>
                 </div>
 
-                {/* Admin Filter */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Admin</label>
+                <div className="min-w-[120px] xs:w-36 col-span-2 xs:col-span-1">
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Admin</label>
                   <Select
                     value={uiFilters.adminId}
                     onValueChange={(value) => handleUIFilterChange('adminId', value)}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Admins" />
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Admins</SelectItem>
                       {availableFilters.admins.map(adminOption => (
                         <SelectItem key={adminOption._id} value={adminOption._id}>
-                          {adminOption.name} ({adminOption.email})
+                          <span className="truncate">{adminOption.name}</span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -443,196 +436,208 @@ const ActivityLogs = () => {
                 </div>
               </div>
 
-              {/* Device Filters Row */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Device Type Filter */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Device Type</label>
-                  <Select
-                    value={uiFilters.deviceType}
-                    onValueChange={(value) => handleUIFilterChange('deviceType', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Devices" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Devices</SelectItem>
-                      {(availableFilters.deviceTypes.length ? availableFilters.deviceTypes : defaultDeviceTypes).map(dt => (
-                        <SelectItem key={dt} value={dt}>{dt}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Action Buttons - Responsive layout */}
+              <div className="flex gap-2 w-full xs:w-auto justify-between xs:justify-start">
+                <Button
+                  size="sm"
+                  onClick={applyFilters}
+                  className="h-9 px-3 flex items-center space-x-1 flex-1 xs:flex-none"
+                >
+                  <Filter className="h-3.5 w-3.5" />
+                  <span className="hidden xs:inline">Apply</span>
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className="h-9 px-3 flex items-center space-x-1 flex-1 xs:flex-none"
+                >
+                  <span className="hidden xs:inline">
+                    {showAdvancedFilters ? 'Less' : 'More'} Filters
+                  </span>
+                  <span className="xs:hidden">Filters</span>
+                  {showAdvancedFilters ? (
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  )}
+                </Button>
 
-                {/* OS Filter */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Operating System</label>
-                  <Select
-                    value={uiFilters.os}
-                    onValueChange={(value) => handleUIFilterChange('os', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All OS" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All OS</SelectItem>
-                      {(availableFilters.os.length ? availableFilters.os : defaultOS).map(osOption => (
-                        <SelectItem key={osOption} value={osOption}>{osOption}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Browser Filter */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Browser</label>
-                  <Select
-                    value={uiFilters.browser}
-                    onValueChange={(value) => handleUIFilterChange('browser', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Browsers" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Browsers</SelectItem>
-                      {(availableFilters.browsers.length ? availableFilters.browsers : defaultBrowsers).map(br => (
-                        <SelectItem key={br} value={br}>{br}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Date Range Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Date From</label>
-                  <Input
-                    type="date"
-                    value={uiFilters.dateFrom}
-                    onChange={(e) => handleUIFilterChange('dateFrom', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Date To</label>
-                  <Input
-                    type="date"
-                    value={uiFilters.dateTo}
-                    onChange={(e) => handleUIFilterChange('dateTo', e.target.value)}
-                  />
-                </div>
-
-                {/* Apply / Clear controls */}
-                <div className="flex items-end space-x-2">
-                 <Button
-  variant="primary"
-  onClick={applyFilters}
-  className="flex-1 flex items-center justify-center transition-all duration-300 
-             hover:shadow-[0_0_15px_#3b82f6] active:shadow-[0_0_25px_#2563eb] 
-             hover:scale-105 active:scale-95"
->
-  Apply Filters
-</Button>
-
-
+                {hasActiveFilters && (
                   <Button
+                    size="sm"
                     variant="outline"
                     onClick={clearFilters}
-                    disabled={!hasActiveFilters}
-                    className="flex-1 flex items-center space-x-2 justify-center"
+                    className="h-9 px-3 flex items-center space-x-1 flex-1 xs:flex-none"
                   >
-                    <X className="h-4 w-4" />
-                    <span>Clear Filters</span>
+                    <X className="h-3.5 w-3.5" />
+                    <span className="hidden xs:inline">Clear</span>
                   </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Advanced Filters - Collapsible */}
+            {showAdvancedFilters && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-3 border-t">
+                {/* Device Filters */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Device Info</h4>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Device Type</label>
+                      <Select
+                        value={uiFilters.deviceType}
+                        onValueChange={(value) => handleUIFilterChange('deviceType', value)}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="All Devices" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Devices</SelectItem>
+                          {(availableFilters.deviceTypes.length ? availableFilters.deviceTypes : defaultDeviceTypes).map(dt => (
+                            <SelectItem key={dt} value={dt}>{dt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">OS</label>
+                      <Select
+                        value={uiFilters.os}
+                        onValueChange={(value) => handleUIFilterChange('os', value)}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="All OS" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All OS</SelectItem>
+                          {(availableFilters.os.length ? availableFilters.os : defaultOS).map(osOption => (
+                            <SelectItem key={osOption} value={osOption}>{osOption}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Browser</label>
+                      <Select
+                        value={uiFilters.browser}
+                        onValueChange={(value) => handleUIFilterChange('browser', value)}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="All Browsers" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Browsers</SelectItem>
+                          {(availableFilters.browsers.length ? availableFilters.browsers : defaultBrowsers).map(br => (
+                            <SelectItem key={br} value={br}>{br}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Date Range */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date Range</h4>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">From</label>
+                      <Input
+                        type="date"
+                        value={uiFilters.dateFrom}
+                        onChange={(e) => handleUIFilterChange('dateFrom', e.target.value)}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">To</label>
+                      <Input
+                        type="date"
+                        value={uiFilters.dateTo}
+                        onChange={(e) => handleUIFilterChange('dateTo', e.target.value)}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active Filters Display */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Active Filters</h4>
+                  <div className="flex flex-wrap gap-1 min-h-[2rem] max-h-20 overflow-y-auto">
+                    {hasActiveFilters ? (
+                      <>
+                        {filters.search && (
+                          <Badge variant="secondary" className="text-xs h-6 px-2 flex items-center space-x-1 max-w-full">
+                            <span className="truncate">Search: "{filters.search}"</span>
+                            <button 
+                              onClick={() => { 
+                                setUiFilters(prev => ({ ...prev, search: '' })); 
+                                setFilters(prev => ({ ...prev, search: '' })); 
+                              }}
+                              className="hover:bg-muted-foreground/20 rounded flex-shrink-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        )}
+                        {filters.action !== 'all' && (
+                          <Badge variant="secondary" className="text-xs h-6 px-2 flex items-center space-x-1">
+                            <span className="truncate">Action: {filters.action}</span>
+                            <button 
+                              onClick={() => { 
+                                setUiFilters(prev => ({ ...prev, action: 'all' })); 
+                                setFilters(prev => ({ ...prev, action: 'all' })); 
+                              }}
+                              className="hover:bg-muted-foreground/20 rounded flex-shrink-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        )}
+                        {filters.resourceType !== 'all' && (
+                          <Badge variant="secondary" className="text-xs h-6 px-2 flex items-center space-x-1">
+                            <span className="truncate">Resource: {filters.resourceType}</span>
+                            <button 
+                              onClick={() => { 
+                                setUiFilters(prev => ({ ...prev, resourceType: 'all' })); 
+                                setFilters(prev => ({ ...prev, resourceType: 'all' })); 
+                              }}
+                              className="hover:bg-muted-foreground/20 rounded flex-shrink-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        )}
+                        {/* Add other active filters as needed */}
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">No active filters</span>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              {/* Active Filters */}
-              {hasActiveFilters && (
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {filters.search && (
-                    <Badge variant="secondary" className="flex items-center space-x-1">
-                      <span>Search: "{filters.search}"</span>
-                      <button onClick={() => { setUiFilters(prev => ({ ...prev, search: '' })); setFilters(prev => ({ ...prev, search: '' })); }}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {filters.action !== 'all' && (
-                    <Badge variant="secondary" className="flex items-center space-x-1">
-                      <span>Action: {filters.action}</span>
-                      <button onClick={() => { setUiFilters(prev => ({ ...prev, action: 'all' })); setFilters(prev => ({ ...prev, action: 'all' })); }}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {filters.resourceType !== 'all' && (
-                    <Badge variant="secondary" className="flex items-center space-x-1">
-                      <span>Resource: {filters.resourceType}</span>
-                      <button onClick={() => { setUiFilters(prev => ({ ...prev, resourceType: 'all' })); setFilters(prev => ({ ...prev, resourceType: 'all' })); }}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {filters.adminId !== 'all' && (
-                    <Badge variant="secondary" className="flex items-center space-x-1">
-                      <span>Admin: {availableFilters.admins.find(a => a._id === filters.adminId)?.name}</span>
-                      <button onClick={() => { setUiFilters(prev => ({ ...prev, adminId: 'all' })); setFilters(prev => ({ ...prev, adminId: 'all' })); }}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {filters.deviceType !== 'all' && (
-                    <Badge variant="secondary" className="flex items-center space-x-1">
-                      <span>Device: {filters.deviceType}</span>
-                      <button onClick={() => { setUiFilters(prev => ({ ...prev, deviceType: 'all' })); setFilters(prev => ({ ...prev, deviceType: 'all' })); }}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {filters.os !== 'all' && (
-                    <Badge variant="secondary" className="flex items-center space-x-1">
-                      <span>OS: {filters.os}</span>
-                      <button onClick={() => { setUiFilters(prev => ({ ...prev, os: 'all' })); setFilters(prev => ({ ...prev, os: 'all' })); }}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {filters.browser !== 'all' && (
-                    <Badge variant="secondary" className="flex items-center space-x-1">
-                      <span>Browser: {filters.browser}</span>
-                      <button onClick={() => { setUiFilters(prev => ({ ...prev, browser: 'all' })); setFilters(prev => ({ ...prev, browser: 'all' })); }}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {(filters.dateFrom || filters.dateTo) && (
-                    <Badge variant="secondary" className="flex items-center space-x-1">
-                      <span>Date: {filters.dateFrom || '—'} to {filters.dateTo || '—'}</span>
-                      <button onClick={() => {
-                        setUiFilters(prev => ({ ...prev, dateFrom: '', dateTo: '' }));
-                        setFilters(prev => ({ ...prev, dateFrom: '', dateTo: '' }));
-                      }}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            )}
+          </div>
 
           {/* Activity Logs Table */}
-          <ActivityLogsTable
-            logs={logs}
-            loading={loading}
-            onLogClick={handleLogClick}
-          />
+          <div className="overflow-x-auto">
+            <ActivityLogsTable
+              logs={logs}
+              loading={loading}
+              onLogClick={handleLogClick}
+            />
+          </div>
 
           {/* Pagination */}
           {pagination.totalPages > 0 && (
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-muted-foreground text-center sm:text-left">
                 Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
                 {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
                 {pagination.total} activities
@@ -647,17 +652,30 @@ const ActivityLogs = () => {
                     />
                   </PaginationItem>
                   
-                  {[...Array(pagination.totalPages)].map((_, index) => (
-                    <PaginationItem key={index + 1}>
-                      <PaginationLink
-                        onClick={() => handlePageChange(index + 1)}
-                        isActive={pagination.page === index + 1}
-                        className="cursor-pointer"
-                      >
-                        {index + 1}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
+                  {[...Array(Math.min(pagination.totalPages, 5))].map((_, index) => {
+                    let pageNum;
+                    if (pagination.totalPages <= 5) {
+                      pageNum = index + 1;
+                    } else if (pagination.page <= 3) {
+                      pageNum = index + 1;
+                    } else if (pagination.page >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + index;
+                    } else {
+                      pageNum = pagination.page - 2 + index;
+                    }
+                    
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(pageNum)}
+                          isActive={pagination.page === pageNum}
+                          className="cursor-pointer"
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
                   
                   <PaginationItem>
                     <PaginationNext

@@ -8,6 +8,8 @@ import {
   ChevronDown,
   Trash2,
   RefreshCw,
+  ChevronUp,
+  FileUp,
 } from "lucide-react";
 import UserTable from "./UserTable";
 import UserDetailModal from "./UserDetailModal";
@@ -387,9 +389,9 @@ const UserManagement = () => {
                     disabled={isExporting}
                     className="flex items-center"
                   >
-                    <FileDown className="h-4 w-4 mr-2" />
+                    <FileUp className="h-4 w-4 mr-2" />
                     {isExporting ? "Exporting..." : "Export"}
-                    <ChevronDown className="h-4 w-4 ml-2" />
+                    <ChevronUp className="h-4 w-4 ml-2" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
