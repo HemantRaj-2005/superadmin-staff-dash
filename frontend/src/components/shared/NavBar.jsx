@@ -28,10 +28,10 @@ const Navbar = ({ admin, logout }) => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1D2B53] text-white shadow-md h-16">
-      <div className="container mx-auto flex items-center justify-between h-full px-6">
+      <div className="container mx-auto flex items-center justify-between h-full">
         {/* Left Section: Logo and Brand Name */}
-        <div className="flex items-center pl-8 gap-3">
-          <img src="logo.png" alt="Nucleus Logo" className="h-8 w-8 object-contain rounded-lg" />
+        <div className="flex pl-[-2rem] gap-3">
+          <img src="logo.png" alt="Nucleus Logo" className="h-[2.6rem] w-[3.1rem] object-contain rounded-full" />
           <div className="flex flex-col">
             <span className="text-xl font-semibold tracking-wider">Nucleus</span>
             <span className="text-[0.8rem] text-gray-300 -mt-1 font-light tracking-wide">
@@ -42,11 +42,11 @@ const Navbar = ({ admin, logout }) => {
 
         {/* Right Section: User Profile Dropdown */}
         {/* This is the code block you provided, now using props */}
-        <div className="flex items-center space-x-4">
+        <div className="hidden md:flex items-center space-x-4">
           <div className="hidden sm:block">
             {/* We use 'text-gray-200' and 'text-gray-400' for better contrast on the dark navbar */}
             <p className="text-sm font-medium text-gray-200">Welcome back,</p>
-            <p className="text-sm text-muted-foreground text-gray-400">{admin?.name}</p>
+            <p className="text-sm text-muted-foreground">{admin?.name}</p>
           </div>
 
           <Separator orientation="vertical" className="h-6 bg-gray-500/50" />

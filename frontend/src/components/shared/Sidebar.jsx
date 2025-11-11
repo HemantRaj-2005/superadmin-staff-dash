@@ -212,25 +212,26 @@ const Sidebar = () => {
         />
       )}
 
-      {/* Mobile Trigger Button - Only show on mobile */}
+      {/* Mobile Trigger Button - Only show on mobile, positioned on right */}
       <Button
-        variant="secondary"
+        variant="ghost"
         size="icon"
         onClick={toggleMobileSidebar}
-        className="lg:hidden fixed left-4 top-4 h-12 w-12 shadow-lg rounded-full z-50"
+        className="lg:hidden fixed right-4 top-4 h-12 w-12 z-50 bg-transparent hover:bg-transparent shadow-none"
         aria-label="Toggle navigation menu"
       >
-        <Menu className="h-6 w-6" />
+        <Menu className="h-6 w-6 text-foreground" />
       </Button>
 
       {/* Navigation Sidebar */}
-      {/* Desktop: Always visible, Mobile: Drawer */}
+      {/* Desktop: Always visible on left, Mobile: Drawer from right */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-40 bg-background border-r shadow-xl flex flex-col 
+          fixed inset-y-0 z-40 bg-background border-r shadow-xl flex flex-col 
           transition-transform duration-300 ease-in-out w-72 lg:w-80 h-full
           lg:translate-x-0 lg:static lg:z-auto
-          ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
+          lg:left-0
+          ${isMobileOpen ? "translate-x-0 right-0" : "translate-x-full right-0"}
         `}
         aria-label="Primary navigation"
       >
@@ -285,17 +286,13 @@ const Sidebar = () => {
                 );
               })}
             </nav>
-
-            {/* MODIFICATION: 
-              The ModeToggle and "MODE" header were removed from here.
-            */}
           </ScrollArea>
         </div>
 
         {/* User Profile Footer */}
         <div className="p-4 border-t bg-linear-to-b from-muted/20 to-transparent shrink-0">
           <div className="flex items-center gap-3 group">
-            <Avatar className="h-10 w- flex-shrink-0 shadow-md">
+            <Avatar className="h-10 w-10 flex-shrink-0 shadow-md">
               <AvatarFallback className="bg-linear-to-br from-primary to-primary/80 text-primary-foreground text-sm font-semibold">
                 {getInitials()}
               </AvatarFallback>
@@ -313,10 +310,7 @@ const Sidebar = () => {
               </p>
             </div>
 
-            {/* MODIFICATION: 
-              Added the ModeToggle here. It will use the default
-              shadcn/ui styling (icon button) and fit perfectly.
-            */}
+            {/* ModeToggle */}
             <div className="flex-shrink-0">
               <ModeToggle />
             </div>
