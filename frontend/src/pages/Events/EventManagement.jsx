@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Search, Filter, X, Plus, Calendar, Download } from "lucide-react";
 import EventTable from "./EventTable";
 import EventDetailModal from "./EventDetailModal";
@@ -42,8 +42,12 @@ const EventManagement = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  // Separate search input and search term
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  
   const [filters, setFilters] = useState({
-    search: "",
     event_type: "all",
     status: "all",
     is_paid: "all",
@@ -64,11 +68,18 @@ const EventManagement = () => {
     totalPages: 0,
   });
 
+  // Track last logged search to avoid duplicates
+  const lastLoggedSearchRef = useRef({
+    search: '',
+    filters: {},
+    page: 1
+  });
+
   useEffect(() => {
     fetchEvents();
     fetchStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, filters]);
+  }, [pagination.page, searchTerm, filters]);
 
   useEffect(() => {
     // Update the date_range filter when dateRange changes
@@ -81,6 +92,76 @@ const EventManagement = () => {
     }
   }, [dateRange]);
 
+  // Function to log search activity
+  const logSearchActivity = async (currentSearchTerm, currentFilters, resultsCount = 0) => {
+    try {
+      const currentSearchData = {
+        search: currentSearchTerm,
+        filters: { ...currentFilters },
+        page: pagination.page
+      };
+
+      const lastLogged = lastLoggedSearchRef.current;
+      
+      // Skip if same search was just logged
+      if (
+        currentSearchData.search === lastLogged.search &&
+        JSON.stringify(currentSearchData.filters) === JSON.stringify(lastLogged.filters) &&
+        currentSearchData.page === lastLogged.page
+      ) {
+        return;
+      }
+
+      // Build description based on active filters
+      let description = 'Searched for events';
+      const activeFilters = [];
+      
+      if (currentSearchTerm) {
+        activeFilters.push(`search: "${currentSearchTerm}"`);
+      }
+      if (currentFilters.event_type && currentFilters.event_type !== 'all') {
+        activeFilters.push(`event type: "${currentFilters.event_type}"`);
+      }
+      if (currentFilters.status && currentFilters.status !== 'all') {
+        activeFilters.push(`status: "${currentFilters.status}"`);
+      }
+      if (currentFilters.is_paid && currentFilters.is_paid !== 'all') {
+        activeFilters.push(`payment: ${currentFilters.is_paid === 'true' ? 'Paid' : 'Free'}`);
+      }
+      if (currentFilters.date_range) {
+        const [from, to] = currentFilters.date_range.split('_');
+        activeFilters.push(`date range: ${format(new Date(from), 'MMM dd, yyyy')} - ${format(new Date(to), 'MMM dd, yyyy')}`);
+      }
+      
+      if (activeFilters.length > 0) {
+        description += ` with ${activeFilters.join(', ')}`;
+      }
+
+      await api.post("/activity-logs", {
+        action: "EVENT_SEARCH",
+        description: description,
+        module: "Event Management",
+        metadata: {
+          searchTerm: currentSearchTerm,
+          eventType: currentFilters.event_type,
+          status: currentFilters.status,
+          isPaid: currentFilters.is_paid,
+          dateRange: currentFilters.date_range,
+          resultsCount: resultsCount,
+          totalResults: pagination.total,
+          page: pagination.page,
+          timestamp: new Date().toISOString(),
+        }
+      });
+
+      // Update last logged search
+      lastLoggedSearchRef.current = { ...currentSearchData };
+    } catch (error) {
+      console.error("Error logging search activity:", error);
+      // Don't show error to user
+    }
+  };
+
   const fetchEvents = async () => {
     setLoading(true);
     try {
@@ -88,7 +169,7 @@ const EventManagement = () => {
       const apiParams = {
         page: pagination.page,
         limit: pagination.limit,
-        search: filters.search,
+        search: searchTerm,
         event_type: filters.event_type === "all" ? "" : filters.event_type,
         status: filters.status === "all" ? "" : filters.status,
         is_paid: filters.is_paid === "all" ? "" : filters.is_paid,
@@ -105,7 +186,17 @@ const EventManagement = () => {
         totalPages: response.data.totalPages,
       }));
 
-      console.log(response.data);
+      // Log search activity after successful fetch
+      const hasActiveSearch = 
+        searchTerm.trim() !== '' || 
+        filters.event_type !== 'all' || 
+        filters.status !== 'all' || 
+        filters.is_paid !== 'all' || 
+        filters.date_range !== '';
+
+      if (hasActiveSearch) {
+        logSearchActivity(searchTerm, filters, response.data.events.length);
+      }
     } catch (error) {
       console.error("Error fetching events:", error);
     } finally {
@@ -122,9 +213,23 @@ const EventManagement = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
+  // Handle search button click
+  const handleSearch = () => {
+    setSearchTerm(searchInput);
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  // Handle clear search
+  const handleClearSearch = () => {
+    setSearchInput("");
+    setSearchTerm("");
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
   const clearFilters = () => {
+    setSearchInput("");
+    setSearchTerm("");
     setFilters({
-      search: "",
       event_type: "all",
       status: "all",
       is_paid: "all",
@@ -132,6 +237,13 @@ const EventManagement = () => {
     });
     setDateRange({ from: undefined, to: undefined });
     setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  // Handle Enter key press in search input
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
   };
 
   const handleEventClick = (event) => {
@@ -168,7 +280,7 @@ const EventManagement = () => {
   };
 
   const hasActiveFilters =
-    filters.search !== "" ||
+    searchTerm !== "" ||
     filters.event_type !== "all" ||
     filters.status !== "all" ||
     filters.is_paid !== "all" ||
@@ -247,7 +359,7 @@ const EventManagement = () => {
         const apiParams = {
           page: 1,
           limit: pagination.total || 100000, // if backend supports a large limit
-          search: filters.search,
+          search: searchTerm,
           event_type: filters.event_type === "all" ? "" : filters.event_type,
           status: filters.status === "all" ? "" : filters.status,
           is_paid: filters.is_paid === "all" ? "" : filters.is_paid,
@@ -370,21 +482,52 @@ const EventManagement = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                {/* Search */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Search Events</label>
-                  <div className="relative">
+              {/* Search Input with Button */}
+              <div className="mb-4 space-y-2">
+                <label className="text-sm font-medium">Search Events</label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Title, description, location..."
-                      value={filters.search}
-                      onChange={(e) => handleFilterChange("search", e.target.value)}
-                      className="pl-10"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      className="pl-10 pr-10"
+                      disabled={loading}
                     />
+                    {searchInput && (
+                      <button
+                        onClick={handleClearSearch}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
+                  <Button
+                    onClick={handleSearch}
+                    disabled={loading}
+                    className="px-6"
+                  >
+                    {loading && searchTerm === searchInput ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 mr-2" />
+                        Search
+                      </>
+                    )}
+                  </Button>
                 </div>
+                {searchTerm && (
+                  <p className="text-sm text-muted-foreground">
+                    Current search: <span className="font-medium text-foreground">"{searchTerm}"</span>
+                  </p>
+                )}
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Event Type */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Event Type</label>
@@ -490,10 +633,10 @@ const EventManagement = () => {
                 <div className="flex flex-wrap gap-2">
                   {hasActiveFilters && (
                     <>
-                      {filters.search && (
+                      {searchTerm && (
                         <Badge variant="secondary" className="flex items-center space-x-1">
-                          <span>Search: "{filters.search}"</span>
-                          <button onClick={() => handleFilterChange("search", "")}>
+                          <span>Search: "{searchTerm}"</span>
+                          <button onClick={handleClearSearch}>
                             <X className="h-3 w-3" />
                           </button>
                         </Badge>

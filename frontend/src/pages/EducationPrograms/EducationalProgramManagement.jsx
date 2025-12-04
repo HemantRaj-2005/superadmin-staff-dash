@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Filter, X, Plus, GraduationCap, BookOpen, Users, ChevronRight } from 'lucide-react';
 import ProgramCard from './ProgramCard';
 import SpecializationsModal from './SpecilizationModal';
@@ -16,8 +16,10 @@ const EducationalProgramManagement = () => {
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [isSpecializationsModalOpen, setIsSpecializationsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [programFilter, setProgramFilter] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // For input field
+  const [searchTerm, setSearchTerm] = useState(''); // For actual search
+  const [programInput, setProgramInput] = useState(''); // For program filter input
+  const [programFilter, setProgramFilter] = useState(''); // For actual program filter
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -25,10 +27,74 @@ const EducationalProgramManagement = () => {
     total: 0,
     totalPages: 0
   });
+  
+  // Track last logged search to avoid duplicates
+  const lastLoggedSearchRef = useRef({
+    search: '',
+    program: '',
+    page: 1
+  });
 
   useEffect(() => {
     fetchPrograms();
   }, [pagination.page, searchTerm, programFilter]);
+
+  // Function to log search activity
+  const logSearchActivity = async (searchQuery, programQuery, resultsCount = 0) => {
+    try {
+      const currentSearchData = {
+        search: searchQuery,
+        program: programQuery,
+        page: pagination.page
+      };
+
+      const lastLogged = lastLoggedSearchRef.current;
+      
+      // Skip if same search was just logged
+      if (
+        currentSearchData.search === lastLogged.search &&
+        currentSearchData.program === lastLogged.program &&
+        currentSearchData.page === lastLogged.page
+      ) {
+        return;
+      }
+
+      // Build description based on active filters
+      let description = 'Searched for educational programs';
+      const activeFilters = [];
+      
+      if (searchQuery) {
+        activeFilters.push(`search: "${searchQuery}"`);
+      }
+      if (programQuery) {
+        activeFilters.push(`program: "${programQuery}"`);
+      }
+      
+      if (activeFilters.length > 0) {
+        description += ` with ${activeFilters.join(', ')}`;
+      }
+
+      await api.post("/activity-logs", {
+        action: "SEARCH_EDUCATIONAL_PROGRAMS",
+        description: description,
+        module: "Educational Program Management",
+        metadata: {
+          searchTerm: searchQuery,
+          programFilter: programQuery,
+          resultsCount: resultsCount,
+          totalResults: pagination.total,
+          page: pagination.page,
+          timestamp: new Date().toISOString(),
+        }
+      });
+
+      // Update last logged search
+      lastLoggedSearchRef.current = { ...currentSearchData };
+    } catch (error) {
+      console.error("Error logging search activity:", error);
+      // Don't show error to user
+    }
+  };
 
   const fetchPrograms = async () => {
     setLoading(true);
@@ -59,6 +125,13 @@ const EducationalProgramManagement = () => {
         totalPages: response.data.totalPages
       }));
 
+      // Log search activity after successful fetch
+      // Only log if there are active search or filters
+      const hasActiveSearch = searchTerm.trim() !== '' || programFilter.trim() !== '';
+      
+      if (hasActiveSearch) {
+        logSearchActivity(searchTerm, programFilter, response.data.programs.length);
+      }
     } catch (error) {
       console.error('Error fetching grouped educational programs:', error);
       // Fallback to regular endpoint if grouped endpoint fails
@@ -86,6 +159,12 @@ const EducationalProgramManagement = () => {
           total: Object.keys(grouped).length,
           totalPages: Math.ceil(Object.keys(grouped).length / pagination.limit)
         }));
+
+        // Log search activity for fallback
+        const hasActiveSearch = searchTerm.trim() !== '' || programFilter.trim() !== '';
+        if (hasActiveSearch) {
+          logSearchActivity(searchTerm, programFilter, paginatedGroups.length);
+        }
       } catch (fallbackError) {
         console.error('Fallback also failed:', fallbackError);
       }
@@ -131,6 +210,42 @@ const EducationalProgramManagement = () => {
     return grouped;
   };
 
+  // Handle search button click
+  const handleSearch = () => {
+    setSearchTerm(searchInput);
+    setProgramFilter(programInput);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Handle clear search
+  const handleClearSearch = () => {
+    setSearchInput('');
+    setProgramInput('');
+    setSearchTerm('');
+    setProgramFilter('');
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Handle clear all filters
+  const clearFilters = () => {
+    setSearchInput('');
+    setProgramInput('');
+    setSearchTerm('');
+    setProgramFilter('');
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Handle Enter key press in search inputs
+  const handleKeyPress = (e, inputType) => {
+    if (e.key === 'Enter') {
+      if (inputType === 'search' && searchInput.trim() !== '') {
+        handleSearch();
+      } else if (inputType === 'program' && programInput.trim() !== '') {
+        handleSearch();
+      }
+    }
+  };
+
   const handleProgramClick = (programData) => {
     console.log('Clicked program:', programData);
     setSelectedProgram(programData);
@@ -155,12 +270,6 @@ const EducationalProgramManagement = () => {
     } catch (error) {
       console.error('Error deleting educational program:', error);
     }
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-    setProgramFilter('');
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handlePageChange = (newPage) => {
@@ -193,8 +302,6 @@ const EducationalProgramManagement = () => {
           Add Program
         </Button>
       </div>
-
-    
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -262,14 +369,26 @@ const EducationalProgramManagement = () => {
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Search Programs & Specializations
                 </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search by program name or specialization..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search by program name or specialization..."
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      onKeyPress={(e) => handleKeyPress(e, 'search')}
+                      className="pl-10 pr-10"
+                      disabled={loading}
+                    />
+                    {searchInput && (
+                      <button
+                        onClick={() => setSearchInput('')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
               
@@ -277,15 +396,45 @@ const EducationalProgramManagement = () => {
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Filter by Program
                 </label>
-                <Input
-                  placeholder="Enter program name..."
-                  value={programFilter}
-                  onChange={(e) => setProgramFilter(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Enter program name..."
+                      value={programInput}
+                      onChange={(e) => setProgramInput(e.target.value)}
+                      onKeyPress={(e) => handleKeyPress(e, 'program')}
+                      className="pl-10 pr-10"
+                      disabled={loading}
+                    />
+                    {programInput && (
+                      <button
+                        onClick={() => setProgramInput('')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
             
             <div className="flex gap-2">
+              <Button
+                onClick={handleSearch}
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
+              >
+                {loading && (searchTerm === searchInput || programFilter === programInput) ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Search
+                  </>
+                )}
+              </Button>
               <Button
                 variant="outline"
                 onClick={clearFilters}
@@ -298,13 +447,36 @@ const EducationalProgramManagement = () => {
             </div>
           </div>
 
+          {/* Current Search Display */}
+          {(searchTerm || programFilter) && (
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">Current Search</p>
+              <div className="flex flex-wrap gap-2">
+                {searchTerm && (
+                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+                    Search: "{searchTerm}"
+                  </Badge>
+                )}
+                {programFilter && (
+                  <Badge className="bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
+                    Program: "{programFilter}"
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Active Filters */}
           {hasActiveFilters && (
             <div className="mt-4 flex flex-wrap gap-2">
               {searchTerm && (
                 <Badge variant="secondary" className="flex items-center space-x-1 bg-blue-100 text-blue-800">
                   <span>Search: "{searchTerm}"</span>
-                  <button onClick={() => setSearchTerm('')} className="hover:text-blue-600">
+                  <button onClick={() => {
+                    setSearchInput('');
+                    setSearchTerm('');
+                    setPagination(prev => ({ ...prev, page: 1 }));
+                  }} className="hover:text-blue-600">
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -312,7 +484,11 @@ const EducationalProgramManagement = () => {
               {programFilter && (
                 <Badge variant="secondary" className="flex items-center space-x-1 bg-green-100 text-green-800">
                   <span>Program: "{programFilter}"</span>
-                  <button onClick={() => setProgramFilter('')} className="hover:text-green-600">
+                  <button onClick={() => {
+                    setProgramInput('');
+                    setProgramFilter('');
+                    setPagination(prev => ({ ...prev, page: 1 }));
+                  }} className="hover:text-green-600">
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -388,7 +564,7 @@ const EducationalProgramManagement = () => {
             <div className="text-center py-12">
               <GraduationCap className="h-16 w-16 mx-auto text-gray-300 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                No programs found
+                {hasActiveFilters ? 'No programs match your search' : 'No programs found'}
               </h3>
               <p className="text-gray-500 dark:text-gray-400 mb-6">
                 {hasActiveFilters 

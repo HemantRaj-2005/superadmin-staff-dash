@@ -556,6 +556,58 @@ router.get(
   }
 );
 
+
+
+
+// Add this route to your admin.js file
+/**
+ * POST /activity-logs
+ * Create an activity log from frontend
+ */
+router.post(
+  '/activity-logs',
+  authenticate,
+  async (req, res) => {
+    try {
+      const { action, description, module, metadata } = req.body;
+      
+      const activityLog = new ActivityLog({
+        adminId: req.admin?._id,
+        action,
+        description,
+        module: module || 'System',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        endpoint: req.originalUrl,
+        method: 'POST',
+        status: 'SUCCESS',
+        metadata: metadata || {},
+        timestamp: new Date()
+      });
+
+      await activityLog.save();
+
+      res.status(201).json({
+        success: true,
+        message: 'Activity logged successfully',
+        activityLog: {
+          id: activityLog._id,
+          action: activityLog.action,
+          description: activityLog.description,
+          timestamp: activityLog.createdAt
+        }
+      });
+    } catch (error) {
+      console.error('Error creating activity log:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to log activity'
+      });
+    }
+  }
+);
+
+
 /**
  * GET /users/deleted
  * Get deleted users only

@@ -211,7 +211,6 @@ function AppContent() {
           </PermissionRoute>
         } />
 
-institutes
         <Route path="/educationprograms" element={
           <PermissionRoute resource="educationProgram" action="view">
             <Layout>

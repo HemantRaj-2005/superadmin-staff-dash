@@ -13,6 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import EmptyState from '@/components/ui/EmptyState';
+import { Users } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,15 +42,15 @@ const UserTable = ({
         <CardContent className="p-6">
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center space-x-4">
-                <Skeleton className="h-12 w-12 rounded-full" />
+              <div key={i} className="flex items-center space-x-4 p-3 rounded-lg border animate-fadeIn" style={{ animationDelay: `${i * 0.1}s` }}>
+                <Skeleton className="h-12 w-12 rounded-full" variant="shimmer" />
                 <div className="space-y-2 flex-1">
-                  <Skeleton className="h-4 w-1/4" />
-                  <Skeleton className="h-3 w-1/3" />
+                  <Skeleton className="h-4 w-1/4" variant="shimmer" />
+                  <Skeleton className="h-3 w-1/3" variant="shimmer" />
                 </div>
-                <Skeleton className="h-6 w-20" />
-                <Skeleton className="h-4 w-24" />
-                {(canEdit || showDeletedActions) && <Skeleton className="h-8 w-16" />}
+                <Skeleton className="h-6 w-20" variant="shimmer" />
+                <Skeleton className="h-4 w-24" variant="shimmer" />
+                {(canEdit || showDeletedActions) && <Skeleton className="h-8 w-16" variant="shimmer" />}
               </div>
             ))}
           </div>
@@ -59,11 +61,14 @@ const UserTable = ({
 
   if (users.length === 0) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <div className="text-muted-foreground">
-            No users found
-          </div>
+      <Card className="border-0 shadow-md">
+        <CardContent className="p-12">
+          <EmptyState
+            icon={Users}
+            title="No users found"
+            description="There are no users to display at the moment."
+            variant="minimal"
+          />
         </CardContent>
       </Card>
     );
@@ -74,8 +79,8 @@ const UserTable = ({
   };
 
   return (
-    <Card>
-      <div className="rounded-md border">
+    <Card className="border-0 shadow-md overflow-hidden">
+      <div className="rounded-lg border border-border/50 overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>

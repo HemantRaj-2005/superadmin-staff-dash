@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Search, 
   Filter, 
@@ -40,7 +40,8 @@ const CityManagement = () => {
   const [selectedCity, setSelectedCity] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // For input field
+  const [searchTerm, setSearchTerm] = useState(''); // For actual search
   const [countryFilter, setCountryFilter] = useState('all');
   const [stateFilter, setStateFilter] = useState('all');
   const [sortBy, setSortBy] = useState('CITY_NAME');
@@ -55,11 +56,93 @@ const CityManagement = () => {
     total: 0,
     totalPages: 0
   });
+  
+  // Track last logged search
+  const lastLoggedSearchRef = useRef({
+    search: '',
+    country: '',
+    state: '',
+    sortBy: '',
+    sortOrder: '',
+    page: 1
+  });
 
   useEffect(() => {
     fetchCities();
     fetchStats();
   }, [pagination.page, searchTerm, countryFilter, stateFilter, sortBy, sortOrder]);
+
+  // Function to log search activity
+  const logSearchActivity = async (searchData, resultsCount = 0) => {
+    try {
+      const currentSearchData = {
+        search: searchTerm,
+        country: countryFilter,
+        state: stateFilter,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        page: pagination.page
+      };
+
+      const lastLogged = lastLoggedSearchRef.current;
+      
+      // Skip if same search was just logged
+      if (
+        currentSearchData.search === lastLogged.search &&
+        currentSearchData.country === lastLogged.country &&
+        currentSearchData.state === lastLogged.state &&
+        currentSearchData.sortBy === lastLogged.sortBy &&
+        currentSearchData.sortOrder === lastLogged.sortOrder &&
+        currentSearchData.page === lastLogged.page
+      ) {
+        return;
+      }
+
+      // Build description based on active filters
+      let description = 'Searched for cities';
+      const activeFilters = [];
+      
+      if (searchTerm) {
+        activeFilters.push(`search: "${searchTerm}"`);
+      }
+      if (countryFilter && countryFilter !== 'all') {
+        activeFilters.push(`country: "${countryFilter}"`);
+      }
+      if (stateFilter && stateFilter !== 'all') {
+        activeFilters.push(`state: "${stateFilter}"`);
+      }
+      if (sortBy !== 'CITY_NAME' || sortOrder !== 'asc') {
+        activeFilters.push(`sorted by: ${sortBy} ${sortOrder}`);
+      }
+      
+      if (activeFilters.length > 0) {
+        description += ` with ${activeFilters.join(', ')}`;
+      }
+
+      await api.post("/activity-logs", {
+        action: "CITY_SEARCH",
+        description: description,
+        module: "City Management",
+        metadata: {
+          searchTerm: searchTerm,
+          country: countryFilter,
+          state: stateFilter,
+          sortBy: sortBy,
+          sortOrder: sortOrder,
+          resultsCount: resultsCount,
+          totalResults: pagination.total,
+          page: pagination.page,
+          timestamp: new Date().toISOString(),
+        }
+      });
+
+      // Update last logged search
+      lastLoggedSearchRef.current = { ...currentSearchData };
+    } catch (error) {
+      console.error("Error logging search activity:", error);
+      // Don't show error to user
+    }
+  };
 
   const fetchCities = async () => {
     setLoading(true);
@@ -84,6 +167,25 @@ const CityManagement = () => {
         totalPages: response.data.totalPages
       }));
 
+      // Log search activity after successful fetch
+      // Only log if there are active filters or search term
+      const hasActiveSearch = 
+        searchTerm.trim() !== '' || 
+        countryFilter !== 'all' || 
+        stateFilter !== 'all' ||
+        sortBy !== 'CITY_NAME' ||
+        sortOrder !== 'asc';
+
+      if (hasActiveSearch) {
+        logSearchActivity({
+          search: searchTerm,
+          country: countryFilter,
+          state: stateFilter,
+          sortBy,
+          sortOrder
+        }, response.data.cities.length);
+      }
+
     } catch (error) {
       console.error('Error fetching cities:', error);
     } finally {
@@ -97,6 +199,26 @@ const CityManagement = () => {
       setStats(response.data);
     } catch (error) {
       console.error('Error fetching city stats:', error);
+    }
+  };
+
+  // Handle search button click
+  const handleSearch = () => {
+    setSearchTerm(searchInput);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Handle clear search
+  const handleClearSearch = () => {
+    setSearchInput('');
+    setSearchTerm('');
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Handle Enter key press
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
     }
   };
 
@@ -127,7 +249,22 @@ const CityManagement = () => {
     }
   };
 
+  // Handle filter changes
+  const handleFilterChange = (type, value) => {
+    if (type === 'country') {
+      setCountryFilter(value);
+      // Reset state when country changes
+      if (value === 'all') {
+        setStateFilter('all');
+      }
+    } else if (type === 'state') {
+      setStateFilter(value);
+    }
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
   const clearFilters = () => {
+    setSearchInput('');
     setSearchTerm('');
     setCountryFilter('all');
     setStateFilter('all');
@@ -140,7 +277,12 @@ const CityManagement = () => {
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
-  const hasActiveFilters = searchTerm || countryFilter !== 'all' || stateFilter !== 'all';
+  const hasActiveFilters = 
+    searchTerm.trim() !== '' || 
+    countryFilter !== 'all' || 
+    stateFilter !== 'all' ||
+    sortBy !== 'CITY_NAME' ||
+    sortOrder !== 'asc';
 
   const getCountryFlag = (countryCode) => {
     const flags = {
@@ -264,29 +406,60 @@ const CityManagement = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
-          {/* Search Row */}
+          {/* Search Row with Button */}
           <div className="flex flex-col lg:flex-row gap-4 lg:items-end justify-between">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Search Cities
                 </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search by city, state, or country..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 border-2 focus:border-blue-500 transition-colors"
-                  />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search by city, state, or country..."
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      className="pl-10 pr-10 border-2 focus:border-blue-500 transition-colors"
+                      disabled={loading}
+                    />
+                    {searchInput && (
+                      <button
+                        onClick={handleClearSearch}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  <Button
+                    onClick={handleSearch}
+                    disabled={loading}
+                    className="px-4"
+                  >
+                    {loading && searchTerm === searchInput ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
+                {searchTerm && (
+                  <p className="text-sm text-gray-500">
+                    Current search: <span className="font-medium">"{searchTerm}"</span>
+                  </p>
+                )}
               </div>
               
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Filter by Country
                 </label>
-                <Select value={countryFilter} onValueChange={setCountryFilter}>
+                <Select 
+                  value={countryFilter} 
+                  onValueChange={(value) => handleFilterChange('country', value)}
+                >
                   <SelectTrigger className="border-2 focus:border-blue-500 transition-colors">
                     <SelectValue placeholder="All countries" />
                   </SelectTrigger>
@@ -308,9 +481,15 @@ const CityManagement = () => {
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Filter by State
                 </label>
-                <Select value={stateFilter} onValueChange={setStateFilter}>
+                <Select 
+                  value={stateFilter} 
+                  onValueChange={(value) => handleFilterChange('state', value)}
+                  disabled={!countryFilter || countryFilter === 'all'}
+                >
                   <SelectTrigger className="border-2 focus:border-blue-500 transition-colors">
-                    <SelectValue placeholder="All states" />
+                    <SelectValue 
+                      placeholder={!countryFilter || countryFilter === 'all' ? "Select country first" : "All states"}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All states</SelectItem>
@@ -377,7 +556,7 @@ const CityManagement = () => {
               {searchTerm && (
                 <Badge variant="secondary" className="flex items-center space-x-1 bg-blue-100 text-blue-800 border-blue-200">
                   <span>Search: "{searchTerm}"</span>
-                  <button onClick={() => setSearchTerm('')} className="hover:text-blue-600">
+                  <button onClick={handleClearSearch} className="hover:text-blue-600">
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -385,7 +564,7 @@ const CityManagement = () => {
               {countryFilter !== 'all' && (
                 <Badge variant="secondary" className="flex items-center space-x-1 bg-green-100 text-green-800 border-green-200">
                   <span>Country: "{countryFilter}"</span>
-                  <button onClick={() => setCountryFilter('all')} className="hover:text-green-600">
+                  <button onClick={() => handleFilterChange('country', 'all')} className="hover:text-green-600">
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -393,7 +572,18 @@ const CityManagement = () => {
               {stateFilter !== 'all' && (
                 <Badge variant="secondary" className="flex items-center space-x-1 bg-purple-100 text-purple-800 border-purple-200">
                   <span>State: "{stateFilter}"</span>
-                  <button onClick={() => setStateFilter('all')} className="hover:text-purple-600">
+                  <button onClick={() => handleFilterChange('state', 'all')} className="hover:text-purple-600">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {(sortBy !== 'CITY_NAME' || sortOrder !== 'asc') && (
+                <Badge variant="secondary" className="flex items-center space-x-1 bg-orange-100 text-orange-800 border-orange-200">
+                  <span>Sort: {sortBy} ({sortOrder})</span>
+                  <button onClick={() => {
+                    setSortBy('CITY_NAME');
+                    setSortOrder('asc');
+                  }} className="hover:text-orange-600">
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>

@@ -3,10 +3,10 @@ import express from 'express';
 import Post from '../models/Post.js';
 import User from '../models/User.js';
 import ActivityLog from '../models/ActivityLog.js';
+import Comment from '../models/Comment.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { logActivity, logUpdateWithOldValues } from '../middleware/activityLogger.js';
 import { requirePermission } from '../middleware/permissions.js';
-import Comment from '../models/Comment.js';
 
 const router = express.Router();
 
@@ -89,8 +89,11 @@ const diffObjects = (oldObj = {}, newObj = {}) => {
   return { oldValues, newValues };
 };
 
+/* -------------------------
+   GET Routes (With Advanced Search)
+   ------------------------- */
 
-// get posts
+// Get posts - SEARCH LOGGING REMOVED
 router.get(
   '/',
   requirePermission('posts', 'view'),
@@ -100,23 +103,39 @@ router.get(
       const {
         page = 1,
         limit = 10,
-        search = '',
-        author = ''
+        search = ''
       } = req.query;
 
       const query = { isDeleted: { $in: [false, null] } };
 
-      // Search by title or content
+      // Combined search - search by title, content, OR author name/email
       if (search) {
+        // First, find user IDs that match the search term
+        const matchingUsers = await User.find({
+          $or: [
+            { firstName: { $regex: search, $options: 'i' } },
+            { lastName: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } },
+            { 
+              $expr: { 
+                $regexMatch: {
+                  input: { $concat: ["$firstName", " ", "$lastName"] },
+                  regex: search,
+                  options: "i"
+                }
+              }
+            }
+          ]
+        }).select('_id');
+
+        const userIds = matchingUsers.map(user => user._id);
+
+        // Search in title, content, OR author (by user ID)
         query.$or = [
           { title: { $regex: search, $options: 'i' } },
-          { content: { $regex: search, $options: 'i' } }
+          { content: { $regex: search, $options: 'i' } },
+          { author: { $in: userIds } }
         ];
-      }
-
-      // Filter by author name/email
-      if (author) {
-        query.author = { $regex: author, $options: 'i' };
       }
 
       const posts = await Post.find(query)
@@ -191,7 +210,6 @@ router.get(
     }
   }
 );
-
 
 // Get single post details
 router.get('/:id', authenticate, async (req, res) => {

@@ -1,7 +1,8 @@
 // src/pages/Home/Dashboard.jsx
-import React, { useState, useEffect } from "react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import api from "../../services/api";
+import { useDashboardStats } from "../../hooks/useDashboardStats";
 import {
   Card,
   CardContent,
@@ -14,110 +15,25 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import {
   Users,
   FileText,
   Calendar,
   UserPlus,
   Shield,
-  LogIn,
   AlertCircle,
   CheckCircle2,
   ArrowRight,
+  TrendingUp,
+  Mail,
+  Smartphone,
 } from "lucide-react";
 
 const Dashboard = () => {
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalPosts: 0,
-    totalEvents: 0,
-    newUsersToday: 0,
-    verifiedUsers: 0,
-    googleUsers: 0,
-  });
-  const [recentUsers, setRecentUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const { admin } = useAuth();
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      // Fetch users with proper error handling
-      let usersResponse;
-      try {
-        usersResponse = await api.get("/users?limit=5&page=1");
-        setRecentUsers(usersResponse.data.users || []);
-      } catch (userError) {
-        console.warn(
-          "Could not fetch users:",
-          userError.response?.data?.message
-        );
-      }
-
-      // Fetch posts
-      let postsResponse;
-      try {
-        postsResponse = await api.get("/posts?limit=1000");
-      } catch (postError) {
-        console.warn(
-          "Could not fetch posts:",
-          postError.response?.data?.message
-        );
-        postsResponse = { data: { total: 0, posts: [] } };
-      }
-
-      // Fetch events
-      let eventsResponse;
-      try {
-        eventsResponse = await api.get("/events?limit=1000");
-      } catch (eventError) {
-        console.warn(
-          "Could not fetch events:",
-          eventError.response?.data?.message
-        );
-        eventsResponse = { data: { total: 0, events: [] } };
-      }
-
-      // Calculate stats from successful responses
-      const allUsers = usersResponse?.data?.users || [];
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const newUsersToday = allUsers.filter(
-        (user) => new Date(user.createdAt) >= today
-      ).length;
-
-      const verifiedUsers = allUsers.filter(
-        (user) => user.isEmailVerified || user.isPhoneVerified
-      ).length;
-
-      const googleUsers = allUsers.filter((user) => user.isGoogleUser).length;
-
-      setStats({
-        totalUsers: usersResponse?.data?.total || 0,
-        totalPosts: postsResponse?.data?.total || 0,
-        totalEvents: eventsResponse?.data?.total || 0,
-        newUsersToday,
-        verifiedUsers,
-        googleUsers,
-      });
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      setError(
-        error.response?.data?.message || "Failed to load dashboard data"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  const navigate = useNavigate();
+  const { data: stats, isLoading, error, isRefetching } = useDashboardStats();
 
   // Safe role display function
   const getRoleName = () => {
@@ -140,6 +56,8 @@ const Dashboard = () => {
       "U"
     );
   };
+
+  const loading = isLoading || isRefetching;
 
   if (loading) {
     return (
@@ -226,96 +144,182 @@ const Dashboard = () => {
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>
+            {error?.message || "Failed to load dashboard data"}
+          </AlertDescription>
         </Alert>
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fadeIn">
+        <Card className="card-hover border-0 shadow-md hover:shadow-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/10">
           <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
                   Total Users
                 </p>
-                <p className="text-2xl font-bold">{stats.totalUsers}</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent">
+                  {stats?.totalUsers || 0}
+                </p>
+                {stats?.newUsersToday > 0 && (
+                  <div className="flex items-center gap-1 mt-3 text-xs font-medium text-green-600 dark:text-green-400">
+                    <TrendingUp className="h-3 w-3" />
+                    <span>+{stats.newUsersToday} today</span>
+                  </div>
+                )}
+              </div>
+              <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                <Users className="h-6 w-6 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-hover border-0 shadow-md hover:shadow-xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10">
           <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
-                <FileText className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
                   Total Posts
                 </p>
-                <p className="text-2xl font-bold">{stats.totalPosts}</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-800 dark:from-green-400 dark:to-green-600 bg-clip-text text-transparent">
+                  {stats?.totalPosts || 0}
+                </p>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg">
+                <FileText className="h-6 w-6 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-hover border-0 shadow-md hover:shadow-xl bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/20 dark:to-purple-900/10">
           <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                <Calendar className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
                   Total Events
                 </p>
-                <p className="text-2xl font-bold">{stats.totalEvents}</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 dark:from-purple-400 dark:to-purple-600 bg-clip-text text-transparent">
+                  {stats?.totalEvents || 0}
+                </p>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                <Calendar className="h-6 w-6 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-hover border-0 shadow-md hover:shadow-xl bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/20 dark:to-orange-900/10">
           <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                <UserPlus className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  New Today
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
+                  Verified Users
                 </p>
-                <p className="text-2xl font-bold">{stats.newUsersToday}</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-orange-800 dark:from-orange-400 dark:to-orange-600 bg-clip-text text-transparent">
+                  {stats?.verifiedUsers || 0}
+                </p>
+                {stats?.totalUsers > 0 && (
+                  <div className="mt-3">
+                    <Progress 
+                      value={(stats.verifiedUsers / stats.totalUsers) * 100} 
+                      className="h-2"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1.5 font-medium">
+                      {Math.round((stats.verifiedUsers / stats.totalUsers) * 100)}% verified
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="p-4 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg">
+                <CheckCircle2 className="h-6 w-6 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Additional Stats */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fadeIn">
+          <Card className="card-hover border-0 shadow-sm hover:shadow-md">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Email Verified
+                  </p>
+                  <p className="text-2xl font-bold mt-1">
+                    {stats.verifiedUsers || 0}
+                  </p>
+                </div>
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="card-hover border-0 shadow-sm hover:shadow-md">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Google Users
+                  </p>
+                  <p className="text-2xl font-bold mt-1">
+                    {stats.googleUsers || 0}
+                  </p>
+                </div>
+                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                  <Smartphone className="h-5 w-5 text-red-600 dark:text-red-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="card-hover border-0 shadow-sm hover:shadow-md">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    New Today
+                  </p>
+                  <p className="text-2xl font-bold mt-1">
+                    {stats.newUsersToday || 0}
+                  </p>
+                </div>
+                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <UserPlus className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn">
         {/* Recent Users */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Users className="h-5 w-5 mr-2" />
+        <Card className="lg:col-span-2 border-0 shadow-md">
+          <CardHeader className="border-b">
+            <CardTitle className="flex items-center text-xl">
+              <div className="p-2 bg-primary/10 rounded-lg mr-3">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
               Recent Users
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="mt-2">
               Latest registered users on the platform
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {recentUsers.length > 0 ? (
+            {stats?.recentUsers && stats.recentUsers.length > 0 ? (
               <div className="space-y-4">
-                {recentUsers.map((user) => (
+                {stats.recentUsers.map((user) => (
                   <div
                     key={user._id}
-                    className="flex items-center justify-between p-3 rounded-lg border"
+                    className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 transition-colors group"
                   >
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-10 w-10">
@@ -375,10 +379,12 @@ const Dashboard = () => {
         {/* Quick Stats & Actions */}
         <div className="space-y-6">
           {/* Admin Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center text-sm">
-                <Shield className="h-4 w-4 mr-2" />
+          <Card className="border-0 shadow-md">
+            <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-transparent">
+              <CardTitle className="flex items-center text-base">
+                <div className="p-2 bg-primary/10 rounded-lg mr-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                </div>
                 Admin Information
               </CardTitle>
             </CardHeader>
@@ -405,15 +411,15 @@ const Dashboard = () => {
           </Card>
 
           {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Quick Actions</CardTitle>
+          {/* <Card className="border-0 shadow-md">
+            <CardHeader className="border-b">
+              <CardTitle className="text-base">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button
                 variant="outline"
-                className="w-full justify-between"
-                onClick={() => (window.location.href = "/users")}
+                className="w-full justify-between hover:bg-accent transition-colors"
+                onClick={() => navigate("/users")}
               >
                 <div className="flex items-center space-x-2">
                   <Users className="h-4 w-4" />
@@ -424,8 +430,8 @@ const Dashboard = () => {
 
               <Button
                 variant="outline"
-                className="w-full justify-between"
-                onClick={() => (window.location.href = "/posts")}
+                className="w-full justify-between hover:bg-accent transition-colors"
+                onClick={() => navigate("/posts")}
               >
                 <div className="flex items-center space-x-2">
                   <FileText className="h-4 w-4" />
@@ -436,8 +442,8 @@ const Dashboard = () => {
 
               <Button
                 variant="outline"
-                className="w-full justify-between"
-                onClick={() => (window.location.href = "/events")}
+                className="w-full justify-between hover:bg-accent transition-colors"
+                onClick={() => navigate("/events")}
               >
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-4 w-4" />
@@ -446,7 +452,7 @@ const Dashboard = () => {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 // src/pages/School/SchoolManagement.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import SchoolTable from './SchoolTable';
 import SchoolDetailModal from './SchoolDetailModal';
@@ -25,8 +25,9 @@ const SchoolManagement = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchInput, setSearchInput] = useState(''); // For the input field
+  const [searchTerm, setSearchTerm] = useState(''); // For actual search
   const [filters, setFilters] = useState({
-    search: '',
     state: 'all',
     district: 'all',
     sortBy: 'school_name',
@@ -46,13 +47,95 @@ const SchoolManagement = () => {
   // Search states for dropdowns
   const [stateSearch, setStateSearch] = useState('');
   const [districtSearch, setDistrictSearch] = useState('');
+  
+  // Track last logged search to avoid duplicates
+  const lastLoggedSearchRef = useRef({
+    search: '',
+    state: '',
+    district: '',
+    sortBy: '',
+    sortOrder: '',
+    page: 1
+  });
 
   const { checkPermission } = useAuth();
 
   useEffect(() => {
     fetchSchools();
     fetchStats();
-  }, [pagination.page, filters]);
+  }, [pagination.page, searchTerm, filters]);
+
+  // Function to log search activity
+  const logSearchActivity = async (currentFilters, resultsCount = 0) => {
+    try {
+      const currentSearchData = {
+        search: searchTerm,
+        state: currentFilters.state,
+        district: currentFilters.district,
+        sortBy: currentFilters.sortBy,
+        sortOrder: currentFilters.sortOrder,
+        page: pagination.page
+      };
+
+      const lastLogged = lastLoggedSearchRef.current;
+      
+      // Skip if same search was just logged
+      if (
+        currentSearchData.search === lastLogged.search &&
+        currentSearchData.state === lastLogged.state &&
+        currentSearchData.district === lastLogged.district &&
+        currentSearchData.sortBy === lastLogged.sortBy &&
+        currentSearchData.sortOrder === lastLogged.sortOrder &&
+        currentSearchData.page === lastLogged.page
+      ) {
+        return;
+      }
+
+      // Build description based on active filters
+      let description = 'Searched for schools';
+      const activeFilters = [];
+      
+      if (searchTerm) {
+        activeFilters.push(`search: "${searchTerm}"`);
+      }
+      if (currentFilters.state && currentFilters.state !== 'all') {
+        activeFilters.push(`state: "${currentFilters.state}"`);
+      }
+      if (currentFilters.district && currentFilters.district !== 'all') {
+        activeFilters.push(`district: "${currentFilters.district}"`);
+      }
+      if (currentFilters.sortBy) {
+        activeFilters.push(`sorted by: ${currentFilters.sortBy} ${currentFilters.sortOrder}`);
+      }
+      
+      if (activeFilters.length > 0) {
+        description += ` with ${activeFilters.join(', ')}`;
+      }
+
+      await api.post("/activity-logs", {
+        action: "SCHOOL_SEARCH",
+        description: description,
+        module: "School Management",
+        metadata: {
+          searchTerm: searchTerm,
+          state: currentFilters.state,
+          district: currentFilters.district,
+          sortBy: currentFilters.sortBy,
+          sortOrder: currentFilters.sortOrder,
+          resultsCount: resultsCount,
+          totalResults: pagination.total,
+          page: pagination.page,
+          timestamp: new Date().toISOString(),
+        }
+      });
+
+      // Update last logged search
+      lastLoggedSearchRef.current = { ...currentSearchData };
+    } catch (error) {
+      console.error("Error logging search activity:", error);
+      // Don't show error to user
+    }
+  };
 
   const fetchSchools = async () => {
     setLoading(true);
@@ -61,7 +144,8 @@ const SchoolManagement = () => {
       const apiFilters = {
         ...filters,
         state: filters.state === 'all' ? '' : filters.state,
-        district: filters.district === 'all' ? '' : filters.district
+        district: filters.district === 'all' ? '' : filters.district,
+        search: searchTerm
       };
 
       const params = {
@@ -79,6 +163,19 @@ const SchoolManagement = () => {
         total: response.data.total,
         totalPages: response.data.totalPages
       }));
+
+      // Log search activity after successful fetch
+      // Only log if there are active filters or search term
+      const hasActiveSearch = 
+        searchTerm.trim() !== '' || 
+        filters.state !== 'all' || 
+        filters.district !== 'all' ||
+        filters.sortBy !== 'school_name' ||
+        filters.sortOrder !== 'asc';
+
+      if (hasActiveSearch) {
+        logSearchActivity(filters, response.data.schools.length);
+      }
     } catch (error) {
       console.error('Error fetching schools:', error);
     } finally {
@@ -100,9 +197,24 @@ const SchoolManagement = () => {
     }
   };
 
+  // Handle search button click
+  const handleSearch = () => {
+    setSearchTerm(searchInput);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Handle clear search
+  const handleClearSearch = () => {
+    setSearchInput('');
+    setSearchTerm('');
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Handle clear all filters
   const clearFilters = () => {
+    setSearchInput('');
+    setSearchTerm('');
     setFilters({
-      search: '',
       state: 'all',
       district: 'all',
       sortBy: 'school_name',
@@ -111,6 +223,13 @@ const SchoolManagement = () => {
     setStateSearch('');
     setDistrictSearch('');
     setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Handle Enter key press in search input
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
   };
 
   const handleSchoolClick = (school) => {
@@ -181,14 +300,12 @@ const SchoolManagement = () => {
       const response = await api.post('/schools/bulk-import', {
         schools: schoolsData
       });
-      // ${response.data.successful} 
-      alert(`Bulk import completed: successful, ${response.data.failed} failed`);
+      alert(`Bulk import completed: ${response.data.successful} successful, ${response.data.failed} failed`);
       setIsImportOpen(false);
       fetchSchools(); // Refresh the list
       
       if (response.data.failed > 0) {
         console.error('Import errors:', response.data.errors);
-        // You could show a detailed error modal here
       }
     } catch (error) {
       console.error('Error in bulk import:', error);
@@ -206,7 +323,12 @@ const SchoolManagement = () => {
     district.toLowerCase().includes(districtSearch.toLowerCase())
   );
 
-  const hasActiveFilters = filters.search || filters.state !== 'all' || filters.district !== 'all';
+  const hasActiveFilters = 
+    searchTerm.trim() !== '' || 
+    filters.state !== 'all' || 
+    filters.district !== 'all' ||
+    filters.sortBy !== 'school_name' ||
+    filters.sortOrder !== 'asc';
 
   return (
     <div className="space-y-6 p-6">
@@ -282,16 +404,50 @@ const SchoolManagement = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Search Input */}
+          {/* Search Input with Button */}
           <div className="space-y-2">
             <Label htmlFor="search">Search Schools</Label>
-            <Input
-              id="search"
-              placeholder="Search by name, district, state, or UDISE code..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="w-full"
-            />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search"
+                  placeholder="Search by name, district, state, or UDISE code..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="w-full pl-10 pr-10"
+                  disabled={loading}
+                />
+                {searchInput && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <Button
+                onClick={handleSearch}
+                disabled={loading}
+                className="px-6"
+              >
+                {loading && searchTerm === searchInput ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Search
+                  </>
+                )}
+              </Button>
+            </div>
+            {searchTerm && (
+              <p className="text-sm text-muted-foreground">
+                Current search: <span className="font-medium text-foreground">"{searchTerm}"</span>
+              </p>
+            )}
           </div>
 
           {/* Filter Grid */}

@@ -1,13 +1,10 @@
-// // src/pages/Users/UserManagement.jsx
+// src/pages/Users/UserManagement.jsx
 import React, { useState, useEffect } from "react";
 import {
   Search,
   Users,
   AlertCircle,
-  FileDown,
-  ChevronDown,
   Trash2,
-  RefreshCw,
   ChevronUp,
   FileUp,
 } from "lucide-react";
@@ -43,49 +40,66 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const UserManagement = () => {
+  // State
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeletedUsersModalOpen, setIsDeletedUsersModalOpen] = useState(false);
+  
+  // Search States
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("active"); // 'active' or 'deleted'
   const [cleanupStats, setCleanupStats] = useState(null);
+  
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
     total: 0,
     totalPages: 0,
   });
+  
   const [isExporting, setIsExporting] = useState(false);
 
+  // 1. Debounce Effect: Updates debouncedSearchTerm 500ms after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // 2. Main Data Fetch Effect: Triggers on Debounced Term, Page, or Tab change
   useEffect(() => {
     fetchUsers();
     if (activeTab === "active") {
       fetchCleanupStats();
     }
-  }, [pagination.page, searchTerm, activeTab]);
+  }, [pagination.page, debouncedSearchTerm, activeTab]);
 
-  // Function to log search activity
-  const logSearchActivity = async (searchQuery) => {
-    if (!searchQuery.trim()) return; // Don't log empty searches
+  // Activity Logging
+  const logSearchActivity = async (searchQuery, resultsCount = 0) => {
+    if (!searchQuery.trim()) return;
 
     try {
       await api.post("/activity-logs", {
         action: "SEARCH_USERS",
         description: `Searched for users with query: "${searchQuery}"`,
-        module: "USER_MANAGEMENT",
-        details: {
+        module: "User Management",
+        metadata: {
           searchQuery: searchQuery,
+          resultsCount: resultsCount,
+          tab: activeTab,
           timestamp: new Date().toISOString(),
-          resultsCount: users.length,
           totalUsers: pagination.total,
         },
       });
     } catch (error) {
       console.error("Error logging search activity:", error);
-      // Don't show this error to the user as it shouldn't affect their search experience
     }
   };
 
@@ -98,7 +112,7 @@ const UserManagement = () => {
         params: {
           page: pagination.page,
           limit: pagination.limit,
-          search: searchTerm,
+          search: debouncedSearchTerm, // Use the debounced term for the API call
           includeDeleted: activeTab === "deleted",
         },
       });
@@ -109,6 +123,12 @@ const UserManagement = () => {
         total: response.data.total,
         totalPages: response.data.totalPages,
       }));
+
+      // Log activity only if there was a search term and fetch was successful
+      if (debouncedSearchTerm.trim() !== "") {
+        logSearchActivity(debouncedSearchTerm, response.data.users.length);
+      }
+
     } catch (error) {
       console.error("Error fetching users:", error);
       setError(
@@ -129,19 +149,18 @@ const UserManagement = () => {
     }
   };
 
+  // --- Handlers ---
+
   const handleUserClick = async (user) => {
-    // If we are on the 'deleted' tab, just use the user data we
-    // already have from the table. No new API call is needed.
+    // If deleted tab, use existing data
     if (activeTab === "deleted") {
-      console.log("Showing details for deleted user (no fetch):", user._id);
       setSelectedUser(user);
       setIsModalOpen(true);
-      return; // Stop the function here
+      return;
     }
 
-    // --- This part will now ONLY run for 'active' users ---
+    // If active tab, fetch fresh details
     try {
-      console.log("Fetching user details for:", user._id);
       const response = await api.get(`/users/${user._id}`);
       setSelectedUser(response.data);
       setIsModalOpen(true);
@@ -154,7 +173,7 @@ const UserManagement = () => {
   const handleUpdateUser = async (userId, updateData) => {
     try {
       await api.put(`/users/${userId}`, updateData);
-      fetchUsers(); // Refresh the list
+      fetchUsers();
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error updating user:", error);
@@ -163,21 +182,13 @@ const UserManagement = () => {
   };
 
   const handleSoftDeleteUser = async (userId) => {
-    if (
-      window.confirm(
-        "Are you sure you want to move this user to trash? They can be restored within 90 days."
-      )
-    ) {
+    if (window.confirm("Are you sure you want to move this user to trash? They can be restored within 90 days.")) {
       try {
         await api.delete(`/users/${userId}`);
         fetchUsers();
         fetchCleanupStats();
       } catch (error) {
-        console.error("Error soft deleting user:", error);
-        setError(
-          "Failed to move user to trash: " +
-            (error.response?.data?.message || error.message)
-        );
+        setError("Failed to move user to trash: " + (error.response?.data?.message || error.message));
       }
     }
   };
@@ -189,74 +200,34 @@ const UserManagement = () => {
       fetchCleanupStats();
       setIsDeletedUsersModalOpen(false);
     } catch (error) {
-      console.error("Error restoring user:", error);
-      setError(
-        "Failed to restore user: " +
-          (error.response?.data?.message || error.message)
-      );
+      setError("Failed to restore user: " + (error.response?.data?.message || error.message));
     }
   };
 
   const handlePermanentDelete = async (userId) => {
-    if (
-      window.confirm(
-        "Are you sure you want to permanently delete this user? This action cannot be undone."
-      )
-    ) {
+    if (window.confirm("Are you sure you want to permanently delete this user? This action cannot be undone.")) {
       try {
         await api.delete(`/users/${userId}/permanent`);
         fetchUsers();
         fetchCleanupStats();
       } catch (error) {
-        console.error("Error permanently deleting user:", error);
-        setError(
-          "Failed to permanently delete user: " +
-            (error.response?.data?.message || error.message)
-        );
+        setError("Failed to permanently delete user: " + (error.response?.data?.message || error.message));
       }
     }
   };
 
-  const runManualCleanup = async () => {
-    if (
-      window.confirm(
-        "Run manual user cleanup? This will permanently delete users that were soft-deleted more than 90 days ago."
-      )
-    ) {
-      try {
-        const response = await api.post("/users/cleanup/run");
-        alert(response.data.message);
-        fetchUsers();
-        fetchCleanupStats();
-      } catch (error) {
-        console.error("Error running cleanup:", error);
-        setError(
-          "Failed to run cleanup: " +
-            (error.response?.data?.message || error.message)
-        );
-      }
-    }
-  };
-
-  // Handle input change (without logging)
+  // Search Handlers
   const handleInputChange = (e) => {
     setSearchTerm(e.target.value);
+    // Debounce effect will handle the API call
   };
 
-  // Handle search submission (Enter key or search button)
   const handleSearchSubmit = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
-
-    // Log the search activity
-    if (searchTerm.trim()) {
-      logSearchActivity(searchTerm);
-    }
-
-    // Trigger the API call to fetch users
-    fetchUsers();
+    setDebouncedSearchTerm(searchTerm); // Force immediate update to bypass debounce
+    // The useEffect will catch the change in debouncedSearchTerm and trigger fetchUsers
   };
 
-  // Handle Enter key press in search input
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       handleSearchSubmit();
@@ -267,21 +238,13 @@ const UserManagement = () => {
     setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
+  // Export Logic
   const convertToCSV = (data) => {
-    if (!data || data.length === 0) {
-      return "";
-    }
-    const headers = [
-      "_id",
-      "name",
-      "email",
-      "role",
-      "verified",
-      "isPublic",
-      "createdAt",
-      "deletedAt",
-    ];
+    if (!data || data.length === 0) return "";
+    
+    const headers = ["_id", "name", "email", "role", "verified", "isPublic", "createdAt", "deletedAt"];
     let csv = headers.join(",") + "\n";
+    
     data.forEach((user) => {
       const row = headers.map((header) => {
         let val = user[header];
@@ -327,10 +290,7 @@ const UserManagement = () => {
       } else if (exportType === "all") {
         const endpoint = activeTab === "deleted" ? "/users/deleted" : "/users";
         const response = await api.get(endpoint, {
-          params: {
-            search: searchTerm,
-            all: true,
-          },
+          params: { search: debouncedSearchTerm, all: true },
         });
 
         usersToExport = response.data.users || response.data;
@@ -343,7 +303,6 @@ const UserManagement = () => {
       }
 
       const csvData = convertToCSV(usersToExport);
-
       const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
@@ -355,9 +314,7 @@ const UserManagement = () => {
       document.body.removeChild(link);
     } catch (err) {
       console.error(`Error exporting ${exportType} CSV:`, err);
-      setError(
-        "Failed to export CSV: " + (err.response?.data?.message || err.message)
-      );
+      setError("Failed to export CSV: " + (err.response?.data?.message || err.message));
     } finally {
       setIsExporting(false);
     }
@@ -423,17 +380,6 @@ const UserManagement = () => {
             </Alert>
           )}
 
-          {/* // -----------------------------------------------------------------
-            //   START: MODIFIED SECTION
-            // -----------------------------------------------------------------
-            //
-            // The "Cleanup Stats" block was removed from here.
-            // The "Active User Stats" block below was modified to include
-            // "In Trash" and the grid was changed to 3 columns.
-            //
-            // -----------------------------------------------------------------
-          */}
-
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -456,10 +402,7 @@ const UserManagement = () => {
             </Button>
           </div>
 
-          {/* // -----------------------------------------------------------------
-            //   START: MODIFIED SECTION
-            // -----------------------------------------------------------------
-          */}
+          {/* Stats Section */}
           {!loading && activeTab === "active" && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Card 1: Total Users */}
@@ -494,7 +437,7 @@ const UserManagement = () => {
                 </CardContent>
               </Card>
 
-              {/* Card 3: In Trash (conditionally rendered) */}
+              {/* Card 3: In Trash */}
               {cleanupStats && (
                 <Card>
                   <CardContent className="p-4">
@@ -514,10 +457,6 @@ const UserManagement = () => {
               )}
             </div>
           )}
-          {/* // -----------------------------------------------------------------
-            //   END: MODIFIED SECTION
-            // -----------------------------------------------------------------
-          */}
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Search, Filter, X, FileText, Users } from "lucide-react";
 import PostTable from "./PostTable";
 import PostDetailModal from "./PostDetailModal";
@@ -28,7 +28,6 @@ const PostManagement = () => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [authorFilter, setAuthorFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -36,10 +35,49 @@ const PostManagement = () => {
     total: 0,
     totalPages: 0,
   });
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const lastLoggedSearchRef = useRef("");
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchPosts();
-  }, [pagination.page, searchTerm, authorFilter]);
+  }, [pagination.page, debouncedSearchTerm]);
+
+  // Function to log search activity
+  const logSearchActivity = async (searchQuery, resultsCount = 0) => {
+    if (!searchQuery.trim()) return;
+
+    // Skip if same search term was just logged
+    if (lastLoggedSearchRef.current === searchQuery) {
+      return;
+    }
+
+    try {
+      await api.post("/activity-logs", {
+        action: "SEARCH_POSTS",
+        description: `Searched for posts with query: "${searchQuery}"`,
+        module: "Post Management",
+        metadata: {
+          searchQuery: searchQuery,
+          resultsCount: resultsCount,
+          timestamp: new Date().toISOString(),
+        }
+      });
+
+      // Update last logged search
+      lastLoggedSearchRef.current = searchQuery;
+    } catch (error) {
+      console.error("Error logging search activity:", error);
+    }
+  };
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -48,18 +86,21 @@ const PostManagement = () => {
         params: {
           page: pagination.page,
           limit: pagination.limit,
-          search: searchTerm,
-          author: authorFilter,
+          search: debouncedSearchTerm,
         },
       });
 
       setPosts(response.data.posts);
-      console.log(response.data.posts);
       setPagination((prev) => ({
         ...prev,
         total: response.data.total,
         totalPages: response.data.totalPages,
       }));
+
+      // Log search activity after successful fetch
+      if (debouncedSearchTerm.trim() !== "") {
+        logSearchActivity(debouncedSearchTerm, response.data.posts.length);
+      }
     } catch (error) {
       console.error("Error fetching posts:", error);
     } finally {
@@ -75,7 +116,7 @@ const PostManagement = () => {
   const handleUpdatePost = async (postId, updateData) => {
     try {
       await api.put(`/posts/${postId}`, updateData);
-      fetchPosts(); // Refresh the list
+      fetchPosts();
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error updating post:", error);
@@ -86,7 +127,7 @@ const PostManagement = () => {
   const handleDeletePost = async (postId) => {
     try {
       await api.delete(`/posts/${postId}`);
-      fetchPosts(); // Refresh the list
+      fetchPosts();
     } catch (error) {
       console.error("Error deleting post:", error);
     }
@@ -95,8 +136,7 @@ const PostManagement = () => {
   const handleRemoveReaction = async (postId, reactionId) => {
     try {
       await api.delete(`/posts/${postId}/reactions/${reactionId}`);
-      fetchPosts(); // Refresh the list
-      // If the modal is open, refresh the selected post
+      fetchPosts();
       if (selectedPost && selectedPost._id === postId) {
         const updatedPost = await api.get(`/posts/${postId}`);
         setSelectedPost(updatedPost.data);
@@ -109,24 +149,33 @@ const PostManagement = () => {
   const handleHardDelete = async (postId) => {
     try {
       await api.delete(`/posts/${postId}/hard`);
-      fetchPosts(); // Refresh the list
+      fetchPosts();
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error hard deleting post:", error);
     }
   };
 
-  const clearFilters = () => {
-    setSearchTerm("");
-    setAuthorFilter("");
+  const handleSearch = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
+    setDebouncedSearchTerm(searchTerm);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setDebouncedSearchTerm("");
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
   };
 
   const handlePageChange = (newPage) => {
     setPagination((prev) => ({ ...prev, page: newPage }));
   };
-
-  const hasActiveFilters = searchTerm || authorFilter;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -148,82 +197,64 @@ const PostManagement = () => {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Search and Filter Section */}
+          {/* Single Combined Search Bar */}
           <Card>
             <CardHeader className="pb-4">
               <CardTitle className="text-sm font-medium flex items-center">
-                <Filter className="h-4 w-4 mr-2" />
-                Filters & Search
+                <Search className="h-4 w-4 mr-2" />
+                Search Posts
               </CardTitle>
+              <CardDescription className="text-xs">
+                Search by title, content, or author name/email
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Search Posts</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search by title or content..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search posts by title, content, or author..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="pl-10 pr-10"
+                    disabled={loading}
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={handleClearSearch}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Filter by Author
-                  </label>
-                  <div className="relative">
-                    <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Author name..."
-                      value={authorFilter}
-                      onChange={(e) => setAuthorFilter(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-end space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={clearFilters}
-                    disabled={!hasActiveFilters}
-                    className="flex-1"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Clear Filters
-                  </Button>
-                </div>
+                <Button
+                  onClick={handleSearch}
+                  disabled={loading}
+                  className="px-6"
+                >
+                  {loading ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                  ) : (
+                    <Search className="h-4 w-4 mr-2" />
+                  )}
+                  Search
+                </Button>
               </div>
 
-              {/* Active Filters */}
-              {hasActiveFilters && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {searchTerm && (
-                    <Badge
-                      variant="secondary"
-                      className="flex items-center space-x-1"
-                    >
-                      <span>Search: "{searchTerm}"</span>
-                      <button onClick={() => setSearchTerm("")}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {authorFilter && (
-                    <Badge
-                      variant="secondary"
-                      className="flex items-center space-x-1"
-                    >
-                      <span>Author: "{authorFilter}"</span>
-                      <button onClick={() => setAuthorFilter("")}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
+              {/* Active Search Badge */}
+              {searchTerm && (
+                <div className="mt-4">
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center space-x-1"
+                  >
+                    <span>Search: "{searchTerm}"</span>
+                    <button onClick={handleClearSearch}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
                 </div>
               )}
             </CardContent>
@@ -251,9 +282,9 @@ const PostManagement = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">
-                        Page Size
+                        Current Page
                       </p>
-                      <p className="text-2xl font-bold">{pagination.limit}</p>
+                      <p className="text-2xl font-bold">{pagination.page}</p>
                     </div>
                     <Users className="h-8 w-8 text-muted-foreground" />
                   </div>

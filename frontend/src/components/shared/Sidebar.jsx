@@ -28,9 +28,9 @@ import {
 } from "lucide-react";
 
 const NAV_ITEM_CLASS =
-  "group flex items-center gap-3 w-full text-sm font-medium py-2.5 px-3 rounded-xl transition-all duration-200 ease-out hover:bg-accent hover:text-foreground";
+  "group flex items-center gap-3 w-full text-sm font-medium py-2.5 px-3 rounded-xl transition-all duration-200 ease-out hover:bg-accent hover:text-foreground hover:shadow-sm relative";
 const NAV_ACTIVE_CLASS =
-  "bg-primary/10 text-primary dark:bg-primary/20 border-l-2 border-primary dark:border-primary/50";
+  "bg-gradient-to-r from-primary/10 to-primary/5 text-primary dark:from-primary/20 dark:to-primary/10 border-l-4 border-primary dark:border-primary/50 shadow-sm font-semibold";
 
 const Sidebar = () => {
   const location = useLocation();
@@ -227,7 +227,7 @@ const Sidebar = () => {
       {/* Desktop: Always visible on left, Mobile: Drawer from right */}
       <aside
         className={`
-          fixed inset-y-0 z-40 bg-background border-r shadow-xl flex flex-col 
+          fixed inset-y-0 z-40 bg-gradient-to-b from-background via-background to-muted/20 border-r border-border/50 shadow-2xl flex flex-col 
           transition-transform duration-300 ease-in-out w-72 lg:w-80 h-full
           lg:translate-x-0 lg:static lg:z-auto
           lg:left-0
@@ -249,7 +249,7 @@ const Sidebar = () => {
                   placeholder="Search navigation..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-muted/50 rounded-lg text-sm border border-border focus:border-primary focus:outline-none transition-colors"
+                  className="w-full pl-9 pr-4 py-2.5 bg-background/50 backdrop-blur-sm rounded-xl text-sm border border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all shadow-sm hover:shadow-md"
                 />
               </div>
             </div>
@@ -270,7 +270,7 @@ const Sidebar = () => {
                     }
                     onClick={closeMobileSidebar}
                   >
-                    <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50 group-hover:bg-accent/50 transition-colors">
+                    <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-muted/50 group-hover:bg-primary/10 group-hover:text-primary transition-all shadow-sm group-hover:shadow-md">
                       <Icon className="h-4 w-4" />
                     </span>
                     <span className="flex-1 text-left">{item.name}</span>
@@ -290,10 +290,10 @@ const Sidebar = () => {
         </div>
 
         {/* User Profile Footer */}
-        <div className="p-4 border-t bg-linear-to-b from-muted/20 to-transparent shrink-0">
-          <div className="flex items-center gap-3 group">
-            <Avatar className="h-10 w-10 flex-shrink-0 shadow-md">
-              <AvatarFallback className="bg-linear-to-br from-primary to-primary/80 text-primary-foreground text-sm font-semibold">
+        <div className="p-4 border-t border-border/50 bg-gradient-to-b from-background to-muted/10 shrink-0">
+          <div className="flex items-center gap-3 group p-3 rounded-xl hover:bg-accent/50 transition-colors">
+            <Avatar className="h-11 w-11 flex-shrink-0 shadow-lg ring-2 ring-primary/20">
+              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-sm font-semibold">
                 {getInitials()}
               </AvatarFallback>
             </Avatar>
