@@ -2,7 +2,8 @@
 import express from 'express';
 import Event from '../models/Event.js';
 import ActivityLog from '../models/ActivityLog.js';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authenticate } from '../middleware/auth.js';
+import { populateAdminPermissions, requirePermission } from '../middleware/permissions.js';
 import { logActivity, logUpdateWithOldValues } from '../middleware/activityLogger.js';
 
 const router = express.Router();
@@ -84,6 +85,9 @@ const diffObjects = (oldObj = {}, newObj = {}) => {
   return { oldValues, newValues };
 };
 
+// Apply authentication and permission population to all routes
+router.use(authenticate, populateAdminPermissions);
+
 /* -------------------------
    Routes
    ------------------------- */
@@ -92,117 +96,252 @@ const diffObjects = (oldObj = {}, newObj = {}) => {
  * GET /events
  * List events with filtering, pagination and available filters
  */
-router.get('/', authenticate, async (req, res) => {
-  try {
-    const { 
-      page = 1, 
-      limit = 10, 
-      search = '', 
-      event_type = '', 
-      status = '',
-      date_range = '',
-      is_paid = ''
-    } = req.query;
-    
-    const query = {};
-    
-    // Search filter
-    if (search) {
-      query.$or = [
-        { event_title: { $regex: search, $options: 'i' } },
-        { event_description: { $regex: search, $options: 'i' } },
-        { location: { $regex: search, $options: 'i' } }
-      ];
+router.get('/',
+  requirePermission('events', 'view'),
+  logActivity('VIEW_EVENTS', { resourceType: 'Event' }),
+  async (req, res) => {
+    try {
+      const { 
+        page = 1, 
+        limit = 10, 
+        search = '', 
+        event_type = '', 
+        status = '',
+        date_range = '',
+        is_paid = ''
+      } = req.query;
+      
+      const query = {};
+      
+      // Search filter
+      if (search) {
+        query.$or = [
+          { event_title: { $regex: search, $options: 'i' } },
+          { event_description: { $regex: search, $options: 'i' } },
+          { location: { $regex: search, $options: 'i' } }
+        ];
+      }
+      
+      // Event type filter
+      if (event_type) query.event_type = event_type;
+      if (status) query.status = status;
+      if (is_paid !== '') query.is_paid = is_paid === 'true';
+      
+      if (date_range) {
+        const [start, end] = date_range.split('_');
+        query.event_start_datetime = {
+          $gte: new Date(start),
+          $lte: new Date(end)
+        };
+      }
+
+      const events = await Event.find(query)
+        .sort({ event_start_datetime: 1 })
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit));
+
+      const total = await Event.countDocuments(query);
+
+      // Get stats for filters
+      const eventTypes = await Event.distinct('event_type');
+      const statusTypes = await Event.distinct('status');
+
+      res.json({
+        events,
+        totalPages: Math.ceil(total / limit),
+        currentPage: Number(page),
+        total,
+        filters: { eventTypes, statusTypes }
+      });
+    } catch (error) {
+      console.error('GET /events error:', error);
+      res.status(500).json({ message: error.message });
     }
-    
-    // Event type filter
-    if (event_type) query.event_type = event_type;
-    if (status) query.status = status;
-    if (is_paid !== '') query.is_paid = is_paid === 'true';
-    
-    if (date_range) {
-      const [start, end] = date_range.split('_');
-      query.event_start_datetime = {
-        $gte: new Date(start),
-        $lte: new Date(end)
-      };
-    }
-
-    const events = await Event.find(query)
-      .sort({ event_start_datetime: 1 })
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit));
-
-    const total = await Event.countDocuments(query);
-
-    // Get stats for filters
-    const eventTypes = await Event.distinct('event_type');
-    const statusTypes = await Event.distinct('status');
-
-    res.json({
-      events,
-      totalPages: Math.ceil(total / limit),
-      currentPage: Number(page),
-      total,
-      filters: { eventTypes, statusTypes }
-    });
-  } catch (error) {
-    console.error('GET /events error:', error);
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
 /**
  * GET /events/stats/overview
  * NOTE: placed BEFORE /:id so route isn't captured by :id
  */
-router.get('/stats/overview', authenticate, async (req, res) => {
-  try {
-    const totalEvents = await Event.countDocuments();
-    const upcomingEvents = await Event.countDocuments({
-      event_start_datetime: { $gte: new Date() }
-    });
-    const paidEvents = await Event.countDocuments({ is_paid: true });
-    const activeEvents = await Event.countDocuments({ status: 'active' });
+router.get('/stats/overview',
+  requirePermission('events', 'view'),
+  async (req, res) => {
+    try {
+      const totalEvents = await Event.countDocuments();
+      const upcomingEvents = await Event.countDocuments({
+        event_start_datetime: { $gte: new Date() }
+      });
+      const paidEvents = await Event.countDocuments({ is_paid: true });
+      const activeEvents = await Event.countDocuments({ status: 'active' });
 
-    const eventsByType = await Event.aggregate([
-      { $group: { _id: '$event_type', count: { $sum: 1 } } }
-    ]);
+      const eventsByType = await Event.aggregate([
+        { $group: { _id: '$event_type', count: { $sum: 1 } } }
+      ]);
 
-    const monthlyEvents = await Event.aggregate([
-      { $group: {
-          _id: {
-            year: { $year: '$event_start_datetime' },
-            month: { $month: '$event_start_datetime' }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { '_id.year': 1, '_id.month': 1 } },
-      { $limit: 12 }
-    ]);
+      const monthlyEvents = await Event.aggregate([
+        { $group: {
+            _id: {
+              year: { $year: '$event_start_datetime' },
+              month: { $month: '$event_start_datetime' }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1 } },
+        { $limit: 12 }
+      ]);
 
-    res.json({ totalEvents, upcomingEvents, paidEvents, activeEvents, eventsByType, monthlyEvents });
-  } catch (error) {
-    console.error('GET /events/stats/overview error:', error);
-    res.status(500).json({ message: error.message });
+      res.json({ totalEvents, upcomingEvents, paidEvents, activeEvents, eventsByType, monthlyEvents });
+    } catch (error) {
+      console.error('GET /events/stats/overview error:', error);
+      res.status(500).json({ message: error.message });
+    }
   }
-});
+);
 
 /**
  * GET /events/:id
  * Get single event
  */
-router.get('/:id', authenticate, async (req, res) => {
-  try {
-    const event = await Event.findById(req.params.id);
-    if (!event) return res.status(404).json({ message: 'Event not found' });
-    res.json(event);
-  } catch (error) {
-    console.error('GET /events/:id error:', error);
-    res.status(500).json({ message: error.message });
+router.get('/:id',
+  requirePermission('events', 'view'),
+  logActivity('VIEW_EVENT', { resourceType: 'Event' }),
+  async (req, res) => {
+    try {
+      const event = await Event.findById(req.params.id);
+      if (!event) return res.status(404).json({ message: 'Event not found' });
+      res.json(event);
+    } catch (error) {
+      console.error('GET /events/:id error:', error);
+      res.status(500).json({ message: error.message });
+    }
   }
-});
+);
+
+/**
+ * POST /events
+ * Create new event
+ */
+router.post('/',
+  requirePermission('events', 'create'),
+  logActivity('CREATE_EVENT', { resourceType: 'Event' }),
+  async (req, res) => {
+    try {
+      const {
+        event_title,
+        event_description,
+        event_type,
+        location,
+        is_paid,
+        price,
+        event_start_datetime,
+        event_end_datetime,
+        status
+      } = req.body;
+
+      // Basic required fields check
+      if (!event_title || !event_description || !event_type || !location) {
+        if (req.activityLogId) {
+          await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+            $set: { 
+              status: 'FAILED', 
+              description: `CREATE_EVENT failed: Missing required fields` 
+            }
+          }).catch(console.error);
+        }
+        return res.status(400).json({ 
+          message: 'Missing required fields',
+          missing: []
+            .concat(!event_title ? 'event_title' : [])
+            .concat(!event_description ? 'event_description' : [])
+            .concat(!event_type ? 'event_type' : [])
+            .concat(!location ? 'location' : [])
+        });
+      }
+
+      // Date validation
+      if (!event_start_datetime || !event_end_datetime) {
+        if (req.activityLogId) {
+          await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+            $set: { 
+              status: 'FAILED', 
+              description: `CREATE_EVENT failed: Start and end datetime are required` 
+            }
+          }).catch(console.error);
+        }
+        return res.status(400).json({ message: 'Start and end datetime are required' });
+      }
+
+      const startDate = new Date(event_start_datetime);
+      const endDate = new Date(event_end_datetime);
+
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        if (req.activityLogId) {
+          await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+            $set: { 
+              status: 'FAILED', 
+              description: `CREATE_EVENT failed: Invalid date format` 
+            }
+          }).catch(console.error);
+        }
+        return res.status(400).json({ message: 'Invalid date format' });
+      }
+
+      if (endDate <= startDate) {
+        if (req.activityLogId) {
+          await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+            $set: { 
+              status: 'FAILED', 
+              description: `CREATE_EVENT failed: End date must be after start date` 
+            }
+          }).catch(console.error);
+        }
+        return res.status(400).json({ message: 'End date must be after start date' });
+      }
+
+      const event = new Event({
+        event_title,
+        event_description,
+        event_type,
+        location,
+        is_paid: Boolean(is_paid),
+        price: is_paid ? Number(price) || 0 : 0,
+        event_start_datetime: startDate,
+        event_end_datetime: endDate,
+        status: status || 'active'
+      });
+
+      const savedEvent = await event.save();
+
+      if (req.activityLogId) {
+        await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+          $set: {
+            changes: { oldValues: null, newValues: sanitizeBody(savedEvent.toObject()) },
+            status: 'SUCCESS',
+            description: `CREATE_EVENT by ${req.admin?.name || 'Unknown Admin'}`
+          }
+        }).catch(console.error);
+      }
+
+      res.status(201).json(savedEvent);
+    } catch (error) {
+      console.error('POST /events error:', error);
+      if (req.activityLogId) {
+        await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+          $set: { status: 'FAILED', description: error.message }
+        }).catch(console.error);
+      }
+
+      if (error.name === 'ValidationError') {
+        const errors = Object.values(error.errors).map(err => err.message);
+        return res.status(400).json({ message: 'Validation failed', errors });
+      }
+
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
 
 /**
  * PUT /events/:id
@@ -210,9 +349,9 @@ router.get('/:id', authenticate, async (req, res) => {
  */
 router.put(
   '/:id',
-  authenticate,
-  logUpdateWithOldValues('Event', getEventForLogging), // sets req.oldData (plain object)
-  logActivity('UPDATE_EVENT', { resourceType: 'Event' }), // creates pending activity log
+  requirePermission('events', 'edit'),
+  logUpdateWithOldValues('Event', getEventForLogging),
+  logActivity('UPDATE_EVENT', { resourceType: 'Event' }),
   async (req, res) => {
     try {
       // Validate & parse incoming fields (same validations as before)
@@ -337,7 +476,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  authenticate,
+  requirePermission('events', 'delete'),
   logActivity('DELETE_EVENT', { resourceType: 'Event' }),
   async (req, res) => {
     try {
@@ -380,6 +519,133 @@ router.delete(
           $set: { status: 'FAILED', description: error.message }
         }).catch(console.error);
       }
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+/**
+ * GET /events/filters/options
+ * Get unique event types and statuses for filters
+ */
+router.get('/filters/options',
+  requirePermission('events', 'view'),
+  async (req, res) => {
+    try {
+      const eventTypes = await Event.distinct('event_type');
+      const statusTypes = await Event.distinct('status');
+      
+      res.json({
+        eventTypes: eventTypes.sort(),
+        statusTypes: statusTypes.sort()
+      });
+    } catch (error) {
+      console.error('GET /events/filters/options error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+/**
+ * POST /events/bulk-import
+ * Bulk import events (similar to schools route)
+ */
+router.post('/bulk-import',
+  requirePermission('events', 'create'),
+  logActivity('BULK_IMPORT_EVENTS', { resourceType: 'Event' }),
+  async (req, res) => {
+    try {
+      const { events } = req.body;
+      
+      if (!Array.isArray(events) || events.length === 0) {
+        return res.status(400).json({ message: 'No events provided for import' });
+      }
+
+      if (events.length > 500) {
+        return res.status(400).json({ message: 'Cannot import more than 500 events at once' });
+      }
+
+      const results = {
+        success: 0,
+        failed: 0,
+        errors: []
+      };
+
+      for (const eventData of events) {
+        try {
+          // Validate required fields
+          if (!eventData.event_title || !eventData.event_description || 
+              !eventData.event_type || !eventData.location || 
+              !eventData.event_start_datetime || !eventData.event_end_datetime) {
+            results.failed++;
+            results.errors.push(`Missing required fields for event: ${eventData.event_title || 'Unknown'}`);
+            continue;
+          }
+
+          const event = new Event(eventData);
+          await event.save();
+          results.success++;
+        } catch (error) {
+          results.failed++;
+          results.errors.push(`Error importing ${eventData.event_title || 'Unknown'}: ${error.message}`);
+        }
+      }
+
+      res.json({
+        message: `Import completed: ${results.success} successful, ${results.failed} failed`,
+        ...results
+      });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+/**
+ * GET /events/export/data
+ * Export events (similar to schools route)
+ */
+router.get('/export/data',
+  requirePermission('events', 'export'),
+  logActivity('EXPORT_EVENTS', { resourceType: 'Event' }),
+  async (req, res) => {
+    try {
+      const { format = 'csv' } = req.query;
+      
+      const events = await Event.find()
+        .sort({ event_start_datetime: 1 })
+        .limit(1000);
+
+      if (format === 'csv') {
+        // Convert to CSV
+        const headers = ['Event Title', 'Event Description', 'Event Type', 'Location', 
+                        'Is Paid', 'Price', 'Start Date', 'End Date', 'Status', 'Created At'];
+        const csvRows = [headers.join(',')];
+        
+        events.forEach(event => {
+          const row = [
+            `"${event.event_title}"`,
+            `"${event.event_description}"`,
+            `"${event.event_type}"`,
+            `"${event.location}"`,
+            event.is_paid,
+            event.price,
+            `"${event.event_start_datetime.toISOString()}"`,
+            `"${event.event_end_datetime.toISOString()}"`,
+            `"${event.status}"`,
+            `"${event.createdAt.toISOString()}"`
+          ];
+          csvRows.push(row.join(','));
+        });
+        
+        const csvData = csvRows.join('\n');
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=events-export.csv');
+        return res.send(csvData);
+      }
+      
+      res.json(events);
+    } catch (error) {
       res.status(500).json({ message: error.message });
     }
   }

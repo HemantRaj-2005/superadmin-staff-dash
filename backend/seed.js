@@ -30,7 +30,7 @@ const Role = mongoose.models.Role || mongoose.model('Role', RoleSchema);
 
 const seedAdminWithRBAC = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/admin-panel');
+    await mongoose.connect(process.env.MONGODB_URI_ADMIN || 'mongodb://localhost:27017/admin-panel');
     console.log('Connected to MongoDB');
 
     // Create default roles
