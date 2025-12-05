@@ -44,10 +44,14 @@ const seedAdminWithRBAC = async () => {
           { resource: 'events', actions: ['view', 'create', 'edit', 'delete', 'export', 'manage'] },
           { resource: 'activity_logs', actions: ['view', 'export', 'manage'] },
           { resource: 'settings', actions: ['view', 'edit', 'manage'] },
-          { resource: 'roles', actions: ['view', 'create', 'edit', 'delete', 'manage']},
-      { resource: 'schools', actions: ['view', 'create', 'edit', 'delete', 'export','manage'] },
+          { resource: 'roles', actions: ['view', 'create', 'edit', 'delete', 'manage'] },
+          { resource: 'schools', actions: ['view', 'create', 'edit', 'delete', 'export', 'manage'] },
+          { resource: 'cities', actions: ['view', 'create', 'edit', 'delete', 'export', 'manage'] },
+          { resource: 'educational-programs', actions: ['view', 'create', 'edit', 'delete', 'export', 'manage'] },
 
-           
+
+
+
         ],
         isDefault: true,
         isActive: true
@@ -104,7 +108,7 @@ const seedAdminWithRBAC = async () => {
     // Create super admin
     const superAdminEmail = 'superadmin@gmail.com';
     let superAdmin = await Admin.findOne({ email: superAdminEmail });
-    
+
     if (!superAdmin) {
       const hashedPassword = await bcrypt.hash('password', 12);
       superAdmin = new Admin({
@@ -167,7 +171,7 @@ const seedAdminWithRBAC = async () => {
     console.log('User Manager: usermanager@gmail.com / password123');
     console.log('Content Moderator: moderator@gmail.com / password123');
     console.log('View Only: viewer@gmail.com / password123');
-    
+
   } catch (error) {
     console.error('❌ Error seeding admin with RBAC:', error);
   } finally {

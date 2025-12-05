@@ -1,8 +1,9 @@
+// routes/educationalPrograms.js
 import express from 'express';
 import EducationalProgram from '../models/EducationalProgram.js';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authenticate } from '../middleware/auth.js';
+import { populateAdminPermissions, requirePermission } from '../middleware/permissions.js';
 import { logActivity, logUpdateWithOldValues } from '../middleware/activityLogger.js';
-import { requirePermission } from '../middleware/permissions.js';
 import ActivityLog from '../models/ActivityLog.js';
 
 const router = express.Router();
@@ -83,6 +84,8 @@ const diffObjects = (oldObj = {}, newObj = {}) => {
   return { oldValues, newValues };
 };
 
+// Apply authentication and permission population to all routes
+router.use(authenticate, populateAdminPermissions);
 
 // Get educational programs grouped by program name
 router.get(
@@ -93,7 +96,7 @@ router.get(
     try {
       const {
         page = 1,
-        limit = 6, // 6 programs per page
+        limit = 6,
         search = '',
         program = ''
       } = req.query;
@@ -155,8 +158,6 @@ router.get(
       const totalCount = result[0]?.totalCount[0]?.count || 0;
       const totalPages = Math.ceil(totalCount / limit);
 
-      
-
       res.json({
         programs,
         totalPages,
@@ -170,6 +171,7 @@ router.get(
     }
   }
 );
+
 // Get all educational programs
 router.get(
   '/',
@@ -218,8 +220,6 @@ router.get(
         currentPage: Number(page),
         total
       });
-
-      console.log(program)
     } catch (error) {
       console.error('Error fetching educational programs:', error);
       res.status(500).json({ message: error.message });
@@ -228,25 +228,28 @@ router.get(
 );
 
 // Get single educational program
-router.get('/:id', authenticate, async (req, res) => {
-  try {
-    const program = await EducationalProgram.findById(req.params.id);
+router.get('/:id',
+  requirePermission('educational-programs', 'view'),
+  logActivity('VIEW_EDUCATIONAL_PROGRAM', { resourceType: 'Educationalprogram' }),
+  async (req, res) => {
+    try {
+      const program = await EducationalProgram.findById(req.params.id);
 
-    if (!program) {
-      return res.status(404).json({ message: 'Educational program not found' });
+      if (!program) {
+        return res.status(404).json({ message: 'Educational program not found' });
+      }
+
+      res.json(program);
+    } catch (error) {
+      console.error('Error fetching educational program:', error);
+      res.status(500).json({ message: error.message });
     }
-
-    res.json(program);
-  } catch (error) {
-    console.error('Error fetching educational program:', error);
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
 // Create new educational program
-router.post(
-  '/',
-  authenticate,
+router.post('/',
+  requirePermission('educational-programs', 'create'),
   logActivity('CREATE_EDUCATIONAL_PROGRAM', { resourceType: 'Educationalprogram' }),
   async (req, res) => {
     try {
@@ -301,9 +304,8 @@ router.post(
 );
 
 // Update educational program
-router.put(
-  '/:id',
-  authenticate,
+router.put('/:id',
+  requirePermission('educational-programs', 'edit'),
   logUpdateWithOldValues('EducationalProgram', getProgramForLogging),
   logActivity('UPDATE_EDUCATIONAL_PROGRAM', { resourceType: 'Educationalprogram' }),
   async (req, res) => {
@@ -371,99 +373,173 @@ router.put(
 );
 
 // Soft delete educational program
-router.delete('/:id', authenticate, logActivity('DELETE_EDUCATIONAL_PROGRAM', { resourceType: 'Educationalprogram' }), async (req, res) => {
-  try {
-    // Fetch old doc to diff afterwards
-    const oldProgramDoc = await getProgramForLogging(req.params.id);
-    if (!oldProgramDoc) {
-      if (req.activityLogId) {
-        await ActivityLog.findByIdAndUpdate(req.activityLogId, { 
-          $set: { status: 'FAILED', description: 'DELETE_EDUCATIONAL_PROGRAM failed: not found' } 
-        }).catch(console.error);
-      }
-      return res.status(404).json({ message: 'Educational program not found' });
-    }
-    const oldProgram = oldProgramDoc.toObject();
-
-    const program = await EducationalProgram.findByIdAndUpdate(
-      req.params.id,
-      {
-        $set: { isDeleted: true, deletedAt: new Date() }
-      },
-      { new: true }
-    );
-
-    if (!program) {
-      if (req.activityLogId) {
-        await ActivityLog.findByIdAndUpdate(req.activityLogId, { 
-          $set: { status: 'FAILED', description: 'DELETE_EDUCATIONAL_PROGRAM failed during update' } 
-        }).catch(console.error);
-      }
-      return res.status(404).json({ message: 'Educational program not found' });
-    }
-
-    // Compute diff for isDeleted change
-    const newProgramObj = program.toObject();
-    const { oldValues, newValues } = diffObjects(oldProgram, newProgramObj);
-    const sanitizedOld = sanitizeBody(oldValues);
-    const sanitizedNew = sanitizeBody(newValues);
-
-    if (req.activityLogId) {
-      await ActivityLog.findByIdAndUpdate(req.activityLogId, {
-        $set: {
-          changes: { oldValues: sanitizedOld, newValues: sanitizedNew },
-          status: 'SUCCESS',
-          description: `DELETE_EDUCATIONAL_PROGRAM (soft) by ${req.admin?.name || 'Unknown Admin'} on program ${req.params.id}`
+router.delete('/:id',
+  requirePermission('educational-programs', 'delete'),
+  logActivity('DELETE_EDUCATIONAL_PROGRAM', { resourceType: 'Educationalprogram' }),
+  async (req, res) => {
+    try {
+      // Fetch old doc to diff afterwards
+      const oldProgramDoc = await getProgramForLogging(req.params.id);
+      if (!oldProgramDoc) {
+        if (req.activityLogId) {
+          await ActivityLog.findByIdAndUpdate(req.activityLogId, { 
+            $set: { status: 'FAILED', description: 'DELETE_EDUCATIONAL_PROGRAM failed: not found' } 
+          }).catch(console.error);
         }
-      }).catch(console.error);
-    }
+        return res.status(404).json({ message: 'Educational program not found' });
+      }
+      const oldProgram = oldProgramDoc.toObject();
 
-    res.json({ message: 'Educational program deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting educational program:', error);
-    if (req.activityLogId) {
-      await ActivityLog.findByIdAndUpdate(req.activityLogId, {
-        $set: { status: 'FAILED', description: error.message }
-      }).catch(console.error);
+      const program = await EducationalProgram.findByIdAndUpdate(
+        req.params.id,
+        {
+          $set: { isDeleted: true, deletedAt: new Date() }
+        },
+        { new: true }
+      );
+
+      if (!program) {
+        if (req.activityLogId) {
+          await ActivityLog.findByIdAndUpdate(req.activityLogId, { 
+            $set: { status: 'FAILED', description: 'DELETE_EDUCATIONAL_PROGRAM failed during update' } 
+          }).catch(console.error);
+        }
+        return res.status(404).json({ message: 'Educational program not found' });
+      }
+
+      // Compute diff for isDeleted change
+      const newProgramObj = program.toObject();
+      const { oldValues, newValues } = diffObjects(oldProgram, newProgramObj);
+      const sanitizedOld = sanitizeBody(oldValues);
+      const sanitizedNew = sanitizeBody(newValues);
+
+      if (req.activityLogId) {
+        await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+          $set: {
+            changes: { oldValues: sanitizedOld, newValues: sanitizedNew },
+            status: 'SUCCESS',
+            description: `DELETE_EDUCATIONAL_PROGRAM (soft) by ${req.admin?.name || 'Unknown Admin'} on program ${req.params.id}`
+          }
+        }).catch(console.error);
+      }
+
+      res.json({ message: 'Educational program deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting educational program:', error);
+      if (req.activityLogId) {
+        await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+          $set: { status: 'FAILED', description: error.message }
+        }).catch(console.error);
+      }
+      res.status(500).json({ message: error.message });
     }
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
 // Hard delete educational program
-router.delete('/:id/hard', authenticate, authorize(['super_admin']), logActivity('HARD_DELETE_EDUCATIONAL_PROGRAM', { resourceType: 'Educationalprogram' }), async (req, res) => {
-  try {
-    const program = await EducationalProgram.findByIdAndDelete(req.params.id);
+router.delete('/:id/hard',
+  requirePermission('educational-programs', 'delete'),
+  requirePermission('educational-programs', 'hard-delete'), // Add specific permission for hard delete if needed
+  logActivity('HARD_DELETE_EDUCATIONAL_PROGRAM', { resourceType: 'Educationalprogram' }),
+  async (req, res) => {
+    try {
+      const program = await EducationalProgram.findByIdAndDelete(req.params.id);
 
-    if (!program) {
+      if (!program) {
+        if (req.activityLogId) {
+          await ActivityLog.findByIdAndUpdate(req.activityLogId, { 
+            $set: { status: 'FAILED', description: 'HARD_DELETE_EDUCATIONAL_PROGRAM failed: not found' } 
+          }).catch(console.error);
+        }
+        return res.status(404).json({ message: 'Educational program not found' });
+      }
+
       if (req.activityLogId) {
-        await ActivityLog.findByIdAndUpdate(req.activityLogId, { 
-          $set: { status: 'FAILED', description: 'HARD_DELETE_EDUCATIONAL_PROGRAM failed: not found' } 
+        await ActivityLog.findByIdAndUpdate(req.activityLogId, {
+          $set: {
+            changes: { oldValues: sanitizeBody(program.toObject()), newValues: null },
+            status: 'SUCCESS',
+            description: `HARD_DELETE_EDUCATIONAL_PROGRAM by ${req.admin?.name || 'Unknown Admin'} on program ${req.params.id}`
+          }
         }).catch(console.error);
       }
-      return res.status(404).json({ message: 'Educational program not found' });
-    }
 
-    if (req.activityLogId) {
-      await ActivityLog.findByIdAndUpdate(req.activityLogId, {
-        $set: {
-          changes: { oldValues: sanitizeBody(program.toObject()), newValues: null },
-          status: 'SUCCESS',
-          description: `HARD_DELETE_EDUCATIONAL_PROGRAM by ${req.admin?.name || 'Unknown Admin'} on program ${req.params.id}`
-        }
-      }).catch(console.error);
+      res.json({ message: 'Educational program permanently deleted' });
+    } catch (error) {
+      console.error('Error hard deleting educational program:', error);
+      if (req.activityLogId) {
+        await ActivityLog.findByIdAndUpdate(req.activityLogId, { 
+          $set: { status: 'FAILED', description: error.message } 
+        }).catch(console.error);
+      }
+      res.status(500).json({ message: error.message });
     }
-
-    res.json({ message: 'Educational program permanently deleted' });
-  } catch (error) {
-    console.error('Error hard deleting educational program:', error);
-    if (req.activityLogId) {
-      await ActivityLog.findByIdAndUpdate(req.activityLogId, { 
-        $set: { status: 'FAILED', description: error.message } 
-      }).catch(console.error);
-    }
-    res.status(500).json({ message: error.message });
   }
-});
+);
+
+// Get program statistics
+router.get('/stats/overview',
+  requirePermission('educational-programs', 'view'),
+  async (req, res) => {
+    try {
+      const totalPrograms = await EducationalProgram.countDocuments({ 
+        isDeleted: { $in: [false, null] } 
+      });
+      
+      const totalSpecializations = await EducationalProgram.aggregate([
+        { $match: { isDeleted: { $in: [false, null] } } },
+        { $group: { _id: '$Program', count: { $sum: 1 } } },
+        { $count: 'total' }
+      ]);
+      
+      // Programs by count
+      const programsByCount = await EducationalProgram.aggregate([
+        { $match: { isDeleted: { $in: [false, null] } } },
+        { $group: { _id: '$Program', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]);
+
+      // Recent additions
+      const recentPrograms = await EducationalProgram.find({ 
+        isDeleted: { $in: [false, null] } 
+      })
+        .sort({ createdAt: -1 })
+        .limit(5);
+
+      res.json({
+        totalPrograms,
+        totalSpecializations: totalSpecializations[0]?.total || 0,
+        programsByCount,
+        recentPrograms
+      });
+    } catch (error) {
+      console.error('Error fetching program statistics:', error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// Get unique programs and specializations for filters
+router.get('/filters/options',
+  requirePermission('educational-programs', 'view'),
+  async (req, res) => {
+    try {
+      const programs = await EducationalProgram.distinct('Program', { 
+        isDeleted: { $in: [false, null] } 
+      });
+      const specializations = await EducationalProgram.distinct('Specialization', { 
+        isDeleted: { $in: [false, null] } 
+      });
+      
+      res.json({
+        programs: programs.sort(),
+        specializations: specializations.sort()
+      });
+    } catch (error) {
+      console.error('Error fetching filter options:', error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
 
 export default router;

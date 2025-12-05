@@ -81,13 +81,13 @@ const Sidebar = () => {
         name: "Education Programs",
         href: "/educationprograms",
         icon: GraduationCap,
-        permission: { resource: "educationProgram", action: "view" },
+        permission: { resource: "educational-programs", action: "view" },
       },
       {
         name: "World City",
         href: "/worldcity",
         icon: MapPin,
-        permission: { resource: "worldCity", action: "view" },
+        permission: { resource: "cities", action: "view" },
       },
       {
         name: "Organisations",

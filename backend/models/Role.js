@@ -5,7 +5,7 @@ const PermissionSchema = new mongoose.Schema({
   resource: {
     type: String,
     required: true,
-    enum: ['users', 'posts', 'events', 'activity_logs', 'settings', 'roles']
+    enum: ['users', 'posts', 'events', 'activity_logs', 'settings', 'roles','schools','educational-programs','cities']
   },
   actions: [{
     type: String,
@@ -54,11 +54,11 @@ RoleSchema.statics.getDefaultRoles = function() {
         { resource: 'activity_logs', actions: ['view', 'export', 'manage'] },
         { resource: 'settings', actions: ['view', 'edit', 'manage'] },
         { resource: 'roles', actions: ['view', 'create', 'edit', 'delete', 'manage'] },
-                { resource: 'schools', actions: ['view', 'create', 'edit', 'delete', 'export','manage'] },
-
-
-      ]
+        { resource: 'schools', actions: ['view', 'create', 'edit', 'delete', 'export','manage'] },
+        { resource: 'cities', actions: ['view', 'create', 'edit', 'delete', 'export','manage'] },
+        { resource: 'educational-programs', actions: ['view', 'create', 'edit', 'delete', 'export','manage'] },]
     },
+
     USER_MANAGER: {
       name: 'User Manager',
       description: 'Manage users and their data',

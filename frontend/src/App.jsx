@@ -186,7 +186,7 @@ function AppContent() {
 
 
          <Route path="/worldcity" element={
-          <PermissionRoute resource="worldCity" action="view">
+          <PermissionRoute resource="cities" action="view">
             <Layout>
               <CityManagement />
             </Layout>
@@ -212,7 +212,7 @@ function AppContent() {
         } />
 
         <Route path="/educationprograms" element={
-          <PermissionRoute resource="educationProgram" action="view">
+          <PermissionRoute resource="educational-programs" action="view">
             <Layout>
               <EducationalProgramManagement />
             </Layout>

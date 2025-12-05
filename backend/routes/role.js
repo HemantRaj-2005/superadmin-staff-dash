@@ -148,6 +148,19 @@ router.get('/permissions/structure', async (req, res) => {
             { id: 'manage', name: 'Manage Users', description: 'Full user management access' }
           ]
         },
+         {
+          id: 'cities',
+          name: 'WorldCity Management',
+          description: 'Manage city and their data',
+          actions: [
+            { id: 'view', name: 'View WorldCity', description: 'Can view city list and details' },
+            { id: 'create', name: 'Create WorldCity', description: 'Can create new city' },
+            { id: 'edit', name: 'Edit WorldCity', description: 'Can edit WorldCity information' },
+            { id: 'delete', name: 'Delete WorldCity', description: 'Can delete WorldCity' },
+            { id: 'export', name: 'Export WorldCity', description: 'Can export WorldCity data' },
+            { id: 'manage', name: 'Manage WorldCity', description: 'Full WorldCity management access' }
+          ]
+        },
         {
           id: 'posts',
           name: 'Post Management',
@@ -201,7 +214,7 @@ router.get('/permissions/structure', async (req, res) => {
 
     //educationalprogeam
     {
-  id: 'educational_programs',
+  id: 'educational-programs',
   name: 'Educational Program Management',
   description: 'Manage educational programs and specializations',
   actions: [
