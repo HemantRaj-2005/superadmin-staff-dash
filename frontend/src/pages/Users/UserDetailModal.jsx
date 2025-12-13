@@ -41,7 +41,7 @@ import {
   Edit
 } from 'lucide-react';
 
-const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
+const UserDetailModal = ({ user, onClose, onUpdate, onDelete, isDeleted }) => {
   const [activeTab, setActiveTab] = useState('basic');
   const [isEditing, setIsEditing] = useState(false);
   const [securitySettings, setSecuritySettings] = useState({
@@ -52,6 +52,8 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
     emailNotifications: user.emailNotifications || false
   });
 
+  // --- Helper Functions ---
+
   const formatDate = (date) => {
     if (!date) return 'Not provided';
     return new Date(date).toLocaleDateString('en-US', {
@@ -59,6 +61,17 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  // Safe accessor for Populated Fields (City, Institute, University)
+  // Handles cases where data is an Object (populated) or just a String (ID/Legacy)
+  const getDisplayValue = (val) => {
+    if (!val) return 'Not specified';
+    if (typeof val === 'object') {
+        // Check for common name fields based on your models
+        return val.name || val.CITY_NAME || val.title || 'Unknown';
+    }
+    return val;
   };
 
   const getStatusBadge = (status) => {
@@ -74,6 +87,8 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
   const getInitials = (user) => {
     return `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || 'U';
   };
+
+  // --- Handlers ---
 
   const handleSecuritySettingChange = (setting, value) => {
     setSecuritySettings(prev => ({
@@ -115,7 +130,8 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm animate-in fade-in-0">
       {/* Slide-over panel */}
       <div className="fixed right-0 top-0 h-full w-full max-w-4xl bg-background shadow-xl border-l animate-in slide-in-from-right-0 duration-300">
-        {/* Header */}
+        
+        {/* Header Section */}
         <div className="sticky top-0 z-10 bg-background border-b">
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-6">
             <div className="flex items-start justify-between">
@@ -142,6 +158,11 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                         Google User
                       </Badge>
                     )}
+                    {isDeleted && (
+                       <Badge variant="destructive" className="text-xs">
+                         Deleted
+                       </Badge>
+                    )}
                     <div className="flex items-center text-muted-foreground text-sm">
                       <Mail className="h-3 w-3 mr-1" />
                       <span>{user.email}</span>
@@ -163,46 +184,46 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
             </div>
           </div>
 
-          {/* Tabs */}
+          {/* Navigation Tabs */}
           <div className="px-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="basic" className="flex items-center gap-2 text-xs">
                   <User className="h-4 w-4" />
-                  <span>Basic</span>
+                  <span className="hidden sm:inline">Basic</span>
                 </TabsTrigger>
                 <TabsTrigger value="personal" className="flex items-center gap-2 text-xs">
                   <User className="h-4 w-4" />
-                  <span>Personal</span>
+                  <span className="hidden sm:inline">Personal</span>
                 </TabsTrigger>
                 <TabsTrigger value="education" className="flex items-center gap-2 text-xs">
                   <GraduationCap className="h-4 w-4" />
-                  <span>Education</span>
+                  <span className="hidden sm:inline">Education</span>
                 </TabsTrigger>
                 <TabsTrigger value="professional" className="flex items-center gap-2 text-xs">
                   <Briefcase className="h-4 w-4" />
-                  <span>Professional</span>
+                  <span className="hidden sm:inline">Job</span>
                 </TabsTrigger>
                 <TabsTrigger value="address" className="flex items-center gap-2 text-xs">
                   <MapPin className="h-4 w-4" />
-                  <span>Address</span>
+                  <span className="hidden sm:inline">Address</span>
                 </TabsTrigger>
                 <TabsTrigger value="security" className="flex items-center gap-2 text-xs">
                   <Shield className="h-4 w-4" />
-                  <span>Security</span>
+                  <span className="hidden sm:inline">Security</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
         </div>
 
-        {/* Scrollable Content */}
+        {/* Scrollable Content Area */}
         <ScrollArea className="h-[calc(100vh-140px)]">
           <div className="p-6 space-y-6">
-            {/* Basic Info Tab */}
+            
+            {/* 1. Basic Info Tab */}
             {activeTab === 'basic' && (
               <div className="space-y-6">
-                {/* Personal Details */}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-base">
@@ -213,17 +234,10 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                   <CardContent className="space-y-3">
                     <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                       <div>
-                        <p className="text-sm text-muted-foreground">First Name</p>
-                        <p className="font-semibold">{user.firstName || 'Not provided'}</p>
+                        <p className="text-sm text-muted-foreground">Full Name</p>
+                        <p className="font-semibold">{user.firstName} {user.lastName}</p>
                       </div>
-                      <Badge variant="outline">First Name</Badge>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Last Name</p>
-                        <p className="font-semibold">{user.lastName || 'Not provided'}</p>
-                      </div>
-                      <Badge variant="outline">Last Name</Badge>
+                      <Badge variant="outline">Name</Badge>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                       <div>
@@ -242,45 +256,11 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                   </CardContent>
                 </Card>
 
-                {/* Profile Info */}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-base">
                       <Calendar className="h-4 w-4" />
-                      Profile Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Role</p>
-                        <p className="font-semibold">{user.role || 'User'}</p>
-                      </div>
-                      <Badge variant="outline">Role</Badge>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Joined Date</p>
-                        <p className="font-semibold">{formatDate(user.createdAt)}</p>
-                      </div>
-                      <Badge variant="secondary">Joined</Badge>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Last Updated</p>
-                        <p className="font-semibold">{formatDate(user.updatedAt)}</p>
-                      </div>
-                      <Badge variant="secondary">Updated</Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Bio & Introduction */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <User className="h-4 w-4" />
-                      Bio & Introduction
+                      Profile Summary
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -305,14 +285,14 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
               </div>
             )}
 
-            {/* Personal Tab */}
+            {/* 2. Personal Tab */}
             {activeTab === 'personal' && (
               <div className="space-y-6">
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-base">
                       <User className="h-4 w-4" />
-                      Personal Information
+                      Demographics
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -329,35 +309,6 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                         <p className="font-semibold">{user.gender || 'Not provided'}</p>
                       </div>
                       <Badge variant="outline">Gender</Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Mail className="h-4 w-4" />
-                      Preferences
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Email Notifications</p>
-                        <p className="font-semibold">{user.emailNotifications ? 'Enabled' : 'Disabled'}</p>
-                      </div>
-                      <Badge variant={user.emailNotifications ? "default" : "secondary"}>
-                        {user.emailNotifications ? 'On' : 'Off'}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Email Privacy</p>
-                        <p className="font-semibold">{user.isEmailPrivate ? 'Private' : 'Public'}</p>
-                      </div>
-                      <Badge variant={user.isEmailPrivate ? "secondary" : "outline"}>
-                        {user.isEmailPrivate ? 'Private' : 'Public'}
-                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
@@ -396,15 +347,18 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
               </div>
             )}
 
-            {/* Education Tab */}
+            {/* 3. Education Tab */}
             {activeTab === 'education' && (
               <div className="space-y-6">
                 {user.education?.length > 0 ? user.education.map((edu, index) => (
-                  <Card key={edu._id}>
+                  <Card key={edu._id || index}>
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
                         <div>
-                          <CardTitle className="text-base">{edu.institute}</CardTitle>
+                          {/* Use getDisplayValue to safely show Object Name or String */}
+                          <CardTitle className="text-base">
+                            {getDisplayValue(edu.institute) || edu.otherInstitute || 'Unknown Institute'}
+                          </CardTitle>
                           <CardDescription>{edu.program}</CardDescription>
                         </div>
                         <Badge variant="outline">{edu.qualification}</Badge>
@@ -414,22 +368,24 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
                           <span className="text-sm text-muted-foreground">University</span>
-                          <span className="font-medium">{edu.university || 'Not specified'}</span>
-                        </div>
-                        <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                          <span className="text-sm text-muted-foreground">Specialization</span>
-                          <span className="font-medium">{edu.specialization || 'Not specified'}</span>
-                        </div>
-                        <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                          <span className="text-sm text-muted-foreground">Duration</span>
-                          <span className="font-medium">
-                            {edu.startYear ? new Date(edu.startYear).getFullYear() : 'N/A'} - {' '}
-                            {edu.completionYear ? new Date(edu.completionYear).getFullYear() : 'Present'}
+                          <span className="font-medium text-right">
+                             {getDisplayValue(edu.university) || edu.otherUniversity || 'Not specified'}
                           </span>
                         </div>
                         <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                          <span className="text-sm text-muted-foreground">Performance</span>
-                          <span className="font-medium">{edu.percentageOrCGPA || 'Not specified'}</span>
+                          <span className="text-sm text-muted-foreground">Specialization</span>
+                          <span className="font-medium text-right">{edu.specialization || 'Not specified'}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                          <span className="text-sm text-muted-foreground">City</span>
+                          <span className="font-medium text-right">{getDisplayValue(edu.city)}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                          <span className="text-sm text-muted-foreground">Duration</span>
+                          <span className="font-medium text-right">
+                            {edu.startYear ? new Date(edu.startYear).getFullYear() : 'N/A'} - {' '}
+                            {edu.completionYear ? new Date(edu.completionYear).getFullYear() : 'Present'}
+                          </span>
                         </div>
                       </div>
                     </CardContent>
@@ -445,11 +401,11 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
               </div>
             )}
 
-            {/* Professional Tab */}
+            {/* 4. Professional Tab */}
             {activeTab === 'professional' && (
               <div className="space-y-6">
                 {user.professional?.length > 0 ? user.professional.map((prof, index) => (
-                  <Card key={prof._id}>
+                  <Card key={prof._id || index}>
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
                         <div>
@@ -473,16 +429,11 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                         <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
                           <span className="text-sm text-muted-foreground">Duration</span>
                           <span className="font-medium">
-                            {formatDate(prof.startYear)} - {' '}
-                            {prof.currentEmployment ? 'Present' : formatDate(prof.completionYear)}
+                            {formatDate(prof.startYear)} - {prof.currentEmployment ? 'Present' : formatDate(prof.completionYear)}
                           </span>
                         </div>
                         <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                          <span className="text-sm text-muted-foreground">Employment Type</span>
-                          <span className="font-medium">{prof.employmentType}</span>
-                        </div>
-                        <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                          <span className="text-sm text-muted-foreground">Salary Band</span>
+                          <span className="text-sm text-muted-foreground">Salary</span>
                           <span className="font-medium">
                             {prof.salaryBand ? `₹${prof.salaryBand.toLocaleString()}` : 'Not disclosed'}
                           </span>
@@ -501,7 +452,7 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
               </div>
             )}
 
-            {/* Address Tab */}
+            {/* 5. Address Tab */}
             {activeTab === 'address' && (
               <div className="space-y-6">
                 {user.address ? (
@@ -518,35 +469,31 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                           <p className="text-sm text-muted-foreground">Street</p>
                           <p className="font-semibold">{user.address.street}</p>
                         </div>
-                        <Badge variant="outline">Street</Badge>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                         <div>
                           <p className="text-sm text-muted-foreground">City</p>
-                          <p className="font-semibold">{user.address.city}</p>
+                          {/* Use getDisplayValue to handle City Object or ID */}
+                          <p className="font-semibold">{getDisplayValue(user.address.city)}</p>
                         </div>
-                        <Badge variant="outline">City</Badge>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                         <div>
                           <p className="text-sm text-muted-foreground">State</p>
                           <p className="font-semibold">{user.address.state}</p>
                         </div>
-                        <Badge variant="outline">State</Badge>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                         <div>
                           <p className="text-sm text-muted-foreground">Country</p>
                           <p className="font-semibold">{user.address.country}</p>
                         </div>
-                        <Badge variant="outline">Country</Badge>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                         <div>
                           <p className="text-sm text-muted-foreground">Postal Code</p>
                           <p className="font-semibold">{user.address.postalCode}</p>
                         </div>
-                        <Badge variant="outline">Postal Code</Badge>
                       </div>
                     </CardContent>
                   </Card>
@@ -561,7 +508,7 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
               </div>
             )}
 
-            {/* Security Tab */}
+            {/* 6. Security Tab */}
             {activeTab === 'security' && (
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
@@ -607,7 +554,7 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                   <CardContent className="space-y-4">
                     <div className="flex justify-between items-center p-3 border rounded-lg">
                       <div>
-                        <Label className="text-sm font-medium cursor-pointer">Email Verification</Label>
+                        <Label className="text-sm font-medium">Email Verification</Label>
                         <p className="text-xs text-muted-foreground">Mark email as verified</p>
                       </div>
                       {isEditing ? (
@@ -624,7 +571,7 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                     
                     <div className="flex justify-between items-center p-3 border rounded-lg">
                       <div>
-                        <Label className="text-sm font-medium cursor-pointer">Phone Verification</Label>
+                        <Label className="text-sm font-medium">Phone Verification</Label>
                         <p className="text-xs text-muted-foreground">Mark phone as verified</p>
                       </div>
                       {isEditing ? (
@@ -651,7 +598,7 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                   <CardContent className="space-y-4">
                     <div className="flex justify-between items-center p-3 border rounded-lg">
                       <div>
-                        <Label className="text-sm font-medium cursor-pointer">Email Privacy</Label>
+                        <Label className="text-sm font-medium">Email Privacy</Label>
                         <p className="text-xs text-muted-foreground">Make email private</p>
                       </div>
                       {isEditing ? (
@@ -670,7 +617,7 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                     
                     <div className="flex justify-between items-center p-3 border rounded-lg">
                       <div>
-                        <Label className="text-sm font-medium cursor-pointer">Mobile Privacy</Label>
+                        <Label className="text-sm font-medium">Mobile Privacy</Label>
                         <p className="text-xs text-muted-foreground">Make mobile number private</p>
                       </div>
                       {isEditing ? (
@@ -689,7 +636,7 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
 
                     <div className="flex justify-between items-center p-3 border rounded-lg">
                       <div>
-                        <Label className="text-sm font-medium cursor-pointer">Email Notifications</Label>
+                        <Label className="text-sm font-medium">Email Notifications</Label>
                         <p className="text-xs text-muted-foreground">Enable email notifications</p>
                       </div>
                       {isEditing ? (
@@ -708,9 +655,9 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                   </CardContent>
                 </Card>
 
-                {/* Delete User Section */}
                 <Separator />
                 
+                {/* Danger Zone */}
                 <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/20">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm text-red-900 dark:text-red-300 flex items-center">
@@ -718,7 +665,9 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                       Danger Zone
                     </CardTitle>
                     <CardDescription className="text-red-700 dark:text-red-400">
-                      Once you delete a user, there is no going back. Please be certain.
+                      {isDeleted 
+                        ? "This action is irreversible. The data will be wiped permanently." 
+                        : "Move this user to the trash. They can be restored within 90 days."}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -726,16 +675,17 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                       <AlertDialogTrigger asChild>
                         <Button variant="destructive" className="dark:bg-red-600 dark:hover:bg-red-700">
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete User Account
+                          {isDeleted ? "Permanently Delete Account" : "Move to Trash"}
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the user account
-                            for <strong>{user.firstName} {user.lastName}</strong> and remove all
-                            their data from our servers.
+                            {isDeleted 
+                              ? `This action cannot be undone. This will permanently delete the user account for ${user.firstName} ${user.lastName} and remove all their data from our servers.`
+                              : `This will move ${user.firstName} ${user.lastName} to the trash. They will be scheduled for permanent deletion in 90 days unless restored.`
+                            }
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -744,7 +694,7 @@ const UserDetailModal = ({ user, onClose, onUpdate, onDelete }) => {
                             onClick={handleDeleteUser}
                             className="bg-red-600 hover:bg-red-700"
                           >
-                            Delete User
+                            {isDeleted ? "Delete Forever" : "Move to Trash"}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>

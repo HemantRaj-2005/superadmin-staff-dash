@@ -93,7 +93,7 @@ const diffObjects = (oldObj = {}, newObj = {}) => {
    GET Routes (With Advanced Search)
    ------------------------- */
 
-// Get posts - SEARCH LOGGING REMOVED
+// Get posts 
 router.get(
   '/',
   requirePermission('posts', 'view'),

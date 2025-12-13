@@ -310,10 +310,10 @@ const BulkImportModal = ({ onImport, onClose }) => {
                     <Textarea
                       value={csvData}
                       onChange={(e) => setCsvData(e.target.value)}
-                      placeholder={`school_name,district,state,udise_code
-"Delhi Public School","North West Delhi","Delhi",11000123456
-"Kendriya Vidyalaya","South Delhi","Delhi",11000765432
-"St. Mary's Convent","Mumbai City","Maharashtra",27000123456`}
+//                       placeholder={`school_name,district,state,udise_code
+// "Delhi Public School","North West Delhi","Delhi",11000123456
+// "Kendriya Vidyalaya","South Delhi","Delhi",11000765432
+// "St. Mary's Convent","Mumbai City","Maharashtra",27000123456`}
                       className="min-h-[300px] font-mono text-sm resize-none overflow-y-auto"
                       disabled={loading}
                       style={{ 

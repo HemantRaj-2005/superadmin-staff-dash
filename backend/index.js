@@ -204,6 +204,7 @@ app.use('/api/admin/institutes', institute);
 
 
 
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

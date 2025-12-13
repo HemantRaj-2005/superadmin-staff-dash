@@ -1,462 +1,227 @@
-// src/pages/Home/Dashboard.jsx
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
-import { useDashboardStats } from "../../hooks/useDashboardStats";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
-import {
-  Users,
-  FileText,
-  Calendar,
-  UserPlus,
-  Shield,
-  AlertCircle,
-  CheckCircle2,
-  ArrowRight,
-  TrendingUp,
-  Mail,
-  Smartphone,
-} from "lucide-react";
+// components/Dashboard.js
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import Avatar from '../Profile/Avatar';
+import api from '../../services/api';
+import { 
+  Users, 
+  UserPlus, 
+  ShieldCheck, 
+  CalendarDays, 
+  FileText, 
+  Search,
+  Activity
+} from 'lucide-react';
 
 const Dashboard = () => {
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    deletedUsers: 0,
+    newUsersToday: 0,
+    verifiedUsers: 0,
+    googleUsers: 0,
+    totalPosts: 0,
+    totalEvents: 0,
+  });
+  const [recentUsers, setRecentUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { admin } = useAuth();
-  const navigate = useNavigate();
-  const { data: stats, isLoading, error, isRefetching } = useDashboardStats();
 
-  // Safe role display function
-  const getRoleName = () => {
-    if (!admin?.role) return "Unknown";
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
-    if (typeof admin.role === "object") {
-      return admin.role.name || "Unknown";
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      const [statsResponse, usersResponse] = await Promise.all([
+        api.get('/stats/dashboard'),
+        api.get('/users?limit=5&page=1')
+      ]);
+
+      setStats(statsResponse.data);
+      setRecentUsers(usersResponse.data.users);
+      
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
     }
-
-    return admin.role === "super_admin"
-      ? "Super Admin"
-      : admin.role === "admin"
-      ? "Admin"
-      : admin.role;
   };
-
-  const getInitials = (user) => {
-    return (
-      `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() ||
-      "U"
-    );
-  };
-
-  const loading = isLoading || isRefetching;
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-64 mt-2" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <Skeleton className="h-12 w-12 rounded-lg" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-6 w-12" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-center space-x-4">
-                    <Skeleton className="h-10 w-10 rounded-full" />
-                    <div className="space-y-2 flex-1">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-3 w-2/3" />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="min-h-screen flex justify-center items-center bg-gray-50 dark:bg-slate-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back, {admin?.name}. Here's what's happening today.
-          </p>
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-300 p-6 lg:p-10">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Overview</h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">
+              Welcome back, {admin?.name}.
+            </p>
+          </div>
         </div>
-        <Badge variant="secondary" className="text-sm">
-          {getRoleName()}
-        </Badge>
-      </div>
 
-      {/* Error Alert */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {error?.message || "Failed to load dashboard data"}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fadeIn">
-        <Card className="card-hover border-0 shadow-md hover:shadow-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/10">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground mb-2">
-                  Total Users
-                </p>
-                <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent">
-                  {stats?.totalUsers || 0}
-                </p>
-                {stats?.newUsersToday > 0 && (
-                  <div className="flex items-center gap-1 mt-3 text-xs font-medium text-green-600 dark:text-green-400">
-                    <TrendingUp className="h-3 w-3" />
-                    <span>+{stats.newUsersToday} today</span>
-                  </div>
-                )}
-              </div>
-              <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
-                <Users className="h-6 w-6 text-white" />
-              </div>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          {/* UPDATED: Total Users Card with Breakdown */}
+          <StatCard 
+            title="Total Users" 
+            value={stats.totalUsers} 
+            icon={<Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />}
+            bgColor="bg-blue-50 dark:bg-blue-900/20"
+          >
+            <div className="flex items-center gap-3 text-xs font-medium">
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-md">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                {stats.activeUsers} Active
+              </span>
+              <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 px-2 py-1 rounded-md">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+                {stats.deletedUsers} Deleted
+              </span>
             </div>
-          </CardContent>
-        </Card>
+          </StatCard>
 
-        <Card className="card-hover border-0 shadow-md hover:shadow-xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground mb-2">
-                  Total Posts
-                </p>
-                <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-800 dark:from-green-400 dark:to-green-600 bg-clip-text text-transparent">
-                  {stats?.totalPosts || 0}
-                </p>
-              </div>
-              <div className="p-4 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg">
-                <FileText className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-hover border-0 shadow-md hover:shadow-xl bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/20 dark:to-purple-900/10">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground mb-2">
-                  Total Events
-                </p>
-                <p className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 dark:from-purple-400 dark:to-purple-600 bg-clip-text text-transparent">
-                  {stats?.totalEvents || 0}
-                </p>
-              </div>
-              <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
-                <Calendar className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-hover border-0 shadow-md hover:shadow-xl bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/20 dark:to-orange-900/10">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground mb-2">
-                  Verified Users
-                </p>
-                <p className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-orange-800 dark:from-orange-400 dark:to-orange-600 bg-clip-text text-transparent">
-                  {stats?.verifiedUsers || 0}
-                </p>
-                {stats?.totalUsers > 0 && (
-                  <div className="mt-3">
-                    <Progress 
-                      value={(stats.verifiedUsers / stats.totalUsers) * 100} 
-                      className="h-2"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1.5 font-medium">
-                      {Math.round((stats.verifiedUsers / stats.totalUsers) * 100)}% verified
-                    </p>
-                  </div>
-                )}
-              </div>
-              <div className="p-4 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg">
-                <CheckCircle2 className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Additional Stats */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fadeIn">
-          <Card className="card-hover border-0 shadow-sm hover:shadow-md">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Email Verified
-                  </p>
-                  <p className="text-2xl font-bold mt-1">
-                    {stats.verifiedUsers || 0}
-                  </p>
-                </div>
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="card-hover border-0 shadow-sm hover:shadow-md">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Google Users
-                  </p>
-                  <p className="text-2xl font-bold mt-1">
-                    {stats.googleUsers || 0}
-                  </p>
-                </div>
-                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                  <Smartphone className="h-5 w-5 text-red-600 dark:text-red-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="card-hover border-0 shadow-sm hover:shadow-md">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    New Today
-                  </p>
-                  <p className="text-2xl font-bold mt-1">
-                    {stats.newUsersToday || 0}
-                  </p>
-                </div>
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                  <UserPlus className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard 
+            title="New Users Today" 
+            value={stats.newUsersToday} 
+            icon={<UserPlus className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />}
+            bgColor="bg-emerald-50 dark:bg-emerald-900/20"
+          />
+          <StatCard 
+            title="Verified Phone and Email Users" 
+            value={stats.verifiedUsers} 
+            icon={<ShieldCheck className="w-6 h-6 text-violet-600 dark:text-violet-400" />}
+            bgColor="bg-violet-50 dark:bg-violet-900/20"
+          />
+          <StatCard 
+            title="Google Users" 
+            value={stats.googleUsers} 
+            icon={<Search className="w-6 h-6 text-rose-600 dark:text-rose-400" />}
+            bgColor="bg-rose-50 dark:bg-rose-900/20"
+          />
+          <StatCard 
+            title="Total Events" 
+            value={stats.totalEvents} 
+            icon={<CalendarDays className="w-6 h-6 text-amber-600 dark:text-amber-400" />}
+            bgColor="bg-amber-50 dark:bg-amber-900/20"
+          />
+          <StatCard 
+            title="Total Posts" 
+            value={stats.totalPosts} 
+            icon={<FileText className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />}
+            bgColor="bg-cyan-50 dark:bg-cyan-900/20"
+          />
         </div>
-      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn">
-        {/* Recent Users */}
-        <Card className="lg:col-span-2 border-0 shadow-md">
-          <CardHeader className="border-b">
-            <CardTitle className="flex items-center text-xl">
-              <div className="p-2 bg-primary/10 rounded-lg mr-3">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              Recent Users
-            </CardTitle>
-            <CardDescription className="mt-2">
-              Latest registered users on the platform
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {stats?.recentUsers && stats.recentUsers.length > 0 ? (
-              <div className="space-y-4">
-                {stats.recentUsers.map((user) => (
-                  <div
-                    key={user._id}
-                    className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 transition-colors group"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Recent Users List */}
+          <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+              <h3 className="font-semibold text-slate-900 dark:text-white">Recent Registrations</h3>
+            </div>
+            <div className="divide-y divide-slate-100 dark:divide-slate-700">
+              {recentUsers.length > 0 ? (
+                recentUsers.map((user) => (
+                  <div key={user._id} className="group px-6 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 rounded-full ring-2 ring-white dark:ring-slate-800 shadow-sm">
+                        <Avatar
                           src={user.profileImage}
                           alt={`${user.firstName} ${user.lastName}`}
+                          size="md"
                         />
-                        <AvatarFallback>{getInitials(user)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 transition-colors">
                           {user.firstName} {user.lastName}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          {user.email}
-                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </p>
-                      <div className="flex items-center space-x-2 mt-1">
-                        {user.isEmailVerified && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-green-50 text-green-700 border-green-200"
-                          >
-                            Verified
-                          </Badge>
-                        )}
-                        {user.isGoogleUser && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-red-50 text-red-700 border-red-200"
-                          >
-                            Google
-                          </Badge>
-                        )}
-                      </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        {new Date(user.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </span>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                <p className="text-muted-foreground">No users found</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {error ? "Unable to load users" : "No users registered yet"}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                ))
+              ) : (
+                <div className="p-8 text-center text-slate-500">No recent users found.</div>
+              )}
+            </div>
+          </div>
 
-        {/* Quick Stats & Actions */}
-        <div className="space-y-6">
-          {/* Admin Info */}
-          <Card className="border-0 shadow-md">
-            <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-transparent">
-              <CardTitle className="flex items-center text-base">
-                <div className="p-2 bg-primary/10 rounded-lg mr-2">
-                  <Shield className="h-4 w-4 text-primary" />
+          {/* Admin Profile Card */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 h-fit">
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-indigo-500" />
+              Admin Profile
+            </h3>
+            
+            <div className="flex flex-col items-center mb-6">
+              <div className="h-20 w-20 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 p-1 mb-3">
+                <div className="h-full w-full rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-2xl font-bold text-slate-700 dark:text-slate-200">
+                  {admin?.name?.charAt(0) || 'A'}
                 </div>
-                Admin Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <label className="text-xs text-muted-foreground">Name</label>
-                <p className="text-sm font-medium">{admin?.name || "N/A"}</p>
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Email</label>
-                <p className="text-sm font-medium">{admin?.email || "N/A"}</p>
+              <h4 className="text-lg font-bold text-slate-900 dark:text-white">{admin?.name}</h4>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{admin?.email}</p>
+              <div className="mt-3 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-xs font-bold uppercase tracking-wide border border-indigo-100 dark:border-indigo-800">
+                {admin?.role?.name || 'Admin'}
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Role</label>
-                <Badge variant="secondary" className="mt-1">
-                  {getRoleName()}
-                </Badge>
-              </div>
-              <div className="flex items-center space-x-2 pt-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span className="text-sm text-green-600">Active</span>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Quick Actions */}
-          {/* <Card className="border-0 shadow-md">
-            <CardHeader className="border-b">
-              <CardTitle className="text-base">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button
-                variant="outline"
-                className="w-full justify-between hover:bg-accent transition-colors"
-                onClick={() => navigate("/users")}
-              >
-                <div className="flex items-center space-x-2">
-                  <Users className="h-4 w-4" />
-                  <span>Manage Users</span>
-                </div>
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                <span className="text-sm text-slate-600 dark:text-slate-300">Account Status</span>
+                <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                  Active
+                </span>
+              </div>
+            </div>
+          </div>
 
-              <Button
-                variant="outline"
-                className="w-full justify-between hover:bg-accent transition-colors"
-                onClick={() => navigate("/posts")}
-              >
-                <div className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4" />
-                  <span>Manage Posts</span>
-                </div>
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full justify-between hover:bg-accent transition-colors"
-                onClick={() => navigate("/events")}
-              >
-                <div className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>Manage Events</span>
-                </div>
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card> */}
         </div>
       </div>
     </div>
   );
 };
+
+// UPDATED: Reusable Modern Card Component accepts 'children'
+const StatCard = ({ title, value, icon, bgColor, children }) => (
+  <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between">
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{title}</p>
+        <h3 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{value}</h3>
+      </div>
+      <div className={`p-3 rounded-xl ${bgColor}`}>
+        {icon}
+      </div>
+    </div>
+    
+    {/* Render Children (stats breakdown) if present */}
+    {children && (
+      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
+        {children}
+      </div>
+    )}
+  </div>
+);
 
 export default Dashboard;

@@ -439,11 +439,11 @@ const EventManagement = () => {
               </div>
             </PopoverContent>
           </Popover>
-
+{/* 
           <Button className="flex items-center space-x-2">
             <Plus className="h-4 w-4" />
             <span>New Event</span>
-          </Button>
+          </Button> */}
         </div>
       </div>
 

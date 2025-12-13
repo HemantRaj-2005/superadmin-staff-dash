@@ -465,6 +465,8 @@ import User from '../models/User.js';
 import Admin from '../models/Admin.js';
 import ActivityLog from '../models/ActivityLog.js';
 import UserCleanupService from '../cleanUpService/userCleanUp.js';
+import WorldCity from '../models/WorldCity.js'; 
+import Organisation from '../models/Organisation.js';
 
 const router = express.Router();
 
@@ -486,6 +488,78 @@ router.use(authenticate, populateAdminPermissions);
  * List users with pagination & search - with soft delete support
  * Permissions: users:view
  */
+// router.get(
+//   '/users',
+//   requirePermission('users', 'view'),
+//   async (req, res) => {
+//     try {
+//       const page = parseInt(req.query.page, 10) || 1;
+//       const limit = parseInt(req.query.limit, 10) || 10;
+//       const search = req.query.search || '';
+//       const includeDeleted = req.query.includeDeleted === 'true';
+//       const all = req.query.all === 'true';
+
+//       let query = {};
+      
+//       // Build search query
+//       if (search) {
+//         query.$or = [
+//           { firstName: { $regex: search, $options: 'i' } },
+//           { lastName: { $regex: search, $options: 'i' } },
+//           { email: { $regex: search, $options: 'i' } }
+//         ];
+//       }
+
+//       // Exclude soft-deleted users unless specifically requested
+//       if (!includeDeleted) {
+//         query.isDeleted = false;
+//       }
+
+//       let usersQuery;
+//       if (all) {
+//         // Get all users without pagination (for export)
+//         usersQuery = User.find(query)
+//           .select('firstName lastName email profileImage role createdAt isDeleted deletedAt scheduledForPermanentDeletion')
+//           .sort({ createdAt: -1 });
+//       } else {
+//         // Paginated query
+//         usersQuery = User.find(query)
+//           .select('firstName lastName email profileImage role createdAt isDeleted deletedAt scheduledForPermanentDeletion')
+//           .limit(limit)
+//           .skip((page - 1) * limit)
+//           .sort({ createdAt: -1 });
+//       }
+
+//       const users = await usersQuery;
+//       const total = await User.countDocuments(query);
+
+//       const responseData = {
+//         users: users.map(user => ({
+//           ...user.toObject(),
+//           daysUntilPermanentDeletion: user.daysUntilPermanentDeletion
+//         })),
+//         totalPages: all ? 1 : Math.ceil(total / limit),
+//         currentPage: all ? 1 : page,
+//         total
+//       };
+
+//       // For backward compatibility with frontend
+//       if (all) {
+//         return res.json(responseData.users);
+//       }
+
+//       res.json(responseData);
+//     } catch (error) {
+//       console.error('Error fetching users:', error);
+//       res.status(500).json({ 
+//         message: 'Failed to fetch users: ' + (error.message || 'Internal server error')
+//       });
+//     }
+//   }
+// );
+
+
+
 router.get(
   '/users',
   requirePermission('users', 'view'),
@@ -497,39 +571,151 @@ router.get(
       const includeDeleted = req.query.includeDeleted === 'true';
       const all = req.query.all === 'true';
 
-      let query = {};
-      
-      // Build search query
+      // 1. Destructure Filters
+      const { 
+        institute, 
+        university, 
+        qualification, 
+        specialization, 
+        batch, 
+        city 
+      } = req.query;
+
+      const andConditions = [];
+
+      // 2. Global Search (Name/Email)
       if (search) {
-        query.$or = [
-          { firstName: { $regex: search, $options: 'i' } },
-          { lastName: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } }
-        ];
+        andConditions.push({
+          $or: [
+            { firstName: { $regex: search, $options: 'i' } },
+            { lastName: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } }
+          ]
+        });
       }
 
-      // Exclude soft-deleted users unless specifically requested
+      // 3. Soft Delete Check
       if (!includeDeleted) {
-        query.isDeleted = false;
+        andConditions.push({ isDeleted: false });
       }
 
-      let usersQuery;
-      if (all) {
-        // Get all users without pagination (for export)
-        usersQuery = User.find(query)
-          .select('firstName lastName email profileImage role createdAt isDeleted deletedAt scheduledForPermanentDeletion')
-          .sort({ createdAt: -1 });
-      } else {
-        // Paginated query
-        usersQuery = User.find(query)
-          .select('firstName lastName email profileImage role createdAt isDeleted deletedAt scheduledForPermanentDeletion')
-          .limit(limit)
-          .skip((page - 1) * limit)
-          .sort({ createdAt: -1 });
+      // ---------------------------------------------------------
+      // 4. PROCESS SPECIFIC FILTERS
+      // ---------------------------------------------------------
+
+      // A. CITY FILTER (Query WorldCity Model first)
+      if (city) {
+        try {
+            // Find all cities that match the text input (e.g., "Lucknow")
+            // Note: Using CITY_NAME based on your model
+            const matchedCities = await WorldCity.find({ 
+                CITY_NAME: { $regex: city, $options: 'i' } 
+            }).select('_id');
+
+            const cityIds = matchedCities.map(c => c._id);
+            
+            if (cityIds.length > 0) {
+                // Find users who have these City IDs in address OR education
+                andConditions.push({
+                    $or: [
+                        { 'address.city': { $in: cityIds } },
+                        // { 'education.city': { $in: cityIds } }
+                    ]
+                });
+            } else {
+                // If no city found in DB with that name, force return 0 results
+                andConditions.push({ 'address.city': null }); 
+            }
+        } catch (err) {
+            console.error("City Lookup Error", err);
+        }
+      }
+
+      // B. INSTITUTE FILTER (Query Organisation Model)
+      if (institute) {
+        try {
+            const matchedInsts = await Organisation.find({ 
+                name: { $regex: institute, $options: 'i' } 
+            }).select('_id');
+            
+            const instIds = matchedInsts.map(i => i._id);
+
+            andConditions.push({
+                $or: [
+                    { 'education.institute': { $in: instIds } },
+                    { 'education.otherInstitute': { $regex: institute, $options: 'i' } }
+                ]
+            });
+        } catch (err) { console.error("Institute Lookup Error", err); }
+      }
+
+      // C. UNIVERSITY FILTER (Query Organisation Model)
+      if (university) {
+        try {
+            const matchedUnis = await Organisation.find({ 
+                name: { $regex: university, $options: 'i' } 
+            }).select('_id');
+            
+            const uniIds = matchedUnis.map(u => u._id);
+
+            andConditions.push({
+                $or: [
+                    { 'education.university': { $in: uniIds } },
+                    { 'education.otherUniversity': { $regex: university, $options: 'i' } }
+                ]
+            });
+        } catch (err) { console.error("University Lookup Error", err); }
+      }
+
+      // D. QUALIFICATION (String Match on User)
+      if (qualification) {
+        andConditions.push({ 'education.qualification': { $regex: qualification, $options: 'i' } });
+      }
+
+      // E. SPECIALIZATION (String Match on User)
+      if (specialization) {
+        andConditions.push({ 'education.specialization': { $regex: specialization, $options: 'i' } });
+      }
+
+      // F. BATCH (Date Range Logic)
+      if (batch) {
+        const year = parseInt(batch);
+        if (!isNaN(year)) {
+          const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
+          const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+          andConditions.push({
+            'education.completionYear': { $gte: startDate, $lte: endDate }
+          });
+        }
+      }
+
+      // ---------------------------------------------------------
+      // 5. EXECUTE QUERY & POPULATE
+      // ---------------------------------------------------------
+      
+      const finalQuery = andConditions.length > 0 ? { $and: andConditions } : {};
+      
+      // Define Population to replace IDs with Names in the result
+      const populateOptions = [
+        { path: 'address.city', select: 'CITY_NAME STATE' }, 
+        { path: 'education.city', select: 'CITY_NAME STATE' },
+        { path: 'education.institute', select: 'name' },
+        { path: 'education.university', select: 'name' }
+      ];
+
+      const selectFields = 'firstName lastName email profileImage role createdAt isDeleted deletedAt education address professional';
+
+      let usersQuery = User.find(finalQuery)
+        .select(selectFields)
+        .populate(populateOptions)
+        .sort({ createdAt: -1 });
+
+      if (!all) {
+        usersQuery = usersQuery.limit(limit).skip((page - 1) * limit);
       }
 
       const users = await usersQuery;
-      const total = await User.countDocuments(query);
+      const total = await User.countDocuments(finalQuery);
 
       const responseData = {
         users: users.map(user => ({
@@ -541,12 +727,9 @@ router.get(
         total
       };
 
-      // For backward compatibility with frontend
-      if (all) {
-        return res.json(responseData.users);
-      }
-
+      if (all) return res.json(responseData.users); // Export logic
       res.json(responseData);
+
     } catch (error) {
       console.error('Error fetching users:', error);
       res.status(500).json({ 
@@ -555,9 +738,6 @@ router.get(
     }
   }
 );
-
-
-
 
 // Add this route to your admin.js file
 /**
@@ -679,16 +859,24 @@ router.get(
  * GET /users/:id
  * Get single user details (including soft-deleted users)
  * Permissions: users:view
- */
-router.get(
+ */router.get(
   '/users/:id',
   requirePermission('users', 'view'),
   logActivity('VIEW_USER', { resourceType: 'User' }),
   async (req, res) => {
     try {
-      // Use findById which works for both active and deleted users
+      // Define population options to replace IDs with actual data
+      const populateOptions = [
+        { path: 'address.city', select: 'CITY_NAME STATE' },
+        { path: 'education.city', select: 'CITY_NAME STATE' },
+        { path: 'education.institute', select: 'name' },
+        { path: 'education.university', select: 'name' }
+      ];
+
+      // Use findById and chain populate
       const user = await User.findById(req.params.id)
-        .select('-password -refreshTokens');
+        .select('-password -refreshTokens')
+        .populate(populateOptions);
       
       if (!user) {
         return res.status(404).json({ message: 'User not found' });

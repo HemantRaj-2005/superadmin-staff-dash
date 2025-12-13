@@ -1,4 +1,3 @@
-// src/pages/Users/UserManagement.jsx
 import React, { useState, useEffect } from "react";
 import {
   Search,
@@ -7,6 +6,8 @@ import {
   Trash2,
   ChevronUp,
   FileUp,
+  Filter,
+  X,
 } from "lucide-react";
 import UserTable from "./UserTable";
 import UserDetailModal from "./UserDetailModal";
@@ -40,16 +41,27 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const UserManagement = () => {
-  // State
+  // --- State Management ---
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeletedUsersModalOpen, setIsDeletedUsersModalOpen] = useState(false);
   
-  // Search States
+  // Search & Filter States
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false); // Toggles the filter panel
   
+  const [filters, setFilters] = useState({
+    institute: "",
+    university: "",
+    qualification: "",
+    specialization: "",
+    batch: "",
+    city: ""
+  });
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("active"); // 'active' or 'deleted'
@@ -64,34 +76,67 @@ const UserManagement = () => {
   
   const [isExporting, setIsExporting] = useState(false);
 
-  // 1. Debounce Effect: Updates debouncedSearchTerm 500ms after user stops typing
+  // --- Effects ---
+
+  // 1. Debounce Search & Filters (Wait 500ms after typing stops)
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-    }, 500);
+      setDebouncedFilters(filters);
+    }, 1000);
 
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, filters]);
 
-  // 2. Main Data Fetch Effect: Triggers on Debounced Term, Page, or Tab change
+  // 2. Main Data Fetch Effect
+  // Triggers when page, tab, search term, or filters change
   useEffect(() => {
     fetchUsers();
     if (activeTab === "active") {
       fetchCleanupStats();
     }
-  }, [pagination.page, debouncedSearchTerm, activeTab]);
+    // eslint-disable-next-line
+  }, [pagination.page, debouncedSearchTerm, activeTab, debouncedFilters]);
 
-  // Activity Logging
+  // --- API Calls ---
+
   const logSearchActivity = async (searchQuery, resultsCount = 0) => {
-    if (!searchQuery.trim()) return;
+    // 1. Identify active filters (remove empty keys)
+    const activeFilters = Object.entries(debouncedFilters)
+      .filter(([_, value]) => value && String(value).trim() !== "");
+
+    const hasFilters = activeFilters.length > 0;
+    const hasSearch = searchQuery && searchQuery.trim() !== "";
+
+    // If no search term AND no filters, do not log (avoids logging on initial page load)
+    if (!hasSearch && !hasFilters) return;
+
+    // 2. Build a readable description
+    let descriptionParts = [];
+    
+    if (hasSearch) {
+      descriptionParts.push(`Query: "${searchQuery}"`);
+    }
+    
+    if (hasFilters) {
+      // Create a string like "Institute: IIT, City: Mumbai"
+      const filterString = activeFilters
+        .map(([key, val]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${val}`)
+        .join(", ");
+      descriptionParts.push(`Filters: [${filterString}]`);
+    }
+
+    const description = `User Search - ${descriptionParts.join(" | ")}`;
 
     try {
       await api.post("/activity-logs", {
         action: "SEARCH_USERS",
-        description: `Searched for users with query: "${searchQuery}"`,
+        description: description, // Now contains specific details
         module: "User Management",
         metadata: {
           searchQuery: searchQuery,
+          filters: debouncedFilters, // Full filter object
+          activeFilters: Object.fromEntries(activeFilters), // Only the active ones
           resultsCount: resultsCount,
           tab: activeTab,
           timestamp: new Date().toISOString(),
@@ -108,14 +153,16 @@ const UserManagement = () => {
     setError("");
     try {
       const endpoint = activeTab === "deleted" ? "/users/deleted" : "/users";
-      const response = await api.get(endpoint, {
-        params: {
-          page: pagination.page,
-          limit: pagination.limit,
-          search: debouncedSearchTerm, // Use the debounced term for the API call
-          includeDeleted: activeTab === "deleted",
-        },
-      });
+      
+      const params = {
+        page: pagination.page,
+        limit: pagination.limit,
+        search: debouncedSearchTerm,
+        includeDeleted: activeTab === "deleted",
+        ...debouncedFilters // Spread the filters into the query params
+      };
+
+      const response = await api.get(endpoint, { params });
 
       setUsers(response.data.users);
       setPagination((prev) => ({
@@ -124,8 +171,10 @@ const UserManagement = () => {
         totalPages: response.data.totalPages,
       }));
 
-      // Log activity only if there was a search term and fetch was successful
-      if (debouncedSearchTerm.trim() !== "") {
+      // Check if we should log activity (Active Search OR Active Filters)
+      const hasActiveFilters = Object.values(debouncedFilters).some(v => v && String(v).trim() !== "");
+      
+      if (debouncedSearchTerm.trim() !== "" || hasActiveFilters) {
         logSearchActivity(debouncedSearchTerm, response.data.users.length);
       }
 
@@ -149,17 +198,15 @@ const UserManagement = () => {
     }
   };
 
-  // --- Handlers ---
+  // --- User Action Handlers ---
 
   const handleUserClick = async (user) => {
-    // If deleted tab, use existing data
     if (activeTab === "deleted") {
       setSelectedUser(user);
       setIsModalOpen(true);
       return;
     }
 
-    // If active tab, fetch fresh details
     try {
       const response = await api.get(`/users/${user._id}`);
       setSelectedUser(response.data);
@@ -216,16 +263,37 @@ const UserManagement = () => {
     }
   };
 
-  // Search Handlers
+  // --- Search & Filter Handlers ---
+
   const handleInputChange = (e) => {
     setSearchTerm(e.target.value);
     // Debounce effect will handle the API call
   };
 
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1 on filter change
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      institute: "",
+      university: "",
+      qualification: "",
+      specialization: "",
+      batch: "",
+      city: ""
+    });
+    setSearchTerm("");
+  };
+
   const handleSearchSubmit = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
-    setDebouncedSearchTerm(searchTerm); // Force immediate update to bypass debounce
-    // The useEffect will catch the change in debouncedSearchTerm and trigger fetchUsers
+    setDebouncedSearchTerm(searchTerm);
+    setDebouncedFilters(filters);
   };
 
   const handleKeyPress = (e) => {
@@ -238,34 +306,49 @@ const UserManagement = () => {
     setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
-  // Export Logic
+  // --- Export Logic ---
+
   const convertToCSV = (data) => {
     if (!data || data.length === 0) return "";
     
-    const headers = ["_id", "name", "email", "role", "verified", "isPublic", "createdAt", "deletedAt"];
+    // Define headers based on the data structure
+    const headers = ["_id", "Name", "Email", "Role", "Institute", "University", "City", "Joined Date"];
     let csv = headers.join(",") + "\n";
     
     data.forEach((user) => {
-      const row = headers.map((header) => {
-        let val = user[header];
-        if (header === "role" && typeof val === "object" && val !== null) {
-          val = val.name || val._id || "object";
-        }
-        if (typeof val === "boolean") {
-          val = val ? "Yes" : "No";
-        }
-        if (header === "createdAt" || header === "deletedAt") {
-          val = val ? new Date(val).toLocaleString() : "";
-        }
-        if (val === null || val === undefined) {
-          val = "";
-        }
-        let strVal = String(val);
+      // Helper to safely get nested values (handling both populated objects and raw IDs)
+      const getNestedName = (obj) => {
+        if (!obj) return "";
+        return typeof obj === 'object' ? (obj.name || obj.CITY_NAME || "") : obj;
+      };
+
+      const education = user.education && user.education.length > 0 ? user.education[0] : {};
+      const address = user.address || {};
+      
+      const instituteName = getNestedName(education.institute) || education.otherInstitute || "";
+      const universityName = getNestedName(education.university) || education.otherUniversity || "";
+      const cityName = getNestedName(address.city) || getNestedName(education.city) || "";
+
+      const rowData = [
+        user._id,
+        `${user.firstName} ${user.lastName}`,
+        user.email,
+        typeof user.role === 'object' ? user.role.name : user.role,
+        instituteName,
+        universityName,
+        cityName,
+        user.createdAt ? new Date(user.createdAt).toLocaleDateString() : ""
+      ];
+
+      // Escape quotes and join
+      const row = rowData.map(val => {
+        let strVal = String(val || "");
         if (strVal.includes(",") || strVal.includes('"')) {
           strVal = `"${strVal.replace(/"/g, '""')}"`;
         }
         return strVal;
       });
+      
       csv += row.join(",") + "\n";
     });
     return csv;
@@ -289,12 +372,19 @@ const UserManagement = () => {
         }
       } else if (exportType === "all") {
         const endpoint = activeTab === "deleted" ? "/users/deleted" : "/users";
-        const response = await api.get(endpoint, {
-          params: { search: debouncedSearchTerm, all: true },
-        });
+        
+        // Pass current search AND filters to the export params
+        const params = { 
+          search: debouncedSearchTerm, 
+          all: true,
+          ...debouncedFilters
+        };
+        
+        const response = await api.get(endpoint, { params });
 
         usersToExport = response.data.users || response.data;
         fileName = `users_${activeTab}_export_all.csv`;
+        
         if (!usersToExport || usersToExport.length === 0) {
           setError("No users found to export.");
           setIsExporting(false);
@@ -364,7 +454,7 @@ const UserManagement = () => {
                     disabled={isExporting || pagination.total === 0}
                     className="cursor-pointer"
                   >
-                    Export All ({pagination.total} users)
+                    Export All Matches ({pagination.total} users)
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -380,6 +470,7 @@ const UserManagement = () => {
             </Alert>
           )}
 
+          {/* Search and Filters Bar */}
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -392,6 +483,21 @@ const UserManagement = () => {
                 className="pl-10 h-11"
               />
             </div>
+            
+            <Button
+              variant={showFilters ? "secondary" : "outline"}
+              onClick={() => setShowFilters(!showFilters)}
+              className="h-11 px-4 gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Filters
+              {Object.values(filters).some(x => x) && (
+                 <Badge variant="secondary" className="px-1.5 h-5 ml-1">
+                   {Object.values(filters).filter(x => x).length}
+                 </Badge>
+              )}
+            </Button>
+
             <Button
               onClick={handleSearchSubmit}
               disabled={loading}
@@ -401,6 +507,83 @@ const UserManagement = () => {
               Search
             </Button>
           </div>
+
+          {/* Advanced Filters Section */}
+          {showFilters && (
+            <div className="bg-muted/30 p-4 rounded-lg border border-border animate-in fade-in slide-in-from-top-2">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-primary" /> Advanced Filters
+                </h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={clearFilters} 
+                  className="h-8 text-xs text-muted-foreground hover:text-destructive"
+                >
+                    <X className="h-3 w-3 mr-1" /> Clear All
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">Institute</label>
+                  <Input 
+                      placeholder="e.g. NIT Allahabad" 
+                      value={filters.institute}
+                      onChange={(e) => handleFilterChange('institute', e.target.value)}
+                      className="bg-background"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">University / Organization</label>
+                  <Input 
+                      placeholder="e.g. Delhi University" 
+                      value={filters.university}
+                      onChange={(e) => handleFilterChange('university', e.target.value)}
+                      className="bg-background"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">Qualification</label>
+                  <Input 
+                      placeholder="e.g. B.Tech, MBA" 
+                      value={filters.qualification}
+                      onChange={(e) => handleFilterChange('qualification', e.target.value)}
+                      className="bg-background"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">Specialization</label>
+                  <Input 
+                      placeholder="e.g. Computer Science" 
+                      value={filters.specialization}
+                      onChange={(e) => handleFilterChange('specialization', e.target.value)}
+                      className="bg-background"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">Batch (Year)</label>
+                  <Input 
+                      type="number"
+                      placeholder="e.g. 2023" 
+                      value={filters.batch}
+                      onChange={(e) => handleFilterChange('batch', e.target.value)}
+                      className="bg-background"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">City</label>
+                  <Input 
+                      placeholder="e.g. Mumbai" 
+                      value={filters.city}
+                      onChange={(e) => handleFilterChange('city', e.target.value)}
+                      className="bg-background"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stats Section */}
           {!loading && activeTab === "active" && (
@@ -509,17 +692,32 @@ const UserManagement = () => {
                     />
                   </PaginationItem>
 
-                  {[...Array(pagination.totalPages)].map((_, index) => (
-                    <PaginationItem key={index + 1}>
-                      <PaginationLink
-                        onClick={() => handlePageChange(index + 1)}
-                        isActive={pagination.page === index + 1}
-                        className="cursor-pointer"
-                      >
-                        {index + 1}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
+                  {[...Array(pagination.totalPages)].map((_, index) => {
+                     const pageNum = index + 1;
+                     if (
+                        pagination.totalPages > 7 && 
+                        Math.abs(pageNum - pagination.page) > 2 && 
+                        pageNum !== 1 && 
+                        pageNum !== pagination.totalPages
+                     ) {
+                         if (Math.abs(pageNum - pagination.page) === 3) {
+                             return <PaginationItem key={pageNum}><span className="px-2">...</span></PaginationItem>
+                         }
+                         return null;
+                     }
+
+                     return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(pageNum)}
+                            isActive={pagination.page === pageNum}
+                            className="cursor-pointer"
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                     );
+                  })}
 
                   <PaginationItem>
                     <PaginationNext

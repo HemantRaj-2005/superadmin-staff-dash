@@ -151,51 +151,73 @@
 // const User = mongoose.model('User', UserSchema);
 // export default User;
 
+import { mainDB } from '../db/databaseConnection.js';
+import mongoose from 'mongoose';
 
-import { mainDB } from '../db/databaseConnection.js'; // Changed import
+const { Schema } = mongoose;
 
-import mongoose from 'mongoose'; // Import mongoose for Schema and model
-
-const { Schema, model } = mongoose; 
+// 1. Update Address Schema
 const AddressSchema = new Schema({
   street: { type: String, required: true },
-  city:   { type: String, required: true },
-  state:  { type: String, required: true },
+  city: { 
+    type: Schema.Types.ObjectId, // Changed from String
+    ref: 'Worldcity',            // References your WorldCity model
+    required: true 
+  },
+  state: { type: String, required: true },
   country: { type: String, required: true },
   postalCode: { type: Number, required: true }
 }, { _id: false });
 
+// 2. Update Education Schema
 const EducationItemSchema = new Schema({
   _id: { type: String, required: true },
-  board: { type: String },
-  city: { type: String, required: true },
-  completionYear: { type: Date, required: true },
-  institute: { type: String },
-  medium: { type: String },
-  otherInstitute: { type: String },
-  otherUniversity: { type: String },
-  percentageOrCGPA: { type: Schema.Types.Mixed },
-  pincode: { type: Number, required: true },
-  program: { type: String },
-  programType: { type: String },
   qualification: { type: String, required: true },
-  school: { type: String },
+  program: { type: String },
   specialization: { type: String, required: true },
-  startYear: { type: Date, required: true },
+  programType: { type: String },
+  
+  // Link University to Organization Model
+  university: { 
+    type: Schema.Types.ObjectId, 
+    ref: 'Organization' 
+  },
+  otherUniversity: { type: String },
+
+  // Link Institute to Organization Model
+  institute: { 
+    type: Schema.Types.ObjectId, 
+    ref: 'Organization' 
+  },
+  otherInstitute: { type: String },
+
+  // Link City to WorldCity Model
+  city: { 
+    type: Schema.Types.ObjectId, 
+    ref: 'Worldcity' 
+  },
+  
   state: { type: String, required: true },
-  university: { type: String }
+  country: { type: String, required: true },
+  pincode: { type: Number, required: true },
+  startYear: { type: Date, required: true },
+  completionYear: { type: Date, required: true },
+  percentageOrCGPA: { type: Schema.Types.Mixed },
+  board: { type: String },
+  medium: { type: String },
+  school: { type: String },
 }, { _id: false });
 
 const ProfessionalItemSchema = new Schema({
   _id: { type: String, required: true },
   companyName: { type: String, required: true },
-  completionYear: { type: Date },
-  currentEmployment: { type: Boolean, required: true },
   designation: { type: String, required: true },
   employmentType: { type: String, required: true },
   location: { type: String, required: true },
-  salaryBand: { type: Number },
-  startYear: { type: Date, required: true }
+  currentEmployment: { type: Boolean, required: true },
+  startYear: { type: Date, required: true },
+  completionYear: { type: Date },
+  salaryBand: { type: Number }
 }, { _id: false });
 
 const RefreshTokenSchema = new Schema({
@@ -209,97 +231,48 @@ const SocialLinksSchema = new Schema({
 
 const UserSchema = new Schema({
   address: { type: AddressSchema, required: false },
-  backgroundImage: { type: String },
-  bio: { type: String },
-  dateOfBirth: { type: Date },
   education: { type: [EducationItemSchema], default: [] },
-  email: { type: String, required: true, lowercase: true, trim: true },
-  emailNotifications: { type: Boolean, default: false },
+  professional: { type: [ProfessionalItemSchema], default: [] },
+  
   firstName: { type: String, required: true },
-  gender: { type: String },
-  googleId: { type: String },
-  introLine: { type: String },
-  isEmailPrivate: { type: Boolean, default: false },
-  isEmailVerified: { type: Boolean, required: true, default: false },
-  isGoogleUser: { type: Boolean, default: false },
-  isMobilePrivate: { type: Boolean, default: false },
-  isPhoneVerified: { type: Boolean, required: true, default: false },
   lastName: { type: String, required: true },
+  email: { type: String, required: true, lowercase: true, trim: true },
+  role: { type: String, required: true },
+  profileImage: { type: String },
   mobileNumber: { type: Number },
+  bio: { type: String },
+  introLine: { type: String },
+  dateOfBirth: { type: Date },
+  gender: { type: String },
+  isEmailVerified: { type: Boolean, default: false },
+  isPhoneVerified: { type: Boolean, default: false },
+  isEmailPrivate: { type: Boolean, default: false },
+  isMobilePrivate: { type: Boolean, default: false },
+  isGoogleUser: { type: Boolean, default: false },
+  emailNotifications: { type: Boolean, default: false },
+  socialLinks: { type: SocialLinksSchema, required: false },
+  backgroundImage: { type: String },
+  refreshTokens: { type: [RefreshTokenSchema], default: [] },
   otp: { type: Number },
   otpExpires: { type: Date },
   otpVerificationId: { type: Number },
   password: { type: String },
-  professional: { type: [ProfessionalItemSchema], default: [] },
-  profileImage: { type: String },
-  refreshTokens: { type: [RefreshTokenSchema], default: [] },
-  role: { type: String, required: true },
-  socialLinks: { type: SocialLinksSchema, required: false },
   
   // Soft delete fields
-  isDeleted: {
-    type: Boolean,
-    default: false
-  },
-  deletedAt: {
-    type: Date,
-    default: null
-  },
-  scheduledForPermanentDeletion: {
-    type: Date,
-    default: null
-  }
+  isDeleted: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null },
+  scheduledForPermanentDeletion: { type: Date, default: null }
 }, {
   timestamps: true,
 });
 
-// Index for efficient querying of soft-deleted users
 UserSchema.index({ isDeleted: 1, deletedAt: 1 });
-UserSchema.index({ scheduledForPermanentDeletion: 1 });
-
-// Middleware to exclude soft-deleted users from normal queries
 UserSchema.pre(/^find/, function(next) {
-  // Only include non-deleted users in normal queries
   if (this.getFilter().isDeleted === undefined) {
     this.where({ isDeleted: false });
   }
   next();
 });
 
-// Static method to find including deleted users
-UserSchema.statics.findIncludingDeleted = function(conditions = {}) {
-  return this.find(conditions).where({ isDeleted: { $in: [true, false] } });
-};
-
-// Static method to find only deleted users
-UserSchema.statics.findDeleted = function(conditions = {}) {
-  return this.find(conditions).where({ isDeleted: true });
-};
-
-// Instance method to soft delete user
-UserSchema.methods.softDelete = function() {
-  this.isDeleted = true;
-  this.deletedAt = new Date();
-  this.scheduledForPermanentDeletion = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 days from now
-  return this.save();
-};
-
-// Instance method to restore user
-UserSchema.methods.restore = function() {
-  this.isDeleted = false;
-  this.deletedAt = null;
-  this.scheduledForPermanentDeletion = null;
-  return this.save();
-};
-
-// Virtual for checking if user is scheduled for permanent deletion
-UserSchema.virtual('daysUntilPermanentDeletion').get(function() {
-  if (!this.scheduledForPermanentDeletion) return null;
-  const now = new Date();
-  const diffTime = this.scheduledForPermanentDeletion - now;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return Math.max(0, diffDays);
-});
-
-const User = mainDB.model('User', UserSchema); // Changed to mainDB.model
+const User = mainDB.model('User', UserSchema);
 export default User;
