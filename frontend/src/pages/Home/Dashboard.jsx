@@ -53,43 +53,45 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex justify-center items-center bg-gray-50 dark:bg-slate-900">
+      <div className="min-h-screen flex justify-center items-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-300 p-6 lg:p-10">
+    <div className="min-h-screen transition-colors duration-300 p-6 lg:p-10">
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Overview</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Overview</h2>
             <p className="text-slate-500 dark:text-slate-400 mt-1">
               Welcome back, {admin?.name}.
             </p>
           </div>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - UPDATED with solid colors */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* UPDATED: Total Users Card with Breakdown */}
+          {/* Total Users Card with Breakdown */}
           <StatCard 
             title="Total Users" 
             value={stats.totalUsers} 
-            icon={<Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />}
-            bgColor="bg-blue-50 dark:bg-blue-900/20"
+            icon={<Users className="w-6 h-6 text-white" />}
+            bgColor="bg-gradient-to-br from-blue-600 to-blue-700"
+            titleColor="text-blue-100"
+            valueColor="text-white"
           >
             <div className="flex items-center gap-3 text-xs font-medium">
-              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-md">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+              <span className="flex items-center gap-1 text-white bg-blue-800/60 px-2 py-1 rounded-md">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300"></span>
                 {stats.activeUsers} Active
               </span>
-              <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 px-2 py-1 rounded-md">
-                <span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+              <span className="flex items-center gap-1 text-white bg-blue-800/60 px-2 py-1 rounded-md">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose-300"></span>
                 {stats.deletedUsers} Deleted
               </span>
             </div>
@@ -98,38 +100,52 @@ const Dashboard = () => {
           <StatCard 
             title="New Users Today" 
             value={stats.newUsersToday} 
-            icon={<UserPlus className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />}
-            bgColor="bg-emerald-50 dark:bg-emerald-900/20"
+            icon={<UserPlus className="w-6 h-6 text-white" />}
+            bgColor="bg-gradient-to-br from-emerald-600 to-emerald-700"
+            titleColor="text-emerald-100"
+            valueColor="text-white"
           />
+          
           <StatCard 
             title="Verified Phone and Email Users" 
             value={stats.verifiedUsers} 
-            icon={<ShieldCheck className="w-6 h-6 text-violet-600 dark:text-violet-400" />}
-            bgColor="bg-violet-50 dark:bg-violet-900/20"
+            icon={<ShieldCheck className="w-6 h-6 text-white" />}
+            bgColor="bg-gradient-to-br from-violet-600 to-violet-700"
+            titleColor="text-violet-100"
+            valueColor="text-white"
           />
+          
           <StatCard 
             title="Google Users" 
             value={stats.googleUsers} 
-            icon={<Search className="w-6 h-6 text-rose-600 dark:text-rose-400" />}
-            bgColor="bg-rose-50 dark:bg-rose-900/20"
+            icon={<Search className="w-6 h-6 text-white" />}
+            bgColor="bg-gradient-to-br from-rose-600 to-rose-700"
+            titleColor="text-rose-100"
+            valueColor="text-white"
           />
+          
           <StatCard 
             title="Total Events" 
             value={stats.totalEvents} 
-            icon={<CalendarDays className="w-6 h-6 text-amber-600 dark:text-amber-400" />}
-            bgColor="bg-amber-50 dark:bg-amber-900/20"
+            icon={<CalendarDays className="w-6 h-6 text-white" />}
+            bgColor="bg-gradient-to-br from-amber-600 to-amber-700"
+            titleColor="text-amber-100"
+            valueColor="text-white"
           />
+          
           <StatCard 
             title="Total Posts" 
             value={stats.totalPosts} 
-            icon={<FileText className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />}
-            bgColor="bg-cyan-50 dark:bg-cyan-900/20"
+            icon={<FileText className="w-6 h-6 text-white" />}
+            bgColor="bg-gradient-to-br from-cyan-600 to-cyan-700"
+            titleColor="text-cyan-100"
+            valueColor="text-white"
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Recent Users List */}
-          <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="lg:col-span-2 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
             <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
               <h3 className="font-semibold text-slate-900 dark:text-white">Recent Registrations</h3>
             </div>
@@ -202,22 +218,22 @@ const Dashboard = () => {
   );
 };
 
-// UPDATED: Reusable Modern Card Component accepts 'children'
-const StatCard = ({ title, value, icon, bgColor, children }) => (
-  <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between">
+// UPDATED: StatCard component with color customization
+const StatCard = ({ title, value, icon, bgColor, titleColor = 'text-white', valueColor = 'text-white', children }) => (
+  <div className={`${bgColor} p-6 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between`}>
     <div className="flex justify-between items-start">
       <div>
-        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{title}</p>
-        <h3 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{value}</h3>
+        <p className={`text-sm font-medium ${titleColor} mb-1 opacity-90`}>{title}</p>
+        <h3 className={`text-3xl font-bold ${valueColor} tracking-tight`}>{value}</h3>
       </div>
-      <div className={`p-3 rounded-xl ${bgColor}`}>
+      <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
         {icon}
       </div>
     </div>
     
     {/* Render Children (stats breakdown) if present */}
     {children && (
-      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
+      <div className="mt-4 pt-3 border-t border-white/30">
         {children}
       </div>
     )}

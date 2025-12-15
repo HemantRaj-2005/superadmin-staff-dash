@@ -1,76 +1,95 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Search, 
-  Filter, 
-  X, 
-  Plus, 
-  MapPin, 
-  Globe, 
-  Navigation, 
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Search,
+  Filter,
+  X,
+  Plus,
+  MapPin,
+  Globe,
+  Navigation,
   Building2,
   Flag,
   Mountain,
   Users,
   ChevronRight,
   Download,
-  Upload
-} from 'lucide-react';
-import CityCard from './CityCard';
-import CityDetailModal from './CityDetailModal';
-import CityCreateModal from './CityCreateModal';
-import api from '../../services/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
+  Upload,
+} from "lucide-react";
+import CityCard from "./CityCard";
+import CityDetailModal from "./CityDetailModal";
+import CityCreateModal from "./CityCreateModal";
+import api from "../../services/api";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
+} from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import TopCitiesStats from "./TopCitiesStats";
 
 const CityManagement = () => {
   const [cities, setCities] = useState([]);
   const [selectedCity, setSelectedCity] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [searchInput, setSearchInput] = useState(''); // For input field
-  const [searchTerm, setSearchTerm] = useState(''); // For actual search
-  const [countryFilter, setCountryFilter] = useState('all');
-  const [stateFilter, setStateFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('CITY_NAME');
-  const [sortOrder, setSortOrder] = useState('asc');
+  const [searchInput, setSearchInput] = useState(""); // For input field
+  const [searchTerm, setSearchTerm] = useState(""); // For actual search
+  const [countryFilter, setCountryFilter] = useState("all");
+  const [stateFilter, setStateFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("CITY_NAME");
+  const [sortOrder, setSortOrder] = useState("asc");
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState(null);
   const [filters, setFilters] = useState({ countries: [], states: [] });
-  const [activeTab, setActiveTab] = useState('all');
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 12,
     total: 0,
-    totalPages: 0
+    totalPages: 0,
   });
-  
+
   // Track last logged search
   const lastLoggedSearchRef = useRef({
-    search: '',
-    country: '',
-    state: '',
-    sortBy: '',
-    sortOrder: '',
-    page: 1
+    search: "",
+    country: "",
+    state: "",
+    sortBy: "",
+    sortOrder: "",
+    page: 1,
   });
 
   useEffect(() => {
     fetchCities();
     fetchStats();
-  }, [pagination.page, searchTerm, countryFilter, stateFilter, sortBy, sortOrder]);
+  }, [
+    pagination.page,
+    searchTerm,
+    countryFilter,
+    stateFilter,
+    sortBy,
+    sortOrder,
+  ]);
 
   // Function to log search activity
   const logSearchActivity = async (searchData, resultsCount = 0) => {
@@ -81,11 +100,11 @@ const CityManagement = () => {
         state: stateFilter,
         sortBy: sortBy,
         sortOrder: sortOrder,
-        page: pagination.page
+        page: pagination.page,
       };
 
       const lastLogged = lastLoggedSearchRef.current;
-      
+
       // Skip if same search was just logged
       if (
         currentSearchData.search === lastLogged.search &&
@@ -99,24 +118,24 @@ const CityManagement = () => {
       }
 
       // Build description based on active filters
-      let description = 'Searched for cities';
+      let description = "Searched for cities";
       const activeFilters = [];
-      
+
       if (searchTerm) {
         activeFilters.push(`search: "${searchTerm}"`);
       }
-      if (countryFilter && countryFilter !== 'all') {
+      if (countryFilter && countryFilter !== "all") {
         activeFilters.push(`country: "${countryFilter}"`);
       }
-      if (stateFilter && stateFilter !== 'all') {
+      if (stateFilter && stateFilter !== "all") {
         activeFilters.push(`state: "${stateFilter}"`);
       }
-      if (sortBy !== 'CITY_NAME' || sortOrder !== 'asc') {
+      if (sortBy !== "CITY_NAME" || sortOrder !== "asc") {
         activeFilters.push(`sorted by: ${sortBy} ${sortOrder}`);
       }
-      
+
       if (activeFilters.length > 0) {
-        description += ` with ${activeFilters.join(', ')}`;
+        description += ` with ${activeFilters.join(", ")}`;
       }
 
       await api.post("/activity-logs", {
@@ -133,7 +152,7 @@ const CityManagement = () => {
           totalResults: pagination.total,
           page: pagination.page,
           timestamp: new Date().toISOString(),
-        }
+        },
       });
 
       // Update last logged search
@@ -147,47 +166,49 @@ const CityManagement = () => {
   const fetchCities = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/cities', {
+      const response = await api.get("/cities", {
         params: {
           page: pagination.page,
           limit: pagination.limit,
           search: searchTerm,
-          country: countryFilter !== 'all' ? countryFilter : '',
-          state: stateFilter !== 'all' ? stateFilter : '',
+          country: countryFilter !== "all" ? countryFilter : "",
+          state: stateFilter !== "all" ? stateFilter : "",
           sortBy,
-          sortOrder
-        }
+          sortOrder,
+        },
       });
-      
+
       setCities(response.data.cities);
       setFilters(response.data.filters);
-      setPagination(prev => ({
+      setPagination((prev) => ({
         ...prev,
         total: response.data.total,
-        totalPages: response.data.totalPages
+        totalPages: response.data.totalPages,
       }));
 
       // Log search activity after successful fetch
       // Only log if there are active filters or search term
-      const hasActiveSearch = 
-        searchTerm.trim() !== '' || 
-        countryFilter !== 'all' || 
-        stateFilter !== 'all' ||
-        sortBy !== 'CITY_NAME' ||
-        sortOrder !== 'asc';
+      const hasActiveSearch =
+        searchTerm.trim() !== "" ||
+        countryFilter !== "all" ||
+        stateFilter !== "all" ||
+        sortBy !== "CITY_NAME" ||
+        sortOrder !== "asc";
 
       if (hasActiveSearch) {
-        logSearchActivity({
-          search: searchTerm,
-          country: countryFilter,
-          state: stateFilter,
-          sortBy,
-          sortOrder
-        }, response.data.cities.length);
+        logSearchActivity(
+          {
+            search: searchTerm,
+            country: countryFilter,
+            state: stateFilter,
+            sortBy,
+            sortOrder,
+          },
+          response.data.cities.length
+        );
       }
-
     } catch (error) {
-      console.error('Error fetching cities:', error);
+      console.error("Error fetching cities:", error);
     } finally {
       setLoading(false);
     }
@@ -195,29 +216,29 @@ const CityManagement = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/cities/stats/overview');
+      const response = await api.get("/cities/stats/overview");
       setStats(response.data);
     } catch (error) {
-      console.error('Error fetching city stats:', error);
+      console.error("Error fetching city stats:", error);
     }
   };
 
   // Handle search button click
   const handleSearch = () => {
     setSearchTerm(searchInput);
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   // Handle clear search
   const handleClearSearch = () => {
-    setSearchInput('');
-    setSearchTerm('');
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setSearchInput("");
+    setSearchTerm("");
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   // Handle Enter key press
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearch();
     }
   };
@@ -229,12 +250,12 @@ const CityManagement = () => {
 
   const handleCreateCity = async (cityData) => {
     try {
-      await api.post('/cities', cityData);
+      await api.post("/cities", cityData);
       fetchCities(); // Refresh the list
       fetchStats(); // Refresh stats
       setIsCreateModalOpen(false);
     } catch (error) {
-      console.error('Error creating city:', error);
+      console.error("Error creating city:", error);
       throw error;
     }
   };
@@ -245,57 +266,69 @@ const CityManagement = () => {
       fetchCities(); // Refresh the list
       fetchStats(); // Refresh stats
     } catch (error) {
-      console.error('Error deleting city:', error);
+      console.error("Error deleting city:", error);
     }
   };
 
   // Handle filter changes
   const handleFilterChange = (type, value) => {
-    if (type === 'country') {
+    if (type === "country") {
       setCountryFilter(value);
       // Reset state when country changes
-      if (value === 'all') {
-        setStateFilter('all');
+      if (value === "all") {
+        setStateFilter("all");
       }
-    } else if (type === 'state') {
+    } else if (type === "state") {
       setStateFilter(value);
     }
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const clearFilters = () => {
-    setSearchInput('');
-    setSearchTerm('');
-    setCountryFilter('all');
-    setStateFilter('all');
-    setSortBy('CITY_NAME');
-    setSortOrder('asc');
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setSearchInput("");
+    setSearchTerm("");
+    setCountryFilter("all");
+    setStateFilter("all");
+    setSortBy("CITY_NAME");
+    setSortOrder("asc");
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handlePageChange = (newPage) => {
-    setPagination(prev => ({ ...prev, page: newPage }));
+    setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
-  const hasActiveFilters = 
-    searchTerm.trim() !== '' || 
-    countryFilter !== 'all' || 
-    stateFilter !== 'all' ||
-    sortBy !== 'CITY_NAME' ||
-    sortOrder !== 'asc';
+  const hasActiveFilters =
+    searchTerm.trim() !== "" ||
+    countryFilter !== "all" ||
+    stateFilter !== "all" ||
+    sortBy !== "CITY_NAME" ||
+    sortOrder !== "asc";
 
   const getCountryFlag = (countryCode) => {
     const flags = {
-      'US': '🇺🇸', 'IN': '🇮🇳', 'GB': '🇬🇧', 'CA': '🇨🇦',
-      'AU': '🇦🇺', 'DE': '🇩🇪', 'FR': '🇫🇷', 'JP': '🇯🇵',
-      'CN': '🇨🇳', 'BR': '🇧🇷', 'RU': '🇷🇺', 'ZA': '🇿🇦'
+      US: "🇺🇸",
+      IN: "🇮🇳",
+      GB: "🇬🇧",
+      CA: "🇨🇦",
+      AU: "🇦🇺",
+      DE: "🇩🇪",
+      FR: "🇫🇷",
+      JP: "🇯🇵",
+      CN: "🇨🇳",
+      BR: "🇧🇷",
+      RU: "🇷🇺",
+      ZA: "🇿🇦",
     };
-    return flags[countryCode] || '🏴';
+    return flags[countryCode] || "🏴";
   };
 
   // Filter out empty/null values from filters
-  const validCountries = filters.countries?.filter(country => country && country.trim() !== '') || [];
-  const validStates = filters.states?.filter(state => state && state.trim() !== '') || [];
+  const validCountries =
+    filters.countries?.filter((country) => country && country.trim() !== "") ||
+    [];
+  const validStates =
+    filters.states?.filter((state) => state && state.trim() !== "") || [];
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -307,7 +340,8 @@ const CityManagement = () => {
             World Cities Management
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Explore and manage cities from around the world with detailed geographical data
+            Explore and manage cities from around the world with detailed
+            geographical data
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -329,16 +363,29 @@ const CityManagement = () => {
         </div>
       </div>
 
+      {/* Top Cities Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="lg:col-span-2">
+          <TopCitiesStats />
+        </div>
+      </div>
+
       {/* Statistics Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
+          <Card className="bg-linear-to-br from-blue-500 to-blue-600 text-white shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm font-medium">Total Cities</p>
-                  <p className="text-3xl font-bold mt-1">{stats.totalCities.toLocaleString()}</p>
-                  <p className="text-blue-200 text-xs mt-1">Worldwide coverage</p>
+                  <p className="text-blue-100 text-sm font-medium">
+                    Total Cities
+                  </p>
+                  <p className="text-3xl font-bold mt-1">
+                    {stats.totalCities.toLocaleString()}
+                  </p>
+                  <p className="text-blue-200 text-xs mt-1">
+                    Worldwide coverage
+                  </p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <Building2 className="h-6 w-6" />
@@ -347,12 +394,16 @@ const CityManagement = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg">
+          <Card className="bg-linear-to-br from-green-500 to-green-600 text-white shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100 text-sm font-medium">Countries</p>
-                  <p className="text-3xl font-bold mt-1">{stats.totalCountries}</p>
+                  <p className="text-green-100 text-sm font-medium">
+                    Countries
+                  </p>
+                  <p className="text-3xl font-bold mt-1">
+                    {stats.totalCountries}
+                  </p>
                   <p className="text-green-200 text-xs mt-1">Global reach</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
@@ -362,13 +413,19 @@ const CityManagement = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg">
+          <Card className="bg-linear-to-br from-purple-500 to-purple-600 text-white shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm font-medium">States/Regions</p>
-                  <p className="text-3xl font-bold mt-1">{stats.totalStates.toLocaleString()}</p>
-                  <p className="text-purple-200 text-xs mt-1">Administrative divisions</p>
+                  <p className="text-purple-100 text-sm font-medium">
+                    States/Regions
+                  </p>
+                  <p className="text-3xl font-bold mt-1">
+                    {stats.totalStates.toLocaleString()}
+                  </p>
+                  <p className="text-purple-200 text-xs mt-1">
+                    Administrative divisions
+                  </p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <Flag className="h-6 w-6" />
@@ -377,13 +434,17 @@ const CityManagement = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg">
+          <Card className="bg-linear-to-br from-orange-500 to-orange-600 text-white shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-100 text-sm font-medium">Geo Coverage</p>
+                  <p className="text-orange-100 text-sm font-medium">
+                    Geo Coverage
+                  </p>
                   <p className="text-3xl font-bold mt-1">{stats.coverage}%</p>
-                  <p className="text-orange-200 text-xs mt-1">With coordinates</p>
+                  <p className="text-orange-200 text-xs mt-1">
+                    With coordinates
+                  </p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <Navigation className="h-6 w-6" />
@@ -396,7 +457,7 @@ const CityManagement = () => {
 
       {/* Search and Filters */}
       <Card className="shadow-lg border-0">
-        <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b">
+        <CardHeader className="bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b">
           <CardTitle className="flex items-center text-lg">
             <Filter className="h-5 w-5 mr-2 text-blue-600" />
             Advanced Filters & Search
@@ -447,25 +508,28 @@ const CityManagement = () => {
                 </div>
                 {searchTerm && (
                   <p className="text-sm text-gray-500">
-                    Current search: <span className="font-medium">"{searchTerm}"</span>
+                    Current search:{" "}
+                    <span className="font-medium">"{searchTerm}"</span>
                   </p>
                 )}
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Filter by Country
                 </label>
-                <Select 
-                  value={countryFilter} 
-                  onValueChange={(value) => handleFilterChange('country', value)}
+                <Select
+                  value={countryFilter}
+                  onValueChange={(value) =>
+                    handleFilterChange("country", value)
+                  }
                 >
                   <SelectTrigger className="border-2 focus:border-blue-500 transition-colors">
                     <SelectValue placeholder="All countries" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All countries</SelectItem>
-                    {validCountries.map(country => (
+                    {validCountries.map((country) => (
                       <SelectItem key={country} value={country}>
                         <div className="flex items-center space-x-2">
                           <span>{getCountryFlag(country)}</span>
@@ -476,24 +540,28 @@ const CityManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Filter by State
                 </label>
-                <Select 
-                  value={stateFilter} 
-                  onValueChange={(value) => handleFilterChange('state', value)}
-                  disabled={!countryFilter || countryFilter === 'all'}
+                <Select
+                  value={stateFilter}
+                  onValueChange={(value) => handleFilterChange("state", value)}
+                  disabled={!countryFilter || countryFilter === "all"}
                 >
                   <SelectTrigger className="border-2 focus:border-blue-500 transition-colors">
-                    <SelectValue 
-                      placeholder={!countryFilter || countryFilter === 'all' ? "Select country first" : "All states"}
+                    <SelectValue
+                      placeholder={
+                        !countryFilter || countryFilter === "all"
+                          ? "Select country first"
+                          : "All states"
+                      }
                     />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All states</SelectItem>
-                    {validStates.map(state => (
+                    {validStates.map((state) => (
                       <SelectItem key={state} value={state}>
                         {state}
                       </SelectItem>
@@ -502,7 +570,7 @@ const CityManagement = () => {
                 </Select>
               </div>
             </div>
-            
+
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -519,7 +587,9 @@ const CityManagement = () => {
           {/* Sort Row */}
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort by:</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Sort by:
+              </span>
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-40 border-2">
                   <SelectValue />
@@ -531,7 +601,7 @@ const CityManagement = () => {
                   <SelectItem value="city_id">City ID</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Select value={sortOrder} onValueChange={setSortOrder}>
                 <SelectTrigger className="w-32 border-2">
                   <SelectValue />
@@ -542,11 +612,11 @@ const CityManagement = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
-              {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-              {pagination.total.toLocaleString()} cities
+              Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+              {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
+              of {pagination.total.toLocaleString()} cities
             </div>
           </div>
 
@@ -554,36 +624,62 @@ const CityManagement = () => {
           {hasActiveFilters && (
             <div className="flex flex-wrap gap-2 pt-4 border-t">
               {searchTerm && (
-                <Badge variant="secondary" className="flex items-center space-x-1 bg-blue-100 text-blue-800 border-blue-200">
+                <Badge
+                  variant="secondary"
+                  className="flex items-center space-x-1 bg-blue-100 text-blue-800 border-blue-200"
+                >
                   <span>Search: "{searchTerm}"</span>
-                  <button onClick={handleClearSearch} className="hover:text-blue-600">
+                  <button
+                    onClick={handleClearSearch}
+                    className="hover:text-blue-600"
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
               )}
-              {countryFilter !== 'all' && (
-                <Badge variant="secondary" className="flex items-center space-x-1 bg-green-100 text-green-800 border-green-200">
+              {countryFilter !== "all" && (
+                <Badge
+                  variant="secondary"
+                  className="flex items-center space-x-1 bg-green-100 text-green-800 border-green-200"
+                >
                   <span>Country: "{countryFilter}"</span>
-                  <button onClick={() => handleFilterChange('country', 'all')} className="hover:text-green-600">
+                  <button
+                    onClick={() => handleFilterChange("country", "all")}
+                    className="hover:text-green-600"
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
               )}
-              {stateFilter !== 'all' && (
-                <Badge variant="secondary" className="flex items-center space-x-1 bg-purple-100 text-purple-800 border-purple-200">
+              {stateFilter !== "all" && (
+                <Badge
+                  variant="secondary"
+                  className="flex items-center space-x-1 bg-purple-100 text-purple-800 border-purple-200"
+                >
                   <span>State: "{stateFilter}"</span>
-                  <button onClick={() => handleFilterChange('state', 'all')} className="hover:text-purple-600">
+                  <button
+                    onClick={() => handleFilterChange("state", "all")}
+                    className="hover:text-purple-600"
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
               )}
-              {(sortBy !== 'CITY_NAME' || sortOrder !== 'asc') && (
-                <Badge variant="secondary" className="flex items-center space-x-1 bg-orange-100 text-orange-800 border-orange-200">
-                  <span>Sort: {sortBy} ({sortOrder})</span>
-                  <button onClick={() => {
-                    setSortBy('CITY_NAME');
-                    setSortOrder('asc');
-                  }} className="hover:text-orange-600">
+              {(sortBy !== "CITY_NAME" || sortOrder !== "asc") && (
+                <Badge
+                  variant="secondary"
+                  className="flex items-center space-x-1 bg-orange-100 text-orange-800 border-orange-200"
+                >
+                  <span>
+                    Sort: {sortBy} ({sortOrder})
+                  </span>
+                  <button
+                    onClick={() => {
+                      setSortBy("CITY_NAME");
+                      setSortOrder("asc");
+                    }}
+                    className="hover:text-orange-600"
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -595,7 +691,7 @@ const CityManagement = () => {
 
       {/* Cities Grid */}
       <Card className="shadow-lg border-0">
-        <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b">
+        <CardHeader className="bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center">
@@ -603,7 +699,8 @@ const CityManagement = () => {
                 World Cities
               </CardTitle>
               <CardDescription>
-                {pagination.total.toLocaleString()} cities across {stats?.totalCountries} countries
+                {pagination.total.toLocaleString()} cities across{" "}
+                {stats?.totalCountries} countries
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-sm px-3 py-1">
@@ -635,15 +732,14 @@ const CityManagement = () => {
                 No cities found
               </h3>
               <p className="text-gray-500 dark:text-gray-400 mb-6">
-                {hasActiveFilters 
+                {hasActiveFilters
                   ? "Try adjusting your search or filters to find what you're looking for."
-                  : "Get started by adding your first city to the database."
-                }
+                  : "Get started by adding your first city to the database."}
               </p>
               {!hasActiveFilters && (
-                <Button 
+                <Button
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  className="bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add First City
@@ -667,45 +763,57 @@ const CityManagement = () => {
               {pagination.totalPages > 1 && (
                 <div className="flex items-center justify-between mt-8 pt-6 border-t">
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Page {pagination.page} of {pagination.totalPages} •{' '}
+                    Page {pagination.page} of {pagination.totalPages} •{" "}
                     {pagination.total.toLocaleString()} total cities
                   </div>
-                  
+
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
                         <PaginationPrevious
                           onClick={() => handlePageChange(pagination.page - 1)}
-                          className={pagination.page === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer border-2'}
+                          className={
+                            pagination.page === 1
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer border-2"
+                          }
                         />
                       </PaginationItem>
-                      
-                      {[...Array(Math.min(5, pagination.totalPages))].map((_, index) => {
-                        const pageNum = pagination.page <= 3 
-                          ? index + 1 
-                          : pagination.page >= pagination.totalPages - 2 
-                            ? pagination.totalPages - 4 + index 
-                            : pagination.page - 2 + index;
-                        
-                        if (pageNum < 1 || pageNum > pagination.totalPages) return null;
-                        
-                        return (
-                          <PaginationItem key={pageNum}>
-                            <PaginationLink
-                              onClick={() => handlePageChange(pageNum)}
-                              isActive={pagination.page === pageNum}
-                              className="cursor-pointer border-2"
-                            >
-                              {pageNum}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
-                      })}
-                      
+
+                      {[...Array(Math.min(5, pagination.totalPages))].map(
+                        (_, index) => {
+                          const pageNum =
+                            pagination.page <= 3
+                              ? index + 1
+                              : pagination.page >= pagination.totalPages - 2
+                              ? pagination.totalPages - 4 + index
+                              : pagination.page - 2 + index;
+
+                          if (pageNum < 1 || pageNum > pagination.totalPages)
+                            return null;
+
+                          return (
+                            <PaginationItem key={pageNum}>
+                              <PaginationLink
+                                onClick={() => handlePageChange(pageNum)}
+                                isActive={pagination.page === pageNum}
+                                className="cursor-pointer border-2"
+                              >
+                                {pageNum}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        }
+                      )}
+
                       <PaginationItem>
                         <PaginationNext
                           onClick={() => handlePageChange(pagination.page + 1)}
-                          className={pagination.page === pagination.totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer border-2'}
+                          className={
+                            pagination.page === pagination.totalPages
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer border-2"
+                          }
                         />
                       </PaginationItem>
                     </PaginationContent>

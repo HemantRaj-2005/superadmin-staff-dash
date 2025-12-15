@@ -8,6 +8,8 @@ import {
   FileUp,
   Filter,
   X,
+  UserCheck,
+  Globe,
 } from "lucide-react";
 import UserTable from "./UserTable";
 import UserDetailModal from "./UserDetailModal";
@@ -75,6 +77,7 @@ const UserManagement = () => {
   });
   
   const [isExporting, setIsExporting] = useState(false);
+  const [onlineCount, setOnlineCount] = useState(0); // You might want to fetch this from your backend
 
   // --- Effects ---
 
@@ -94,6 +97,8 @@ const UserManagement = () => {
     fetchUsers();
     if (activeTab === "active") {
       fetchCleanupStats();
+      // You might want to fetch online users count here
+      // fetchOnlineUsersCount();
     }
     // eslint-disable-next-line
   }, [pagination.page, debouncedSearchTerm, activeTab, debouncedFilters]);
@@ -410,6 +415,30 @@ const UserManagement = () => {
     }
   };
 
+  // --- StatCard Component ---
+  const StatCard = ({ title, value, icon, bgColor, badge, children }) => (
+    <div className={`${bgColor} p-6 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between`}>
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-sm font-medium text-white/90 mb-1">{title}</p>
+          <h3 className="text-3xl font-bold text-white tracking-tight">{value}</h3>
+        </div>
+        <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
+          {icon}
+        </div>
+      </div>
+      
+      {badge && (
+        <div className="mt-4 flex justify-between items-center">
+          <span className="text-xs font-medium text-white/80">{badge.label}</span>
+          <span className="text-sm font-bold text-white">{badge.value}</span>
+        </div>
+      )}
+      
+      {children}
+    </div>
+  );
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <Card>
@@ -585,58 +614,45 @@ const UserManagement = () => {
             </div>
           )}
 
-          {/* Stats Section */}
+          {/* Stats Section - UPDATED with colorful solid cards */}
           {!loading && activeTab === "active" && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Card 1: Total Users */}
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Total Users
-                      </p>
-                      <p className="text-2xl font-bold">{pagination.total}</p>
-                    </div>
-                    <Users className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                </CardContent>
-              </Card>
+              <StatCard 
+                title="Total Users" 
+                value={pagination.total}
+                icon={<Users className="w-6 h-6 text-white" />}
+                bgColor="bg-gradient-to-br from-blue-600 to-blue-700"
+                badge={{
+                  label: "On this page",
+                  value: users.length
+                }}
+              />
 
               {/* Card 2: Online Users */}
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Online Users
-                      </p>
-                      <p className="text-2xl font-bold">0</p>
-                    </div>
-                    <Badge variant="outline" className="text-lg">
-                      / {pagination.total}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
+              <StatCard 
+                title="Online Users" 
+                value={onlineCount}
+                icon={<Globe className="w-6 h-6 text-white" />}
+                bgColor="bg-gradient-to-br from-emerald-600 to-emerald-700"
+                badge={{
+                  label: "Out of total",
+                  value: `${onlineCount} / ${pagination.total}`
+                }}
+              />
 
               {/* Card 3: In Trash */}
               {cleanupStats && (
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">
-                          In Trash
-                        </p>
-                        <p className="text-2xl font-bold">
-                          {cleanupStats.totalDeletedUsers}
-                        </p>
-                      </div>
-                      <Trash2 className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
+                <StatCard 
+                  title="In Trash" 
+                  value={cleanupStats.totalDeletedUsers}
+                  icon={<Trash2 className="w-6 h-6 text-white" />}
+                  bgColor="bg-gradient-to-br from-amber-600 to-amber-700"
+                  badge={{
+                    label: "Auto-clean in",
+                    value: "90 days" // You might want to calculate this based on your cleanup stats
+                  }}
+                />
               )}
             </div>
           )}

@@ -1,22 +1,43 @@
 // src/pages/School/SchoolManagement.jsx
-import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import SchoolTable from './SchoolTable';
-import SchoolDetailModal from './SchoolDetailModal';
-import SchoolForm from './SchoolForm';
-import SchoolStats from './SchoolStats';
-import BulkImportModal from './BulkImportModal';
-import api from '@/services/api';
+import React, { useState, useEffect, useRef } from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import SchoolTable from "./SchoolTable";
+import SchoolDetailModal from "./SchoolDetailModal";
+import SchoolForm from "./SchoolForm";
+import SchoolStats from "./SchoolStats";
+import BulkImportModal from "./BulkImportModal";
+import api from "@/services/api";
 
 // Shadcn UI Components
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Download, Upload, Plus, Filter, X, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Download,
+  Upload,
+  Plus,
+  Filter,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+} from "lucide-react";
 
 const SchoolManagement = () => {
   const [schools, setSchools] = useState([]);
@@ -25,37 +46,37 @@ const SchoolManagement = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [searchInput, setSearchInput] = useState(''); // For the input field
-  const [searchTerm, setSearchTerm] = useState(''); // For actual search
+  const [searchInput, setSearchInput] = useState(""); // For the input field
+  const [searchTerm, setSearchTerm] = useState(""); // For actual search
   const [filters, setFilters] = useState({
-    state: 'all',
-    district: 'all',
-    sortBy: 'school_name',
-    sortOrder: 'asc'
+    state: "all",
+    district: "all",
+    sortBy: "school_name",
+    sortOrder: "asc",
   });
   const [availableFilters, setAvailableFilters] = useState({
     states: [],
-    districts: []
+    districts: [],
   });
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
     total: 0,
-    totalPages: 0
+    totalPages: 0,
   });
-  
+
   // Search states for dropdowns
-  const [stateSearch, setStateSearch] = useState('');
-  const [districtSearch, setDistrictSearch] = useState('');
-  
+  const [stateSearch, setStateSearch] = useState("");
+  const [districtSearch, setDistrictSearch] = useState("");
+
   // Track last logged search to avoid duplicates
   const lastLoggedSearchRef = useRef({
-    search: '',
-    state: '',
-    district: '',
-    sortBy: '',
-    sortOrder: '',
-    page: 1
+    search: "",
+    state: "",
+    district: "",
+    sortBy: "",
+    sortOrder: "",
+    page: 1,
   });
 
   const { checkPermission } = useAuth();
@@ -74,11 +95,11 @@ const SchoolManagement = () => {
         district: currentFilters.district,
         sortBy: currentFilters.sortBy,
         sortOrder: currentFilters.sortOrder,
-        page: pagination.page
+        page: pagination.page,
       };
 
       const lastLogged = lastLoggedSearchRef.current;
-      
+
       // Skip if same search was just logged
       if (
         currentSearchData.search === lastLogged.search &&
@@ -92,24 +113,26 @@ const SchoolManagement = () => {
       }
 
       // Build description based on active filters
-      let description = 'Searched for schools';
+      let description = "Searched for schools";
       const activeFilters = [];
-      
+
       if (searchTerm) {
         activeFilters.push(`search: "${searchTerm}"`);
       }
-      if (currentFilters.state && currentFilters.state !== 'all') {
+      if (currentFilters.state && currentFilters.state !== "all") {
         activeFilters.push(`state: "${currentFilters.state}"`);
       }
-      if (currentFilters.district && currentFilters.district !== 'all') {
+      if (currentFilters.district && currentFilters.district !== "all") {
         activeFilters.push(`district: "${currentFilters.district}"`);
       }
       if (currentFilters.sortBy) {
-        activeFilters.push(`sorted by: ${currentFilters.sortBy} ${currentFilters.sortOrder}`);
+        activeFilters.push(
+          `sorted by: ${currentFilters.sortBy} ${currentFilters.sortOrder}`
+        );
       }
-      
+
       if (activeFilters.length > 0) {
-        description += ` with ${activeFilters.join(', ')}`;
+        description += ` with ${activeFilters.join(", ")}`;
       }
 
       await api.post("/activity-logs", {
@@ -126,7 +149,7 @@ const SchoolManagement = () => {
           totalResults: pagination.total,
           page: pagination.page,
           timestamp: new Date().toISOString(),
-        }
+        },
       });
 
       // Update last logged search
@@ -143,41 +166,41 @@ const SchoolManagement = () => {
       // Convert filter values for API (convert 'all' to empty string)
       const apiFilters = {
         ...filters,
-        state: filters.state === 'all' ? '' : filters.state,
-        district: filters.district === 'all' ? '' : filters.district,
-        search: searchTerm
+        state: filters.state === "all" ? "" : filters.state,
+        district: filters.district === "all" ? "" : filters.district,
+        search: searchTerm,
       };
 
       const params = {
         page: pagination.page,
         limit: pagination.limit,
-        ...apiFilters
+        ...apiFilters,
       };
 
-      const response = await api.get('/schools/', { params });
-      
+      const response = await api.get("/schools/", { params });
+
       setSchools(response.data.schools);
       setAvailableFilters(response.data.filters);
-      setPagination(prev => ({
+      setPagination((prev) => ({
         ...prev,
         total: response.data.total,
-        totalPages: response.data.totalPages
+        totalPages: response.data.totalPages,
       }));
 
       // Log search activity after successful fetch
       // Only log if there are active filters or search term
-      const hasActiveSearch = 
-        searchTerm.trim() !== '' || 
-        filters.state !== 'all' || 
-        filters.district !== 'all' ||
-        filters.sortBy !== 'school_name' ||
-        filters.sortOrder !== 'asc';
+      const hasActiveSearch =
+        searchTerm.trim() !== "" ||
+        filters.state !== "all" ||
+        filters.district !== "all" ||
+        filters.sortBy !== "school_name" ||
+        filters.sortOrder !== "asc";
 
       if (hasActiveSearch) {
         logSearchActivity(filters, response.data.schools.length);
       }
     } catch (error) {
-      console.error('Error fetching schools:', error);
+      console.error("Error fetching schools:", error);
     } finally {
       setLoading(false);
     }
@@ -188,46 +211,46 @@ const SchoolManagement = () => {
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setPagination(prev => ({ ...prev, page: 1 }));
-    
+    setFilters((prev) => ({ ...prev, [key]: value }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
+
     // Reset district when state changes
-    if (key === 'state' && value === 'all') {
-      setFilters(prev => ({ ...prev, district: 'all' }));
+    if (key === "state" && value === "all") {
+      setFilters((prev) => ({ ...prev, district: "all" }));
     }
   };
 
   // Handle search button click
   const handleSearch = () => {
     setSearchTerm(searchInput);
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   // Handle clear search
   const handleClearSearch = () => {
-    setSearchInput('');
-    setSearchTerm('');
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setSearchInput("");
+    setSearchTerm("");
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   // Handle clear all filters
   const clearFilters = () => {
-    setSearchInput('');
-    setSearchTerm('');
+    setSearchInput("");
+    setSearchTerm("");
     setFilters({
-      state: 'all',
-      district: 'all',
-      sortBy: 'school_name',
-      sortOrder: 'asc'
+      state: "all",
+      district: "all",
+      sortBy: "school_name",
+      sortOrder: "asc",
     });
-    setStateSearch('');
-    setDistrictSearch('');
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setStateSearch("");
+    setDistrictSearch("");
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   // Handle Enter key press in search input
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearch();
     }
   };
@@ -254,93 +277,100 @@ const SchoolManagement = () => {
         await api.put(`/schools/${selectedSchool._id}`, schoolData);
       } else {
         // Create new school
-        await api.post('/schools', schoolData);
+        await api.post("/schools", schoolData);
       }
-      
+
       setIsFormOpen(false);
       setSelectedSchool(null);
       fetchSchools(); // Refresh the list
     } catch (error) {
-      console.error('Error saving school:', error);
+      console.error("Error saving school:", error);
       throw error;
     }
   };
 
   const handleDeleteSchool = async (schoolId) => {
-    if (window.confirm('Are you sure you want to delete this school?')) {
+    if (window.confirm("Are you sure you want to delete this school?")) {
       try {
         await api.delete(`/schools/${schoolId}`);
         fetchSchools(); // Refresh the list
       } catch (error) {
-        console.error('Error deleting school:', error);
+        console.error("Error deleting school:", error);
       }
     }
   };
 
   const exportSchools = async () => {
     try {
-      const response = await api.get('/schools/export/data', {
-        responseType: 'blob'
+      const response = await api.get("/schools/export/data", {
+        responseType: "blob",
       });
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', `schools-export-${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute(
+        "download",
+        `schools-export-${new Date().toISOString().split("T")[0]}.csv`
+      );
       document.body.appendChild(link);
       link.click();
       link.remove();
     } catch (error) {
-      console.error('Error exporting schools:', error);
+      console.error("Error exporting schools:", error);
     }
   };
 
   const handleBulkImport = async (schoolsData) => {
     try {
-      const response = await api.post('/schools/bulk-import', {
-        schools: schoolsData
+      const response = await api.post("/schools/bulk-import", {
+        schools: schoolsData,
       });
-      alert(`Bulk import completed: ${response.data.successful} successful, ${response.data.failed} failed`);
+      alert(
+        `Bulk import completed: ${response.data.successful} successful, ${response.data.failed} failed`
+      );
       setIsImportOpen(false);
       fetchSchools(); // Refresh the list
-      
+
       if (response.data.failed > 0) {
-        console.error('Import errors:', response.data.errors);
+        console.error("Import errors:", response.data.errors);
       }
     } catch (error) {
-      console.error('Error in bulk import:', error);
-      alert(error.response?.data?.message || 'Error importing schools');
+      console.error("Error in bulk import:", error);
+      alert(error.response?.data?.message || "Error importing schools");
     }
   };
 
   // Filter states based on search
-  const filteredStates = availableFilters.states.filter(state =>
+  const filteredStates = availableFilters.states.filter((state) =>
     state.toLowerCase().includes(stateSearch.toLowerCase())
   );
 
   // Filter districts based on search
-  const filteredDistricts = availableFilters.districts.filter(district =>
+  const filteredDistricts = availableFilters.districts.filter((district) =>
     district.toLowerCase().includes(districtSearch.toLowerCase())
   );
 
-  const hasActiveFilters = 
-    searchTerm.trim() !== '' || 
-    filters.state !== 'all' || 
-    filters.district !== 'all' ||
-    filters.sortBy !== 'school_name' ||
-    filters.sortOrder !== 'asc';
+  const hasActiveFilters =
+    searchTerm.trim() !== "" ||
+    filters.state !== "all" ||
+    filters.district !== "all" ||
+    filters.sortBy !== "school_name" ||
+    filters.sortOrder !== "asc";
 
   return (
     <div className="space-y-6 p-6">
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">School Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            School Management
+          </h1>
           <p className="text-muted-foreground">
             Manage schools and their information across the platform
           </p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row gap-3">
           {/* {checkPermission('schools', 'export') && (
             <Button
@@ -352,7 +382,7 @@ const SchoolManagement = () => {
               Export CSV
             </Button>
           )} */}
-          {checkPermission('schools', 'create') && (
+          {checkPermission("schools", "create") && (
             <Button
               onClick={() => setIsImportOpen(true)}
               variant="outline"
@@ -362,7 +392,7 @@ const SchoolManagement = () => {
               Bulk Import
             </Button>
           )}
-          {checkPermission('schools', 'create') && (
+          {checkPermission("schools", "create") && (
             <Button
               onClick={handleCreateSchool}
               className="flex items-center gap-2"
@@ -445,7 +475,10 @@ const SchoolManagement = () => {
             </div>
             {searchTerm && (
               <p className="text-sm text-muted-foreground">
-                Current search: <span className="font-medium text-foreground">"{searchTerm}"</span>
+                Current search:{" "}
+                <span className="font-medium text-foreground">
+                  "{searchTerm}"
+                </span>
               </p>
             )}
           </div>
@@ -457,7 +490,7 @@ const SchoolManagement = () => {
               <Label htmlFor="state">State</Label>
               <Select
                 value={filters.state}
-                onValueChange={(value) => handleFilterChange('state', value)}
+                onValueChange={(value) => handleFilterChange("state", value)}
               >
                 <SelectTrigger id="state">
                   <SelectValue placeholder="All States" />
@@ -494,16 +527,16 @@ const SchoolManagement = () => {
               <Label htmlFor="district">District</Label>
               <Select
                 value={filters.district}
-                onValueChange={(value) => handleFilterChange('district', value)}
-                disabled={!filters.state || filters.state === 'all'}
+                onValueChange={(value) => handleFilterChange("district", value)}
+                disabled={!filters.state || filters.state === "all"}
               >
                 <SelectTrigger id="district">
-                  <SelectValue 
+                  <SelectValue
                     placeholder={
-                      !filters.state || filters.state === 'all' 
-                        ? "Select state first" 
+                      !filters.state || filters.state === "all"
+                        ? "Select state first"
                         : "All Districts"
-                    } 
+                    }
                   />
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
@@ -526,10 +559,9 @@ const SchoolManagement = () => {
                   ))}
                   {filteredDistricts.length === 0 && (
                     <div className="py-2 px-3 text-sm text-muted-foreground text-center">
-                      {!filters.state || filters.state === 'all' 
-                        ? 'Please select a state first' 
-                        : 'No districts found'
-                      }
+                      {!filters.state || filters.state === "all"
+                        ? "Please select a state first"
+                        : "No districts found"}
                     </div>
                   )}
                 </SelectContent>
@@ -541,7 +573,7 @@ const SchoolManagement = () => {
               <Label htmlFor="sortBy">Sort By</Label>
               <Select
                 value={filters.sortBy}
-                onValueChange={(value) => handleFilterChange('sortBy', value)}
+                onValueChange={(value) => handleFilterChange("sortBy", value)}
               >
                 <SelectTrigger id="sortBy">
                   <SelectValue placeholder="Sort by" />
@@ -561,7 +593,9 @@ const SchoolManagement = () => {
               <Label htmlFor="sortOrder">Order</Label>
               <Select
                 value={filters.sortOrder}
-                onValueChange={(value) => handleFilterChange('sortOrder', value)}
+                onValueChange={(value) =>
+                  handleFilterChange("sortOrder", value)
+                }
               >
                 <SelectTrigger id="sortOrder">
                   <SelectValue placeholder="Sort order" />
@@ -577,10 +611,17 @@ const SchoolManagement = () => {
           {/* Results Count */}
           <div className="flex items-center justify-between pt-2">
             <div className="text-sm text-muted-foreground">
-              Showing <span className="font-medium text-foreground">{schools.length}</span> of{' '}
-              <span className="font-medium text-foreground">{pagination.total}</span> schools
+              Showing{" "}
+              <span className="font-medium text-foreground">
+                {schools.length}
+              </span>{" "}
+              of{" "}
+              <span className="font-medium text-foreground">
+                {pagination.total}
+              </span>{" "}
+              schools
             </div>
-            
+
             {hasActiveFilters && (
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Filter className="h-3 w-3" />
@@ -604,8 +645,12 @@ const SchoolManagement = () => {
             schools={schools}
             loading={loading}
             onSchoolClick={handleSchoolClick}
-            onEditSchool={checkPermission('schools', 'edit') ? handleEditSchool : null}
-            onDeleteSchool={checkPermission('schools', 'delete') ? handleDeleteSchool : null}
+            onEditSchool={
+              checkPermission("schools", "edit") ? handleEditSchool : null
+            }
+            onDeleteSchool={
+              checkPermission("schools", "delete") ? handleDeleteSchool : null
+            }
           />
         </CardContent>
       </Card>
@@ -617,20 +662,23 @@ const SchoolManagement = () => {
             <div className="flex items-center justify-between">
               <Button
                 variant="outline"
-                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                onClick={() =>
+                  setPagination((prev) => ({ ...prev, page: prev.page - 1 }))
+                }
                 disabled={pagination.page === 1}
                 className="flex items-center gap-2"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Previous
               </Button>
-              
+
               <div className="flex items-center gap-2">
                 {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                  .filter(page => 
-                    page === 1 || 
-                    page === pagination.totalPages || 
-                    Math.abs(page - pagination.page) <= 2
+                  .filter(
+                    (page) =>
+                      page === 1 ||
+                      page === pagination.totalPages ||
+                      Math.abs(page - pagination.page) <= 2
                   )
                   .map((page, index, array) => (
                     <React.Fragment key={page}>
@@ -638,9 +686,13 @@ const SchoolManagement = () => {
                         <span className="px-2 text-muted-foreground">...</span>
                       )}
                       <Button
-                        variant={pagination.page === page ? "default" : "outline"}
+                        variant={
+                          pagination.page === page ? "default" : "outline"
+                        }
                         size="sm"
-                        onClick={() => setPagination(prev => ({ ...prev, page }))}
+                        onClick={() =>
+                          setPagination((prev) => ({ ...prev, page }))
+                        }
                         className="w-10 h-10 p-0"
                       >
                         {page}
@@ -648,10 +700,12 @@ const SchoolManagement = () => {
                     </React.Fragment>
                   ))}
               </div>
-              
+
               <Button
                 variant="outline"
-                onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                onClick={() =>
+                  setPagination((prev) => ({ ...prev, page: prev.page + 1 }))
+                }
                 disabled={pagination.page === pagination.totalPages}
                 className="flex items-center gap-2"
               >
@@ -659,9 +713,10 @@ const SchoolManagement = () => {
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            
+
             <div className="text-center text-sm text-muted-foreground mt-4">
-              Page {pagination.page} of {pagination.totalPages} • {pagination.total} total schools
+              Page {pagination.page} of {pagination.totalPages} •{" "}
+              {pagination.total} total schools
             </div>
           </CardContent>
         </Card>
@@ -673,10 +728,14 @@ const SchoolManagement = () => {
         <SchoolDetailModal
           school={selectedSchool}
           onClose={() => setIsModalOpen(false)}
-          onEdit={checkPermission('schools', 'edit') ? () => {
-            setIsModalOpen(false);
-            handleEditSchool(selectedSchool);
-          } : null}
+          onEdit={
+            checkPermission("schools", "edit")
+              ? () => {
+                  setIsModalOpen(false);
+                  handleEditSchool(selectedSchool);
+                }
+              : null
+          }
         />
       )}
 

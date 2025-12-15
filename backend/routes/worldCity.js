@@ -1,5 +1,6 @@
 import express from 'express';
 import WorldCity from '../models/WorldCity.js';
+import User from '../models/User.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { logActivity, logUpdateWithOldValues } from '../middleware/activityLogger.js';
 import { requirePermission } from '../middleware/permissions.js';
@@ -180,6 +181,80 @@ router.get(
       });
     } catch (error) {
       console.error('Error fetching city stats:', error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// Get key Stats about cities (Top 5 by User Count)
+router.get(
+  '/stats/user-counts',
+  requirePermission('cities', 'view'),
+  async (req, res) => {
+    try {
+      const result = await User.aggregate([
+        // 1. Match users who have a city in their address
+        {
+          $match: {
+            "address.city": { $exists: true, $ne: null }
+          }
+        },
+        // 2. Group by city ID to count users
+        {
+          $group: {
+            _id: "$address.city",
+            userCount: { $sum: 1 },
+            // Capture fallback data for cases where city is stored as a string name or lookup fails
+            fallbackState: { $first: "$address.state" },
+            fallbackCountry: { $first: "$address.country" }
+          }
+        },
+        // 3. Sort by user count descending
+        { $sort: { userCount: -1 } },
+        // 4. Limit to top 5
+        { $limit: 5 },
+        // 5. Lookup city details
+        {
+          $lookup: {
+            from: "worldcities", // Confirm collection name for WorldCity model
+            localField: "_id",
+            foreignField: "_id",
+            as: "cityDetails"
+          }
+        },
+        // 6. Unwind cityDetails
+        { 
+          $unwind: {
+            path: "$cityDetails",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        // 7. Project final output
+        {
+          $project: {
+            _id: 1,
+            name: { 
+              $ifNull: [
+                "$cityDetails.CITY_NAME", 
+                { 
+                  $cond: { 
+                    if: { $eq: [{ $type: "$_id" }, "string"] }, 
+                    then: "$_id", 
+                    else: "Unknown City" 
+                  } 
+                }
+              ] 
+            },
+            userCount: 1,
+            state: { $ifNull: ["$cityDetails.STATE", "$fallbackState", "-"] },
+            country: { $ifNull: ["$cityDetails.COUNTRY_NAME_CODE", "$fallbackCountry", "-"] }
+          }
+        }
+      ]);
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching city user counts:', error);
       res.status(500).json({ message: error.message });
     }
   }

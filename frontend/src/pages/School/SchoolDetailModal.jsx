@@ -1,89 +1,111 @@
 // pages/src/Schools/SchoolDetailModal.jsx
-import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  Edit2, 
-  MapPin, 
-  Copy, 
-  Check, 
-  Building, 
-  Calendar, 
-  Mail, 
-  Phone, 
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  Edit2,
+  MapPin,
+  Copy,
+  Check,
+  Building,
+  Calendar,
+  Mail,
+  Phone,
   Globe,
   Users,
   BookOpen,
   Shield,
-  ExternalLink
-} from 'lucide-react';
-import PropTypes from 'prop-types';
+  ExternalLink,
+} from "lucide-react";
+import PropTypes from "prop-types";
 
 // Shadcn UI Components
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const SchoolDetailModal = ({ school, onClose, onEdit }) => {
   const [copiedField, setCopiedField] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Prevent body scroll when modal is open
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, []);
 
   const copyToClipboard = async (text, fieldName) => {
     try {
-      await navigator.clipboard.writeText(String(text ?? ''));
+      await navigator.clipboard.writeText(String(text ?? ""));
       setCopiedField(fieldName);
       setTimeout(() => setCopiedField(null), 2000);
     } catch (err) {
-      console.error('Copy failed', err);
+      console.error("Copy failed", err);
     }
   };
 
   const openMaps = () => {
-    const query = encodeURIComponent(`${school.school_name || ''} ${school.district || ''} ${school.state || ''}`);
+    const query = encodeURIComponent(
+      `${school.school_name || ""} ${school.district || ""} ${
+        school.state || ""
+      }`
+    );
     const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return '—';
+    if (!dateString) return "—";
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '—';
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    if (isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   const getStatusVariant = (status) => {
     switch (status?.toLowerCase()) {
-      case 'active': return 'default';
-      case 'inactive': return 'secondary';
-      case 'pending': return 'outline';
-      case 'verified': return 'default';
-      default: return 'secondary';
+      case "active":
+        return "default";
+      case "inactive":
+        return "secondary";
+      case "pending":
+        return "outline";
+      case "verified":
+        return "default";
+      default:
+        return "secondary";
     }
   };
 
   const getInitials = (name) => {
-    return name
-      ?.split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2) || 'SC';
+    return (
+      name
+        ?.split(" ")
+        .map((word) => word[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || "SC"
+    );
   };
 
   // Mock data for demonstration
@@ -91,7 +113,7 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
     students: 0,
     teachers: 0,
     classes: 0,
-    established: ''
+    established: "",
   };
 
   return (
@@ -112,23 +134,28 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <h1 className="text-xl font-bold truncate">
-                      {school.school_name || 'School Details'}
+                      {school.school_name || "School Details"}
                     </h1>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <Badge variant={getStatusVariant(school.status)} className="text-xs">
-                        {school.status || 'Active'}
+                      <Badge
+                        variant={getStatusVariant(school.status)}
+                        className="text-xs"
+                      >
+                        {school.status || "Active"}
                       </Badge>
                       <div className="flex items-center text-muted-foreground text-sm">
                         <MapPin className="h-3 w-3 mr-1" />
-                        <span>{school.district || '—'}, {school.state || '—'}</span>
+                        <span>
+                          {school.district || "—"}, {school.state || "—"}
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {onEdit && (
-                    <Button 
+                    <Button
                       onClick={() => onEdit(school)}
                       variant="outline"
                       size="sm"
@@ -152,7 +179,7 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
               {/* Mobile Edit Button */}
               {onEdit && (
                 <div className="sm:hidden mt-3">
-                  <Button 
+                  <Button
                     onClick={() => onEdit(school)}
                     variant="outline"
                     size="sm"
@@ -167,17 +194,30 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
 
             {/* Tabs */}
             <div className="px-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="w-full"
+              >
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="overview" className="flex items-center gap-2 text-xs">
+                  <TabsTrigger
+                    value="overview"
+                    className="flex items-center gap-2 text-xs"
+                  >
                     <Building className="h-4 w-4" />
                     <span>Overview</span>
                   </TabsTrigger>
-                  <TabsTrigger value="details" className="flex items-center gap-2 text-xs">
+                  <TabsTrigger
+                    value="details"
+                    className="flex items-center gap-2 text-xs"
+                  >
                     <Users className="h-4 w-4" />
                     <span>Details</span>
                   </TabsTrigger>
-                  <TabsTrigger value="advanced" className="flex items-center gap-2 text-xs">
+                  <TabsTrigger
+                    value="advanced"
+                    className="flex items-center gap-2 text-xs"
+                  >
                     <Shield className="h-4 w-4" />
                     <span>Advanced</span>
                   </TabsTrigger>
@@ -190,7 +230,7 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
           <ScrollArea className="h-[calc(100vh-140px)]">
             <div className="p-6 space-y-6">
               {/* Overview Tab */}
-              {activeTab === 'overview' && (
+              {activeTab === "overview" && (
                 <div className="space-y-6">
                   {/* Key Stats */}
                   <div className="grid grid-cols-2 gap-4">
@@ -200,18 +240,24 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                           <BookOpen className="h-5 w-5 text-blue-600" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-muted-foreground">UDISE Code</p>
+                          <p className="text-sm font-medium text-muted-foreground">
+                            UDISE Code
+                          </p>
                           <div className="flex items-center gap-1">
-                            <p className="font-semibold font-mono">{school.udise_code || '—'}</p>
+                            <p className="font-semibold font-mono">
+                              {school.udise_code || "—"}
+                            </p>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-5 w-5"
-                                  onClick={() => copyToClipboard(school.udise_code, 'udise')}
+                                  onClick={() =>
+                                    copyToClipboard(school.udise_code, "udise")
+                                  }
                                 >
-                                  {copiedField === 'udise' ? (
+                                  {copiedField === "udise" ? (
                                     <Check className="h-3 w-3 text-green-600" />
                                   ) : (
                                     <Copy className="h-3 w-3" />
@@ -233,8 +279,12 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                           <Users className="h-5 w-5 text-green-600" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-muted-foreground">Students</p>
-                          <p className="font-semibold">{schoolStats.students.toLocaleString()}</p>
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Students
+                          </p>
+                          <p className="font-semibold">
+                            {schoolStats.students.toLocaleString()}
+                          </p>
                         </div>
                       </CardContent>
                     </Card>
@@ -245,8 +295,12 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                           <Users className="h-5 w-5 text-purple-600" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-muted-foreground">Teachers</p>
-                          <p className="font-semibold">{schoolStats.teachers}</p>
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Teachers
+                          </p>
+                          <p className="font-semibold">
+                            {schoolStats.teachers}
+                          </p>
                         </div>
                       </CardContent>
                     </Card>
@@ -257,8 +311,12 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                           <Calendar className="h-5 w-5 text-orange-600" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-muted-foreground">Established</p>
-                          <p className="font-semibold">{schoolStats.established}</p>
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Established
+                          </p>
+                          <p className="font-semibold">
+                            {schoolStats.established}
+                          </p>
                         </div>
                       </CardContent>
                     </Card>
@@ -276,22 +334,30 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                       {/* School Name in Location Details */}
                       <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                         <div>
-                          <p className="text-sm text-muted-foreground">School Name</p>
-                          <p className="font-semibold">{school.school_name || '—'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            School Name
+                          </p>
+                          <p className="font-semibold">
+                            {school.school_name || "—"}
+                          </p>
                         </div>
                         <Badge variant="outline">School</Badge>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                         <div>
-                          <p className="text-sm text-muted-foreground">District</p>
-                          <p className="font-semibold">{school.district || '—'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            District
+                          </p>
+                          <p className="font-semibold">
+                            {school.district || "—"}
+                          </p>
                         </div>
                         <Badge variant="outline">District</Badge>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                         <div>
                           <p className="text-sm text-muted-foreground">State</p>
-                          <p className="font-semibold">{school.state || '—'}</p>
+                          <p className="font-semibold">{school.state || "—"}</p>
                         </div>
                         <Badge variant="outline">State</Badge>
                       </div>
@@ -321,15 +387,23 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                     <CardContent className="space-y-3">
                       <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                         <div>
-                          <p className="text-sm text-muted-foreground">Created</p>
-                          <p className="font-semibold">{formatDate(school.createdAt)}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Created
+                          </p>
+                          <p className="font-semibold">
+                            {formatDate(school.createdAt)}
+                          </p>
                         </div>
                         <Badge variant="secondary">Created</Badge>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                         <div>
-                          <p className="text-sm text-muted-foreground">Last Updated</p>
-                          <p className="font-semibold">{formatDate(school.updatedAt)}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Last Updated
+                          </p>
+                          <p className="font-semibold">
+                            {formatDate(school.updatedAt)}
+                          </p>
                         </div>
                         <Badge variant="secondary">Updated</Badge>
                       </div>
@@ -339,7 +413,7 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
               )}
 
               {/* Details Tab */}
-              {activeTab === 'details' && (
+              {activeTab === "details" && (
                 <div className="space-y-6">
                   {/* Basic Information */}
                   <Card>
@@ -353,18 +427,28 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                       <div className="grid grid-cols-1 gap-3">
                         <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                           <div>
-                            <p className="text-sm font-medium text-muted-foreground">School Name</p>
-                            <p className="font-semibold">{school.school_name || '—'}</p>
+                            <p className="text-sm font-medium text-muted-foreground">
+                              School Name
+                            </p>
+                            <p className="font-semibold">
+                              {school.school_name || "—"}
+                            </p>
                           </div>
                           <Badge variant="outline">Primary</Badge>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                          <span className="text-sm font-medium">School Type</span>
-                          <Badge variant="outline">{school.school_type || '—'}</Badge>
+                          <span className="text-sm font-medium">
+                            School Type
+                          </span>
+                          <Badge variant="outline">
+                            {school.school_type || "—"}
+                          </Badge>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                           <span className="text-sm font-medium">Category</span>
-                          <Badge variant="outline">{school.category || '—'}</Badge>
+                          <Badge variant="outline">
+                            {school.category || "—"}
+                          </Badge>
                         </div>
                         {/* <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                           <span className="text-sm font-medium">Management</span>
@@ -372,7 +456,7 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                         </div> */}
                         <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                           <span className="text-sm font-medium">Board</span>
-                          <Badge variant="outline">{school.board || '—'}</Badge>
+                          <Badge variant="outline">{school.board || "—"}</Badge>
                         </div>
                       </div>
                     </CardContent>
@@ -393,7 +477,9 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                             <Mail className="h-4 w-4 text-muted-foreground" />
                             <div>
                               <p className="text-sm font-medium">Email</p>
-                              <p className="text-sm text-muted-foreground">{school.email}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {school.email}
+                              </p>
                             </div>
                           </div>
                           <Tooltip>
@@ -401,9 +487,11 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => copyToClipboard(school.email, 'email')}
+                                onClick={() =>
+                                  copyToClipboard(school.email, "email")
+                                }
                               >
-                                {copiedField === 'email' ? (
+                                {copiedField === "email" ? (
                                   <Check className="h-4 w-4 text-green-600" />
                                 ) : (
                                   <Copy className="h-4 w-4" />
@@ -428,7 +516,9 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                             <Phone className="h-4 w-4 text-muted-foreground" />
                             <div>
                               <p className="text-sm font-medium">Phone</p>
-                              <p className="text-sm text-muted-foreground">{school.phone}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {school.phone}
+                              </p>
                             </div>
                           </div>
                           <Tooltip>
@@ -436,9 +526,11 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => copyToClipboard(school.phone, 'phone')}
+                                onClick={() =>
+                                  copyToClipboard(school.phone, "phone")
+                                }
                               >
-                                {copiedField === 'phone' ? (
+                                {copiedField === "phone" ? (
                                   <Check className="h-4 w-4 text-green-600" />
                                 ) : (
                                   <Copy className="h-4 w-4" />
@@ -463,13 +555,17 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                             <Globe className="h-4 w-4 text-muted-foreground" />
                             <div>
                               <p className="text-sm font-medium">Website</p>
-                              <p className="text-sm text-muted-foreground truncate">{school.website}</p>
+                              <p className="text-sm text-muted-foreground truncate">
+                                {school.website}
+                              </p>
                             </div>
                           </div>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => window.open(school.website, '_blank')}
+                            onClick={() =>
+                              window.open(school.website, "_blank")
+                            }
                           >
                             <ExternalLink className="h-4 w-4" />
                           </Button>
@@ -489,15 +585,21 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                     <CardContent className="space-y-3">
                       <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                         <div>
-                          <p className="text-sm font-medium text-muted-foreground">District</p>
-                          <p className="font-semibold">{school.district || '—'}</p>
+                          <p className="text-sm font-medium text-muted-foreground">
+                            District
+                          </p>
+                          <p className="font-semibold">
+                            {school.district || "—"}
+                          </p>
                         </div>
                         <Badge variant="outline">District</Badge>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                         <div>
-                          <p className="text-sm font-medium text-muted-foreground">State</p>
-                          <p className="font-semibold">{school.state || '—'}</p>
+                          <p className="text-sm font-medium text-muted-foreground">
+                            State
+                          </p>
+                          <p className="font-semibold">{school.state || "—"}</p>
                         </div>
                         <Badge variant="outline">State</Badge>
                       </div>
@@ -516,7 +618,7 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
               )}
 
               {/* Advanced Tab */}
-              {activeTab === 'advanced' && (
+              {activeTab === "advanced" && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
@@ -532,15 +634,15 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
                       <div>
                         <p className="text-sm font-medium">School ID</p>
                         <code className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                          {school._id || '—'}
+                          {school._id || "—"}
                         </code>
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => copyToClipboard(school._id, 'schoolId')}
+                        onClick={() => copyToClipboard(school._id, "schoolId")}
                       >
-                        {copiedField === 'schoolId' ? (
+                        {copiedField === "schoolId" ? (
                           <Check className="h-4 w-4 mr-2 text-green-600" />
                         ) : (
                           <Copy className="h-4 w-4 mr-2" />
@@ -573,7 +675,7 @@ const SchoolDetailModal = ({ school, onClose, onEdit }) => {
 SchoolDetailModal.propTypes = {
   school: PropTypes.object.isRequired,
   onClose: PropTypes.func.isRequired,
-  onEdit: PropTypes.func
+  onEdit: PropTypes.func,
 };
 
 export default SchoolDetailModal;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Filter, X, FileText, Users } from "lucide-react";
+import { Search, Filter, X, FileText, Users, BarChart } from "lucide-react";
 import PostTable from "./PostTable";
 import PostDetailModal from "./PostDetailModal";
 import api from "../../services/api";
@@ -37,6 +37,10 @@ const PostManagement = () => {
   });
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const lastLoggedSearchRef = useRef("");
+  const [stats, setStats] = useState({
+    averageLikes: 0,
+    averageComments: 0,
+  });
 
   // Debounce search term
   useEffect(() => {
@@ -49,6 +53,7 @@ const PostManagement = () => {
 
   useEffect(() => {
     fetchPosts();
+    fetchPostStats();
   }, [pagination.page, debouncedSearchTerm]);
 
   // Function to log search activity
@@ -107,6 +112,39 @@ const PostManagement = () => {
       setLoading(false);
     }
   };
+
+  const fetchPostStats = async () => {
+    try {
+      const response = await api.get("/posts/stats/summary");
+      setStats(response.data);
+    } catch (error) {
+      console.error("Error fetching post stats:", error);
+    }
+  };
+
+  // StatCard Component
+  const StatCard = ({ title, value, icon, bgColor, subtitle, children }) => (
+    <div className={`${bgColor} p-6 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between`}>
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-sm font-medium text-white/90 mb-1">{title}</p>
+          <h3 className="text-3xl font-bold text-white tracking-tight">{value}</h3>
+          {subtitle && (
+            <p className="text-xs text-white/80 mt-1">{subtitle}</p>
+          )}
+        </div>
+        <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
+          {icon}
+        </div>
+      </div>
+      
+      {children && (
+        <div className="mt-4 pt-3 border-t border-white/30">
+          {children}
+        </div>
+      )}
+    </div>
+  );
 
   const handlePostClick = (post) => {
     setSelectedPost(post);
@@ -221,12 +259,12 @@ const PostManagement = () => {
                     disabled={loading}
                   />
                   {searchTerm && (
-                    <button
+                    <Button
                       onClick={handleClearSearch}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       <X className="h-4 w-4" />
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <Button
@@ -251,45 +289,49 @@ const PostManagement = () => {
                     className="flex items-center space-x-1"
                   >
                     <span>Search: "{searchTerm}"</span>
-                    <button onClick={handleClearSearch}>
+                    <Button onClick={handleClearSearch}>
                       <X className="h-3 w-3" />
-                    </button>
+                    </Button>
                   </Badge>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Stats Cards */}
+          {/* Stats Cards - UPDATED with colorful solid backgrounds */}
           {!loading && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Total Posts
-                      </p>
-                      <p className="text-2xl font-bold">{pagination.total}</p>
-                    </div>
-                    <FileText className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Total Posts Card */}
+              <StatCard 
+                title="Total Posts" 
+                value={pagination.total}
+                icon={<FileText className="w-6 h-6 text-white" />}
+                bgColor="bg-gradient-to-br from-indigo-600 to-indigo-700"
+                subtitle="All platform posts"
+              >
+                <div className="flex items-center gap-2 text-xs font-medium text-white/80">
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-emerald-300"></span>
+                    Showing {Math.min(pagination.limit, posts.length)} on this page
+                  </span>
+                </div>
+              </StatCard>
 
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Current Page
-                      </p>
-                      <p className="text-2xl font-bold">{pagination.page}</p>
-                    </div>
-                    <Users className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Current Page Card */}
+              <StatCard 
+                title="Current Page" 
+                value={pagination.page}
+                icon={<Users className="w-6 h-6 text-white" />}
+                bgColor="bg-gradient-to-br from-blue-600 to-blue-700"
+                subtitle={`of ${pagination.totalPages} pages`}
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-white/80">Posts per page:</span>
+                  <span className="font-bold text-white">{pagination.limit}</span>
+                </div>
+              </StatCard>
+
+             
             </div>
           )}
 

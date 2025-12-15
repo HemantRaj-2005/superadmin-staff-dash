@@ -1,5 +1,6 @@
 import express from 'express';
 import Organisation from '../models/Organisation.js';
+import User from '../models/User.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { logActivity, logUpdateWithOldValues } from '../middleware/activityLogger.js';
 import { requirePermission } from '../middleware/permissions.js';
@@ -208,6 +209,82 @@ router.get(
       });
     } catch (error) {
       console.error('Error fetching organisation stats:', error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// Get key Stats about organisations (Top 5 by User Count)
+router.get(
+  '/stats/user-counts',
+  requirePermission('organisations', 'view'),
+  async (req, res) => {
+    try {
+      const result = await User.aggregate([
+        // 1. Project relevant fields to simplify the documents
+        {
+          $project: {
+            education: 1
+          }
+        },
+        // 2. Unwind the education array to process each education entry
+        { $unwind: "$education" },
+        // 3. Match entries that have either a university or institute linked
+        {
+          $match: {
+            $or: [
+              { "education.university": { $exists: true, $ne: null } },
+              { "education.institute": { $exists: true, $ne: null } }
+            ]
+          }
+        },
+        // 4. Group by User ID and Organization ID to count unique users per organization
+        // We want to count a user once per organization even if they have multiple degrees there
+        {
+          $group: {
+            _id: {
+              organization: { $ifNull: ["$education.university", "$education.institute"] },
+              user: "$_id"
+            }
+          }
+        },
+        // 5. Group by Organization to count total unique users
+        {
+          $group: {
+            _id: "$_id.organization",
+            userCount: { $sum: 1 }
+          }
+        },
+        // 6. Sort by user count descending
+        { $sort: { userCount: -1 } },
+        // 7. Limit to top 5
+        { $limit: 5 },
+        // 8. Lookup organization details to get the name
+        {
+          $lookup: {
+            from: "organizations", // Confirm collection name is 'organizations' (plural of model name usually)
+            localField: "_id",
+            foreignField: "_id",
+            as: "orgDetails"
+          }
+        },
+        // 9. Unwind orgDetails
+        { $unwind: "$orgDetails" },
+        // 10. Project final output
+        {
+          $project: {
+            _id: 1,
+            name: "$orgDetails.name",
+            userCount: 1,
+            industry: "$orgDetails.industry",
+            country: "$orgDetails.location.country"
+          }
+        }
+      ]);
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching organisation user counts:', error);
       res.status(500).json({ message: error.message });
     }
   }

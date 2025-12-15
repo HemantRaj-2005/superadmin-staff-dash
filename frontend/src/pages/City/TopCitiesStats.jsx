@@ -1,0 +1,124 @@
+import React, { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Users, Trophy, MapPin } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import api from "../../services/api";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const TopCitiesStats = () => {
+  const [topCities, setTopCities] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTopCities = async () => {
+      try {
+        const response = await api.get("/cities/stats/user-counts");
+        setTopCities(response.data);
+      } catch (error) {
+        console.error("Error fetching top cities:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTopCities();
+  }, []);
+
+  if (loading) {
+    return (
+      <Card className="h-full shadow-lg border-0 bg-linear-to-br from-indigo-50 to-white dark:from-indigo-950 dark:to-gray-900">
+        <CardHeader>
+          <Skeleton className="h-6 w-48 mb-2" />
+          <Skeleton className="h-4 w-32" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="h-full shadow-lg border-0 bg-linear-to-br from-indigo-50 to-white dark:from-indigo-950 dark:to-gray-900">
+      <CardHeader>
+        <CardTitle className="flex items-center text-xl text-indigo-900 dark:text-indigo-100">
+          <Trophy className="h-5 w-5 mr-2 text-yellow-500" />
+          Top 5 Cities
+        </CardTitle>
+        <CardDescription className="text-indigo-600/80 dark:text-indigo-300/80">
+          By user residence count
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {topCities.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No data available
+            </div>
+          ) : (
+            topCities.map((city, index) => (
+              <div
+                key={city._id}
+                className="group flex items-center justify-between p-3 rounded-xl bg-white/60 dark:bg-gray-800/60 hover:bg-white dark:hover:bg-gray-800 transition-all duration-300 shadow-sm hover:shadow-md border border-indigo-100 dark:border-indigo-900"
+              >
+                <div className="flex items-center space-x-3">
+                  <div
+                    className={`
+                    flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm
+                    ${
+                      index === 0
+                        ? "bg-yellow-100 text-yellow-700 ring-2 ring-yellow-400"
+                        : index === 1
+                        ? "bg-gray-100 text-gray-700 ring-2 ring-gray-400"
+                        : index === 2
+                        ? "bg-orange-100 text-orange-700 ring-2 ring-orange-400"
+                        : "bg-indigo-100 text-indigo-700"
+                    }
+                  `}
+                  >
+                    {index + 1}
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                      {city.name}
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                      <span className="truncate max-w-[150px]">
+                        {city.state}
+                      </span>
+                      {city.country && (
+                        <>
+                          <span className="mx-1">•</span>
+                          <span>{city.country}</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <Badge
+                  variant="secondary"
+                  className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300"
+                >
+                  <Users className="h-3 w-3 mr-1" />
+                  {city.userCount}
+                </Badge>
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default TopCitiesStats;

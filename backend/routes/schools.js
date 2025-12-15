@@ -1,6 +1,7 @@
 // routes/schools.js
 import express from 'express';
 import School from '../models/School.js';
+import User from '../models/User.js';
 import { authenticate } from '../middleware/auth.js';
 import { populateAdminPermissions, requirePermission } from '../middleware/permissions.js';
 import { logActivity, logUpdateWithOldValues } from '../middleware/activityLogger.js';
@@ -118,11 +119,74 @@ router.get('/stats/overview',
         .sort({ createdAt: -1 })
         .limit(5);
 
+      // --- New User Stats ---
+
+      // 1. Top States by User Count
+      const usersByState = await User.aggregate([
+        {
+          $group: {
+            _id: '$address.state',
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { count: -1 } },
+        { $limit: 10 }
+      ]);
+
+      // 2. Top Districts by User Count
+      // Users link to School via string name. We need to match that to School docs to get district.
+      const usersByDistrict = await User.aggregate([
+        // Unwind education array to get each school entry
+        { $unwind: '$education' },
+        // Match only if school name exists
+        { $match: { 'education.school': { $exists: true, $ne: '' } } },
+        // Lookup the school details from School collection to find the district
+        // NOTE: This assumes 'education.school' stores the school NAME matching 'school_name' in School collection.
+        // If it stores ID, change to match localField accordingly.
+        // Based on discussion/schemas, it seems like names are used.
+        {
+          $lookup: {
+            from: 'schools',
+            localField: 'education.school',
+            foreignField: 'school_name', // Assuming matching by name
+            as: 'schoolDetails'
+          }
+        },
+        // Unwind the looked-up school details (keep users even if school not found? no, we want valid districts)
+        { $unwind: '$schoolDetails' },
+        // Group by District
+        {
+          $group: {
+            _id: '$schoolDetails.district',
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { count: -1 } },
+        { $limit: 10 }
+      ]);
+
+      // 3. Top Schools by User Count
+      const usersBySchool = await User.aggregate([
+        { $unwind: '$education' },
+        { $match: { 'education.school': { $exists: true, $ne: '' } } },
+        {
+          $group: {
+            _id: '$education.school',
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { count: -1 } },
+        { $limit: 10 }
+      ]);
+
       res.json({
         totalSchools,
         schoolsByState,
         schoolsByDistrict,
-        recentSchools
+        recentSchools,
+        usersByState,
+        usersByDistrict,
+        usersBySchool
       });
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -155,7 +219,12 @@ router.post('/',
   logActivity('CREATE_SCHOOL', { resourceType: 'School' }),
   async (req, res) => {
     try {
-      const { district, school_name, state, udise_code } = req.body;
+      const { 
+        district, 
+        school_name, 
+        state, 
+        udise_code
+      } = req.body;
 
       // Check if UDISE code already exists
       const existingSchool = await School.findOne({ udise_code });
@@ -188,12 +257,20 @@ router.put('/:id',
   logActivity('UPDATE_SCHOOL', { resourceType: 'School' }),
   async (req, res) => {
     try {
-      const { district, school_name, state, udise_code } = req.body;
+      const { 
+        district, 
+        school_name, 
+        state, 
+        udise_code
+      } = req.body;
       const oldSchool = req.oldData;
 
       // Check if UDISE code is being changed and if it already exists
-      if (udise_code && udise_code !== oldSchool.udise_code) {
-        const existingSchool = await School.findOne({ udise_code });
+      if (udise_code) {
+        const existingSchool = await School.findOne({ 
+          udise_code, 
+          _id: { $ne: req.params.id } 
+        });
         if (existingSchool) {
           return res.status(400).json({ message: 'Another school with this UDISE code already exists' });
         }
