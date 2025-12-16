@@ -1,38 +1,62 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, Filter, X, Plus, GraduationCap, BookOpen, Users, ChevronRight } from 'lucide-react';
-import ProgramCard from './ProgramCard';
-import SpecializationsModal from './SpecilizationModal';
-import EducationalProgramCreateModal from './EducationalProgramCreateModal';
-import api from '../../services/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Search,
+  Filter,
+  X,
+  Plus,
+  GraduationCap,
+  BookOpen,
+  Users,
+  ChevronRight,
+} from "lucide-react";
+import ProgramCard from "./ProgramCard";
+import ProgramStats from "./ProgramStats";
+import SpecializationsModal from "./SpecilizationModal";
+import EducationalProgramCreateModal from "./EducationalProgramCreateModal";
+import api from "../../services/api";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const EducationalProgramManagement = () => {
   const [programs, setPrograms] = useState([]);
   const [selectedProgram, setSelectedProgram] = useState(null);
-  const [isSpecializationsModalOpen, setIsSpecializationsModalOpen] = useState(false);
+  const [isSpecializationsModalOpen, setIsSpecializationsModalOpen] =
+    useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [searchInput, setSearchInput] = useState(''); // For input field
-  const [searchTerm, setSearchTerm] = useState(''); // For actual search
-  const [programInput, setProgramInput] = useState(''); // For program filter input
-  const [programFilter, setProgramFilter] = useState(''); // For actual program filter
+  const [searchInput, setSearchInput] = useState(""); // For input field
+  const [searchTerm, setSearchTerm] = useState(""); // For actual search
+  const [programInput, setProgramInput] = useState(""); // For program filter input
+  const [programFilter, setProgramFilter] = useState(""); // For actual program filter
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 6, // 6 programs per page
     total: 0,
-    totalPages: 0
+    totalPages: 0,
   });
-  
+
   // Track last logged search to avoid duplicates
   const lastLoggedSearchRef = useRef({
-    search: '',
-    program: '',
-    page: 1
+    search: "",
+    program: "",
+    page: 1,
   });
 
   useEffect(() => {
@@ -40,16 +64,20 @@ const EducationalProgramManagement = () => {
   }, [pagination.page, searchTerm, programFilter]);
 
   // Function to log search activity
-  const logSearchActivity = async (searchQuery, programQuery, resultsCount = 0) => {
+  const logSearchActivity = async (
+    searchQuery,
+    programQuery,
+    resultsCount = 0
+  ) => {
     try {
       const currentSearchData = {
         search: searchQuery,
         program: programQuery,
-        page: pagination.page
+        page: pagination.page,
       };
 
       const lastLogged = lastLoggedSearchRef.current;
-      
+
       // Skip if same search was just logged
       if (
         currentSearchData.search === lastLogged.search &&
@@ -60,18 +88,18 @@ const EducationalProgramManagement = () => {
       }
 
       // Build description based on active filters
-      let description = 'Searched for educational programs';
+      let description = "Searched for educational programs";
       const activeFilters = [];
-      
+
       if (searchQuery) {
         activeFilters.push(`search: "${searchQuery}"`);
       }
       if (programQuery) {
         activeFilters.push(`program: "${programQuery}"`);
       }
-      
+
       if (activeFilters.length > 0) {
-        description += ` with ${activeFilters.join(', ')}`;
+        description += ` with ${activeFilters.join(", ")}`;
       }
 
       await api.post("/activity-logs", {
@@ -85,7 +113,7 @@ const EducationalProgramManagement = () => {
           totalResults: pagination.total,
           page: pagination.page,
           timestamp: new Date().toISOString(),
-        }
+        },
       });
 
       // Update last logged search
@@ -99,74 +127,80 @@ const EducationalProgramManagement = () => {
   const fetchPrograms = async () => {
     setLoading(true);
     try {
-      console.log('Fetching GROUPED programs with params:', {
+      console.log("Fetching GROUPED programs with params:", {
         page: pagination.page,
         limit: pagination.limit,
         search: searchTerm,
-        program: programFilter
+        program: programFilter,
       });
 
       // Use the new grouped endpoint
-      const response = await api.get('/educational-programs/grouped/programs', {
+      const response = await api.get("/educational-programs/grouped/programs", {
         params: {
           page: pagination.page,
           limit: pagination.limit,
           search: searchTerm,
-          program: programFilter
-        }
+          program: programFilter,
+        },
       });
-      
-      console.log('GROUPED API Response:', response.data);
-      
+
+      console.log("GROUPED API Response:", response.data);
+
       setPrograms(response.data.programs);
-      setPagination(prev => ({
+      setPagination((prev) => ({
         ...prev,
         total: response.data.total,
-        totalPages: response.data.totalPages
+        totalPages: response.data.totalPages,
       }));
 
       // Log search activity after successful fetch
       // Only log if there are active search or filters
-      const hasActiveSearch = searchTerm.trim() !== '' || programFilter.trim() !== '';
-      
+      const hasActiveSearch =
+        searchTerm.trim() !== "" || programFilter.trim() !== "";
+
       if (hasActiveSearch) {
-        logSearchActivity(searchTerm, programFilter, response.data.programs.length);
+        logSearchActivity(
+          searchTerm,
+          programFilter,
+          response.data.programs.length
+        );
       }
     } catch (error) {
-      console.error('Error fetching grouped educational programs:', error);
+      console.error("Error fetching grouped educational programs:", error);
       // Fallback to regular endpoint if grouped endpoint fails
       try {
-        console.log('Falling back to regular endpoint...');
-        const fallbackResponse = await api.get('/educational-programs', {
+        console.log("Falling back to regular endpoint...");
+        const fallbackResponse = await api.get("/educational-programs", {
           params: {
             page: pagination.page,
             limit: pagination.limit * 10, // Get more documents to group
             search: searchTerm,
-            program: programFilter
-          }
+            program: programFilter,
+          },
         });
-        
+
         // Group manually as fallback
         const grouped = groupProgramsManually(fallbackResponse.data.programs);
         const paginatedGroups = Object.values(grouped).slice(
           (pagination.page - 1) * pagination.limit,
           pagination.page * pagination.limit
         );
-        
+
         setPrograms(paginatedGroups);
-        setPagination(prev => ({
+        setPagination((prev) => ({
           ...prev,
           total: Object.keys(grouped).length,
-          totalPages: Math.ceil(Object.keys(grouped).length / pagination.limit)
+          totalPages: Math.ceil(Object.keys(grouped).length / pagination.limit),
         }));
 
         // Log search activity for fallback
-        const hasActiveSearch = searchTerm.trim() !== '' || programFilter.trim() !== '';
+        const hasActiveSearch =
+          searchTerm.trim() !== "" || programFilter.trim() !== "";
         if (hasActiveSearch) {
           logSearchActivity(searchTerm, programFilter, paginatedGroups.length);
         }
       } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
+        console.error("Fallback also failed:", fallbackError);
       }
     } finally {
       setLoading(false);
@@ -176,37 +210,41 @@ const EducationalProgramManagement = () => {
   // Fallback grouping function
   const groupProgramsManually = (programsList) => {
     const grouped = {};
-    
-    programsList.forEach(program => {
+
+    programsList.forEach((program) => {
       const programName = program.Program;
-      
+
       if (!grouped[programName]) {
         grouped[programName] = {
           programName: programName,
           specializations: [],
           totalSpecializations: 0,
           latestUpdate: program.updatedAt,
-          createdAt: program.createdAt
+          createdAt: program.createdAt,
         };
       }
-      
+
       grouped[programName].specializations.push({
         _id: program._id,
         Specialization: program.Specialization,
         createdAt: program.createdAt,
         updatedAt: program.updatedAt,
         isDeleted: program.isDeleted,
-        deletedAt: program.deletedAt
+        deletedAt: program.deletedAt,
       });
-      
-      grouped[programName].totalSpecializations = grouped[programName].specializations.length;
-      
+
+      grouped[programName].totalSpecializations =
+        grouped[programName].specializations.length;
+
       // Update latest update time
-      if (new Date(program.updatedAt) > new Date(grouped[programName].latestUpdate)) {
+      if (
+        new Date(program.updatedAt) >
+        new Date(grouped[programName].latestUpdate)
+      ) {
         grouped[programName].latestUpdate = program.updatedAt;
       }
     });
-    
+
     return grouped;
   };
 
@@ -214,51 +252,42 @@ const EducationalProgramManagement = () => {
   const handleSearch = () => {
     setSearchTerm(searchInput);
     setProgramFilter(programInput);
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  // Handle clear search
-  const handleClearSearch = () => {
-    setSearchInput('');
-    setProgramInput('');
-    setSearchTerm('');
-    setProgramFilter('');
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   // Handle clear all filters
   const clearFilters = () => {
-    setSearchInput('');
-    setProgramInput('');
-    setSearchTerm('');
-    setProgramFilter('');
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setSearchInput("");
+    setProgramInput("");
+    setSearchTerm("");
+    setProgramFilter("");
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   // Handle Enter key press in search inputs
   const handleKeyPress = (e, inputType) => {
-    if (e.key === 'Enter') {
-      if (inputType === 'search' && searchInput.trim() !== '') {
+    if (e.key === "Enter") {
+      if (inputType === "search" && searchInput.trim() !== "") {
         handleSearch();
-      } else if (inputType === 'program' && programInput.trim() !== '') {
+      } else if (inputType === "program" && programInput.trim() !== "") {
         handleSearch();
       }
     }
   };
 
   const handleProgramClick = (programData) => {
-    console.log('Clicked program:', programData);
+    console.log("Clicked program:", programData);
     setSelectedProgram(programData);
     setIsSpecializationsModalOpen(true);
   };
 
   const handleCreateProgram = async (programData) => {
     try {
-      await api.post('/educational-programs', programData);
+      await api.post("/educational-programs", programData);
       fetchPrograms(); // Refresh the list
       setIsCreateModalOpen(false);
     } catch (error) {
-      console.error('Error creating educational program:', error);
+      console.error("Error creating educational program:", error);
       throw error;
     }
   };
@@ -268,20 +297,23 @@ const EducationalProgramManagement = () => {
       await api.delete(`/educational-programs/${programId}`);
       fetchPrograms(); // Refresh the list
     } catch (error) {
-      console.error('Error deleting educational program:', error);
+      console.error("Error deleting educational program:", error);
     }
   };
 
   const handlePageChange = (newPage) => {
-    setPagination(prev => ({ ...prev, page: newPage }));
+    setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
   const hasActiveFilters = searchTerm || programFilter;
 
   // Calculate statistics
   const totalPrograms = pagination.total;
-  const totalSpecializations = programs.reduce((sum, program) => sum + program.totalSpecializations, 0);
-  
+  const totalSpecializations = programs.reduce(
+    (sum, program) => sum + program.totalSpecializations,
+    0
+  );
+
   // Get programs with most specializations for popular section
   const popularPrograms = [...programs]
     .sort((a, b) => b.totalSpecializations - a.totalSpecializations)
@@ -292,12 +324,17 @@ const EducationalProgramManagement = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Educational Programs</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Educational Programs
+          </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Manage all academic programs and their specializations
           </p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+        <Button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add Program
         </Button>
@@ -305,11 +342,13 @@ const EducationalProgramManagement = () => {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+        <Card className="bg-linear-to-br from-blue-500 to-blue-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">Total Programs</p>
+                <p className="text-blue-100 text-sm font-medium">
+                  Total Programs
+                </p>
                 <p className="text-3xl font-bold mt-1">{totalPrograms}</p>
               </div>
               <div className="p-3 bg-white/20 rounded-lg">
@@ -319,12 +358,16 @@ const EducationalProgramManagement = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
+        <Card className="bg-linear-to-br from-green-500 to-green-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">Specializations</p>
-                <p className="text-3xl font-bold mt-1">{totalSpecializations}</p>
+                <p className="text-green-100 text-sm font-medium">
+                  Specializations
+                </p>
+                <p className="text-3xl font-bold mt-1">
+                  {totalSpecializations}
+                </p>
               </div>
               <div className="p-3 bg-white/20 rounded-lg">
                 <BookOpen className="h-6 w-6" />
@@ -333,7 +376,7 @@ const EducationalProgramManagement = () => {
           </CardContent>
         </Card>
 
-        {/* <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+        {/* <Card className="bg-linear-to-br from-purple-500 to-purple-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -347,17 +390,26 @@ const EducationalProgramManagement = () => {
           </CardContent>
         </Card> */}
 
-        <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+        <Card className="bg-linear-to-br from-orange-500 to-orange-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-orange-100 text-sm font-medium">Results</p>
                 <p className="text-3xl font-bold mt-1">{programs.length}</p>
               </div>
-              <div className={`h-3 w-3 rounded-full ${loading ? 'bg-yellow-400' : 'bg-green-400'}`} />
+              <div
+                className={`h-3 w-3 rounded-full ${
+                  loading ? "bg-yellow-400" : "bg-green-400"
+                }`}
+              />
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Detailed Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <ProgramStats />
       </div>
 
       {/* Search and Filters */}
@@ -376,13 +428,13 @@ const EducationalProgramManagement = () => {
                       placeholder="Search by program name or specialization..."
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
-                      onKeyPress={(e) => handleKeyPress(e, 'search')}
+                      onKeyPress={(e) => handleKeyPress(e, "search")}
                       className="pl-10 pr-10"
                       disabled={loading}
                     />
                     {searchInput && (
                       <button
-                        onClick={() => setSearchInput('')}
+                        onClick={() => setSearchInput("")}
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
                         <X className="h-4 w-4" />
@@ -391,7 +443,7 @@ const EducationalProgramManagement = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Filter by Program
@@ -403,13 +455,13 @@ const EducationalProgramManagement = () => {
                       placeholder="Enter program name..."
                       value={programInput}
                       onChange={(e) => setProgramInput(e.target.value)}
-                      onKeyPress={(e) => handleKeyPress(e, 'program')}
+                      onKeyPress={(e) => handleKeyPress(e, "program")}
                       className="pl-10 pr-10"
                       disabled={loading}
                     />
                     {programInput && (
                       <button
-                        onClick={() => setProgramInput('')}
+                        onClick={() => setProgramInput("")}
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
                         <X className="h-4 w-4" />
@@ -419,14 +471,16 @@ const EducationalProgramManagement = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex gap-2">
               <Button
                 onClick={handleSearch}
                 disabled={loading}
                 className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
               >
-                {loading && (searchTerm === searchInput || programFilter === programInput) ? (
+                {loading &&
+                (searchTerm === searchInput ||
+                  programFilter === programInput) ? (
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
                 ) : (
                   <>
@@ -450,7 +504,9 @@ const EducationalProgramManagement = () => {
           {/* Current Search Display */}
           {(searchTerm || programFilter) && (
             <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">Current Search</p>
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">
+                Current Search
+              </p>
               <div className="flex flex-wrap gap-2">
                 {searchTerm && (
                   <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
@@ -470,25 +526,37 @@ const EducationalProgramManagement = () => {
           {hasActiveFilters && (
             <div className="mt-4 flex flex-wrap gap-2">
               {searchTerm && (
-                <Badge variant="secondary" className="flex items-center space-x-1 bg-blue-100 text-blue-800">
+                <Badge
+                  variant="secondary"
+                  className="flex items-center space-x-1 bg-blue-100 text-blue-800"
+                >
                   <span>Search: "{searchTerm}"</span>
-                  <button onClick={() => {
-                    setSearchInput('');
-                    setSearchTerm('');
-                    setPagination(prev => ({ ...prev, page: 1 }));
-                  }} className="hover:text-blue-600">
+                  <button
+                    onClick={() => {
+                      setSearchInput("");
+                      setSearchTerm("");
+                      setPagination((prev) => ({ ...prev, page: 1 }));
+                    }}
+                    className="hover:text-blue-600"
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
               )}
               {programFilter && (
-                <Badge variant="secondary" className="flex items-center space-x-1 bg-green-100 text-green-800">
+                <Badge
+                  variant="secondary"
+                  className="flex items-center space-x-1 bg-green-100 text-green-800"
+                >
                   <span>Program: "{programFilter}"</span>
-                  <button onClick={() => {
-                    setProgramInput('');
-                    setProgramFilter('');
-                    setPagination(prev => ({ ...prev, page: 1 }));
-                  }} className="hover:text-green-600">
+                  <button
+                    onClick={() => {
+                      setProgramInput("");
+                      setProgramFilter("");
+                      setPagination((prev) => ({ ...prev, page: 1 }));
+                    }}
+                    className="hover:text-green-600"
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -513,13 +581,17 @@ const EducationalProgramManagement = () => {
           <CardContent>
             <div className="flex flex-wrap gap-3">
               {popularPrograms.map((program) => (
-                <div 
+                <div
                   key={program.programName}
-                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800 cursor-pointer hover:shadow-md transition-shadow"
+                  className="flex items-center space-x-2 px-4 py-2 bg-linear-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800 cursor-pointer hover:shadow-md transition-shadow"
                   onClick={() => handleProgramClick(program)}
                 >
-                  <span className="font-medium text-purple-900 dark:text-purple-100">{program.programName}</span>
-                  <Badge className="bg-purple-500 text-white">{program.totalSpecializations}</Badge>
+                  <span className="font-medium text-purple-900 dark:text-purple-100">
+                    {program.programName}
+                  </span>
+                  <Badge className="bg-purple-500 text-white">
+                    {program.totalSpecializations}
+                  </Badge>
                   <ChevronRight className="h-4 w-4 text-purple-400" />
                 </div>
               ))}
@@ -535,7 +607,8 @@ const EducationalProgramManagement = () => {
             <div>
               <CardTitle>All Programs</CardTitle>
               <CardDescription>
-                {totalPrograms} programs with {totalSpecializations} specializations
+                {totalPrograms} programs with {totalSpecializations}{" "}
+                specializations
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-sm">
@@ -564,13 +637,14 @@ const EducationalProgramManagement = () => {
             <div className="text-center py-12">
               <GraduationCap className="h-16 w-16 mx-auto text-gray-300 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                {hasActiveFilters ? 'No programs match your search' : 'No programs found'}
+                {hasActiveFilters
+                  ? "No programs match your search"
+                  : "No programs found"}
               </h3>
               <p className="text-gray-500 dark:text-gray-400 mb-6">
-                {hasActiveFilters 
+                {hasActiveFilters
                   ? "Try adjusting your search or filters to find what you're looking for."
-                  : "Get started by creating your first educational program."
-                }
+                  : "Get started by creating your first educational program."}
               </p>
               {!hasActiveFilters && (
                 <Button onClick={() => setIsCreateModalOpen(true)}>
@@ -599,20 +673,27 @@ const EducationalProgramManagement = () => {
               {pagination.totalPages > 1 && (
                 <div className="flex items-center justify-between mt-8 pt-6 border-t">
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
-                    {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                    {pagination.total} programs
+                    Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                    {Math.min(
+                      pagination.page * pagination.limit,
+                      pagination.total
+                    )}{" "}
+                    of {pagination.total} programs
                   </div>
-                  
+
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
                         <PaginationPrevious
                           onClick={() => handlePageChange(pagination.page - 1)}
-                          className={pagination.page === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          className={
+                            pagination.page === 1
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
                         />
                       </PaginationItem>
-                      
+
                       {[...Array(pagination.totalPages)].map((_, index) => (
                         <PaginationItem key={index + 1}>
                           <PaginationLink
@@ -624,11 +705,15 @@ const EducationalProgramManagement = () => {
                           </PaginationLink>
                         </PaginationItem>
                       ))}
-                      
+
                       <PaginationItem>
                         <PaginationNext
                           onClick={() => handlePageChange(pagination.page + 1)}
-                          className={pagination.page === pagination.totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          className={
+                            pagination.page === pagination.totalPages
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
                         />
                       </PaginationItem>
                     </PaginationContent>
