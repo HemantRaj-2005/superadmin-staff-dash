@@ -124,10 +124,22 @@ router.get('/stats/overview',
       // 1. Top States by User Count
       const usersByState = await User.aggregate([
         {
+          $match: {
+            'address.state': { $exists: true, $ne: '' }
+          }
+        },
+        {
           $group: {
-            _id: '$address.state',
+            _id: { $toUpper: { $trim: { input: '$address.state' } } },
+            originalName: { $first: '$address.state' },
             count: { $sum: 1 }
           }
+        },
+        {
+           $project: {
+             _id: '$originalName',
+             count: 1
+           }
         },
         { $sort: { count: -1 } },
         { $limit: 10 }

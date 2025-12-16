@@ -34,6 +34,15 @@ const SchoolStats = () => {
     }
   };
 
+  const toTitleCase = (str) => {
+    if (!str) return "";
+    return str
+      .toLowerCase()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   const StatCard = ({ title, value, subtitle, icon, gradient, trend }) => (
     <Card className={`relative overflow-hidden border-0 shadow-lg ${gradient}`}>
       <CardContent className="p-6">
@@ -91,7 +100,7 @@ const SchoolStats = () => {
 
         <StatCard
           title="Top State"
-          value={stats.schoolsByState[0]?._id || "N/A"}
+          value={toTitleCase(stats.schoolsByState[0]?._id) || "N/A"}
           subtitle={`${stats.schoolsByState[0]?.count || 0} schools`}
           icon={<MapPin className="h-6 w-6 text-white" />}
           gradient="bg-gradient-to-br from-green-500 to-green-600"
@@ -143,7 +152,9 @@ const SchoolStats = () => {
                       >
                         {index + 1}
                       </Badge>
-                      <span className="font-medium">{state._id}</span>
+                      <span className="font-medium">
+                        {toTitleCase(state._id)}
+                      </span>
                     </div>
                     <Badge variant="secondary">{state.count} schools</Badge>
                   </div>
@@ -223,7 +234,7 @@ const SchoolStats = () => {
                           {index + 1}
                         </Badge>
                         <span className="font-medium">
-                          {state._id || "Unknown"}
+                          {toTitleCase(state._id) || "Unknown"}
                         </span>
                       </div>
                       <Badge variant="secondary">{state.count} users</Badge>

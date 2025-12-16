@@ -1,6 +1,7 @@
 // routes/educationalPrograms.js
 import express from 'express';
 import EducationalProgram from '../models/EducationalProgram.js';
+import User from '../models/User.js';
 import { authenticate } from '../middleware/auth.js';
 import { populateAdminPermissions, requirePermission } from '../middleware/permissions.js';
 import { logActivity, logUpdateWithOldValues } from '../middleware/activityLogger.js';
@@ -506,11 +507,63 @@ router.get('/stats/overview',
         .sort({ createdAt: -1 })
         .limit(5);
 
+      // Top 5 Degrees (Qualifications + Specialization) pursued by users
+      const topDegrees = await User.aggregate([
+        { $unwind: '$education' },
+        {
+          $addFields: {
+            fullQualification: {
+              $switch: {
+                branches: [
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^B\.?Tech/i } }, then: "Bachelor of Technology" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^B\.?E/i } }, then: "Bachelor of Engineering" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^M\.?Tech/i } }, then: "Master of Technology" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^BCA/i } }, then: "Bachelor of Computer Applications" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^MCA/i } }, then: "Master of Computer Applications" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^B\.?Sc/i } }, then: "Bachelor of Science" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^M\.?Sc/i } }, then: "Master of Science" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^BBA/i } }, then: "Bachelor of Business Administration" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^MBA/i } }, then: "Master of Business Administration" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^UG/i } }, then: "Undergraduate" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^PG/i } }, then: "Postgraduate" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^Ph\.?D/i } }, then: "Doctor of Philosophy" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^B\.?Com/i } }, then: "Bachelor of Commerce" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^M\.?Com/i } }, then: "Master of Commerce" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^B\.?A/i } }, then: "Bachelor of Arts" },
+                  { case: { $regexMatch: { input: "$education.qualification", regex: /^M\.?A/i } }, then: "Master of Arts" }
+                ],
+                default: "$education.qualification"
+              }
+            }
+          }
+        },
+        { 
+          $group: { 
+            _id: { 
+              qualification: '$fullQualification',
+              specialization: '$education.specialization'
+            }, 
+            count: { $sum: 1 } 
+          } 
+        },
+        { $sort: { count: -1 } },
+        { $limit: 5 },
+        {
+          $project: {
+            _id: 0,
+            qualification: '$_id.qualification',
+            specialization: '$_id.specialization',
+            count: 1
+          }
+        }
+      ]);
+
       res.json({
         totalPrograms,
         totalSpecializations: totalSpecializations[0]?.total || 0,
         programsByCount,
-        recentPrograms
+        recentPrograms,
+        topDegrees // Add this to response
       });
     } catch (error) {
       console.error('Error fetching program statistics:', error);
