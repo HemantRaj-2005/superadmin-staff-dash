@@ -559,6 +559,7 @@ router.use(authenticate, populateAdminPermissions);
 // );
 
 
+// ... imports
 
 router.get(
   '/users',
@@ -571,7 +572,6 @@ router.get(
       const includeDeleted = req.query.includeDeleted === 'true';
       const all = req.query.all === 'true';
 
-      // 1. Destructure Filters
       const { 
         institute, 
         university, 
@@ -583,7 +583,7 @@ router.get(
 
       const andConditions = [];
 
-      // 2. Global Search (Name/Email)
+      // 1. Global Search (Name/Email)
       if (search) {
         andConditions.push({
           $or: [
@@ -594,108 +594,131 @@ router.get(
         });
       }
 
-      // 3. Soft Delete Check
+      // 2. Soft Delete Check
       if (!includeDeleted) {
         andConditions.push({ isDeleted: false });
       }
 
-      // ---------------------------------------------------------
-      // 4. PROCESS SPECIFIC FILTERS
-      // ---------------------------------------------------------
+      // =========================================================
+      // 3. STRICT EDUCATION FILTERS ($elemMatch)
+      // =========================================================
+      // We build a specific query object for the 'education' array elements.
+      // All conditions added here must be met by a SINGLE education entry.
+      const educationMatch = {};
 
-      // A. CITY FILTER (Query WorldCity Model first)
+      // A. Qualification
+      if (qualification) {
+        educationMatch.qualification = { $regex: qualification, $options: 'i' };
+      }
+
+      // B. Specialization
+      if (specialization) {
+        educationMatch.specialization = { $regex: specialization, $options: 'i' };
+      }
+
+      // C. Batch (Completion Year Range)
+      if (batch) {
+        const year = parseInt(batch, 10);
+        if (!isNaN(year)) {
+          // Create strictly defined UTC date range for the entire year
+          const startOfYear = new Date(`${year}-01-01T00:00:00.000Z`);
+          const endOfYear = new Date(`${year}-12-31T23:59:59.999Z`);
+          
+          educationMatch.completionYear = { 
+            $gte: startOfYear, 
+            $lte: endOfYear 
+          };
+        }
+      }
+
+      // D. Institute (Lookup IDs then match inside educationMatch)
+      if (institute) {
+        try {
+          // Find IDs for organizations matching the name
+          const matchedInsts = await Organisation.find({ 
+            name: { $regex: institute, $options: 'i' } 
+          }).select('_id');
+          const instIds = matchedInsts.map(i => i._id);
+
+          // Match either the ID reference OR the manual string input
+          educationMatch.$or = [
+            { institute: { $in: instIds } },
+            { otherInstitute: { $regex: institute, $options: 'i' } }
+          ];
+        } catch (err) { console.error("Institute filter error", err); }
+      }
+
+      // E. University (Lookup IDs then match inside educationMatch)
+      if (university) {
+        try {
+          const matchedUnis = await Organisation.find({ 
+            name: { $regex: university, $options: 'i' } 
+          }).select('_id');
+          const uniIds = matchedUnis.map(u => u._id);
+
+          // If educationMatch already has an $or (from institute), we must use $and
+          // But generally users filter one or the other. To be safe, we merge logic:
+          const uniCondition = {
+             $or: [
+               { university: { $in: uniIds } },
+               { otherUniversity: { $regex: university, $options: 'i' } }
+             ]
+          };
+
+          if (educationMatch.$or) {
+             // If $or exists (from Institute), switch to $and to support both
+             educationMatch.$and = [ 
+               { $or: educationMatch.$or }, 
+               uniCondition 
+             ];
+             delete educationMatch.$or;
+          } else {
+             educationMatch.$or = uniCondition.$or;
+          }
+        } catch (err) { console.error("University filter error", err); }
+      }
+
+      // ---> APPLY STRICT EDUCATION FILTERS
+      if (Object.keys(educationMatch).length > 0) {
+        andConditions.push({
+          education: { $elemMatch: educationMatch }
+        });
+      }
+
+      // =========================================================
+      // 4. SEPARATE FILTERS (City)
+      // =========================================================
+      // City is kept separate because it searches BOTH Address AND Education.
+      // We don't want to restrict it inside $elemMatch because a user might 
+      // live in the city (Address) but have studied elsewhere.
+      
       if (city) {
         try {
-            // Find all cities that match the text input (e.g., "Lucknow")
-            // Note: Using CITY_NAME based on your model
             const matchedCities = await WorldCity.find({ 
                 CITY_NAME: { $regex: city, $options: 'i' } 
             }).select('_id');
-
             const cityIds = matchedCities.map(c => c._id);
             
             if (cityIds.length > 0) {
-                // Find users who have these City IDs in address OR education
                 andConditions.push({
                     $or: [
                         { 'address.city': { $in: cityIds } },
-                        // { 'education.city': { $in: cityIds } }
+                        { 'education.city': { $in: cityIds } }
                     ]
                 });
             } else {
-                // If no city found in DB with that name, force return 0 results
+                // Return empty if city name doesn't exist in DB
                 andConditions.push({ 'address.city': null }); 
             }
-        } catch (err) {
-            console.error("City Lookup Error", err);
-        }
+        } catch (err) { console.error("City Lookup Error", err); }
       }
 
-      // B. INSTITUTE FILTER (Query Organisation Model)
-      if (institute) {
-        try {
-            const matchedInsts = await Organisation.find({ 
-                name: { $regex: institute, $options: 'i' } 
-            }).select('_id');
-            
-            const instIds = matchedInsts.map(i => i._id);
-
-            andConditions.push({
-                $or: [
-                    { 'education.institute': { $in: instIds } },
-                    { 'education.otherInstitute': { $regex: institute, $options: 'i' } }
-                ]
-            });
-        } catch (err) { console.error("Institute Lookup Error", err); }
-      }
-
-      // C. UNIVERSITY FILTER (Query Organisation Model)
-      if (university) {
-        try {
-            const matchedUnis = await Organisation.find({ 
-                name: { $regex: university, $options: 'i' } 
-            }).select('_id');
-            
-            const uniIds = matchedUnis.map(u => u._id);
-
-            andConditions.push({
-                $or: [
-                    { 'education.university': { $in: uniIds } },
-                    { 'education.otherUniversity': { $regex: university, $options: 'i' } }
-                ]
-            });
-        } catch (err) { console.error("University Lookup Error", err); }
-      }
-
-      // D. QUALIFICATION (String Match on User)
-      if (qualification) {
-        andConditions.push({ 'education.qualification': { $regex: qualification, $options: 'i' } });
-      }
-
-      // E. SPECIALIZATION (String Match on User)
-      if (specialization) {
-        andConditions.push({ 'education.specialization': { $regex: specialization, $options: 'i' } });
-      }
-
-      // F. BATCH (Date Range Logic)
-      if (batch) {
-        const year = parseInt(batch);
-        if (!isNaN(year)) {
-          const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
-          const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
-          andConditions.push({
-            'education.completionYear': { $gte: startDate, $lte: endDate }
-          });
-        }
-      }
-
-      // ---------------------------------------------------------
-      // 5. EXECUTE QUERY & POPULATE
-      // ---------------------------------------------------------
+      // =========================================================
+      // 5. EXECUTE QUERY
+      // =========================================================
       
       const finalQuery = andConditions.length > 0 ? { $and: andConditions } : {};
       
-      // Define Population to replace IDs with Names in the result
       const populateOptions = [
         { path: 'address.city', select: 'CITY_NAME STATE' }, 
         { path: 'education.city', select: 'CITY_NAME STATE' },
@@ -727,7 +750,7 @@ router.get(
         total
       };
 
-      if (all) return res.json(responseData.users); // Export logic
+      if (all) return res.json(responseData.users);
       res.json(responseData);
 
     } catch (error) {
@@ -738,7 +761,6 @@ router.get(
     }
   }
 );
-
 // Add this route to your admin.js file
 /**
  * POST /activity-logs
@@ -881,6 +903,8 @@ router.get(
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
+
+      
 
       // Check if user is deleted and handle accordingly
       const userObject = user.toObject();
