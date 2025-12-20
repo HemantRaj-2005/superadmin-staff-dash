@@ -95,7 +95,6 @@ const ActivityLogs = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, filters, admin]);
 
-  // Keep uiFilters synced whenever filters changes (so UI reflects programmatic resets or updates)
   // Keep searchInput synced if filters change externally
   useEffect(() => {
     if (filters.search !== searchInput) {
@@ -147,8 +146,6 @@ const ActivityLogs = () => {
     }
   };
 
-  // Update uiFilters when inputs change (does NOT trigger fetch)
-  // Update uiFilters when inputs change (does NOT trigger fetch)
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPagination((prev) => ({ ...prev, page: 1 }));
@@ -222,12 +219,9 @@ const ActivityLogs = () => {
   }
 
   // ---------------- CSV Export Helpers ----------------
-
-  // Convert array of objects -> CSV string
   const convertObjectsToCSV = (data, columns = null) => {
     if (!Array.isArray(data) || data.length === 0) return "";
 
-    // Determine keys (use provided columns or union of keys from all objects)
     const keys =
       Array.isArray(columns) && columns.length > 0
         ? columns
@@ -240,16 +234,16 @@ const ActivityLogs = () => {
 
     const escapeCell = (value) => {
       if (value === null || value === undefined) return "";
-      // stringify objects/arrays so they remain single cell
       if (typeof value === "object") {
         try {
           value = JSON.stringify(value);
         } catch (e) {
           value = String(value);
+          throw e;
         }
       }
       const s = String(value);
-      if (/[,\"\n]/.test(s)) {
+      if (/[,"\n]/.test(s)) {
         return '"' + s.replace(/"/g, '""') + '"';
       }
       return s;
@@ -260,11 +254,9 @@ const ActivityLogs = () => {
       .map((row) => keys.map((k) => escapeCell(row[k])).join(","))
       .join("\n");
 
-    // BOM for Excel UTF-8 compatibility
     return "\uFEFF" + headerRow + rows;
   };
 
-  // Trigger browser download for CSV string
   const downloadCSV = (csvString, filename = "data.csv") => {
     const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -277,7 +269,6 @@ const ActivityLogs = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Export handler. mode: 'visible' | 'all'
   const handleExport = async (mode = "visible") => {
     try {
       let dataToExport = [];
@@ -285,11 +276,9 @@ const ActivityLogs = () => {
       if (mode === "visible") {
         dataToExport = logs;
       } else if (mode === "all") {
-        // Try to fetch all logs. NOTE: backend must support this or provide a dedicated export endpoint.
-        // Reuse current filters so exported set matches UI filters.
         const apiParams = {
           page: 1,
-          limit: pagination.total || 100000, // adjust depending on backend capability
+          limit: pagination.total || 100000,
           search: filters.search,
           action: filters.action === "all" ? "" : filters.action,
           resourceType:
@@ -311,11 +300,7 @@ const ActivityLogs = () => {
         return;
       }
 
-      // Optional: pick columns in desired order, otherwise will use union of keys found in logs
-      // const columns = ['_id', 'action', 'resourceType', 'admin', 'description', 'ip', 'deviceType', 'os', 'browser', 'createdAt'];
-      const columns = null;
-
-      const csv = convertObjectsToCSV(dataToExport, columns);
+      const csv = convertObjectsToCSV(dataToExport);
       const filename = `activity_logs_${format(
         new Date(),
         "yyyyMMdd_HHmmss"
@@ -326,8 +311,6 @@ const ActivityLogs = () => {
       alert("Failed to export logs. See console for details.");
     }
   };
-
-  // ---------------- End CSV Export Helpers ----------------
 
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
@@ -342,7 +325,7 @@ const ActivityLogs = () => {
           </p>
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0">
+        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
           <Badge
             variant="secondary"
             className="text-xs sm:text-sm whitespace-nowrap"
@@ -370,7 +353,6 @@ const ActivityLogs = () => {
                   className="w-full justify-start"
                   onClick={() => {
                     handleExport("visible");
-                    // close popover
                     document.body.click();
                   }}
                 >
@@ -416,7 +398,6 @@ const ActivityLogs = () => {
         </CardHeader>
 
         <CardContent className="space-y-4 p-4 sm:p-6">
-          {/* Compact Filters Section */}
           {/* Search and Filters Bar */}
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -427,6 +408,7 @@ const ActivityLogs = () => {
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-10 pr-10"
                 disabled={loading}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               />
               {searchInput && (
                 <button
@@ -448,7 +430,7 @@ const ActivityLogs = () => {
               {hasActiveFilters && (
                 <Badge
                   variant="secondary"
-                  className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors ml-1 h-5 px-1.5 min-w-[1.25rem]"
+                  className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors ml-1 h-5 px-1.5 min-w-5"
                 >
                   !
                 </Badge>
@@ -481,7 +463,7 @@ const ActivityLogs = () => {
             </p>
           )}
 
-          {/* Advanced Filters Section */}
+          {/* Advanced Filters Section - SIMPLE AND CLICKABLE */}
           {showFilters && (
             <div className="bg-muted/30 p-4 rounded-lg border border-border animate-in fade-in slide-in-from-top-2">
               <div className="flex justify-between items-center mb-4">
@@ -498,7 +480,8 @@ const ActivityLogs = () => {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Simple, consistent filter blocks */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Action Filter */}
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground ml-1">
@@ -510,8 +493,8 @@ const ActivityLogs = () => {
                       handleFilterChange("action", value)
                     }
                   >
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="All" />
+                    <SelectTrigger className="h-10 w-full">
+                      <SelectValue placeholder="All Actions" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Actions</SelectItem>
@@ -535,8 +518,8 @@ const ActivityLogs = () => {
                       handleFilterChange("resourceType", value)
                     }
                   >
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="All" />
+                    <SelectTrigger className="h-10 w-full">
+                      <SelectValue placeholder="All Resources" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Resources</SelectItem>
@@ -560,8 +543,8 @@ const ActivityLogs = () => {
                       handleFilterChange("adminId", value)
                     }
                   >
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="All" />
+                    <SelectTrigger className="h-10 w-full">
+                      <SelectValue placeholder="All Admins" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Admins</SelectItem>
@@ -570,44 +553,14 @@ const ActivityLogs = () => {
                           key={adminOption._id}
                           value={adminOption._id}
                         >
-                          <span className="truncate">{adminOption.name}</span>
+                          {adminOption.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Date From */}
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">
-                    From
-                  </label>
-                  <Input
-                    type="date"
-                    value={filters.dateFrom}
-                    onChange={(e) =>
-                      handleFilterChange("dateFrom", e.target.value)
-                    }
-                    className="bg-background"
-                  />
-                </div>
-
-                {/* Date To */}
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">
-                    To
-                  </label>
-                  <Input
-                    type="date"
-                    value={filters.dateTo}
-                    onChange={(e) =>
-                      handleFilterChange("dateTo", e.target.value)
-                    }
-                    className="bg-background"
-                  />
-                </div>
-
-                {/* Device Type */}
+                {/* Device Type Filter */}
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground ml-1">
                     Device Type
@@ -618,7 +571,7 @@ const ActivityLogs = () => {
                       handleFilterChange("deviceType", value)
                     }
                   >
-                    <SelectTrigger className="bg-background">
+                    <SelectTrigger className="h-10 w-full">
                       <SelectValue placeholder="All Devices" />
                     </SelectTrigger>
                     <SelectContent>
@@ -635,7 +588,37 @@ const ActivityLogs = () => {
                   </Select>
                 </div>
 
-                {/* OS */}
+                {/* Date From */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">
+                    From Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={filters.dateFrom}
+                    onChange={(e) =>
+                      handleFilterChange("dateFrom", e.target.value)
+                    }
+                    className="h-10"
+                  />
+                </div>
+
+                {/* Date To */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">
+                    To Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={filters.dateTo}
+                    onChange={(e) =>
+                      handleFilterChange("dateTo", e.target.value)
+                    }
+                    className="h-10"
+                  />
+                </div>
+
+                {/* OS Filter */}
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground ml-1">
                     OS
@@ -644,7 +627,7 @@ const ActivityLogs = () => {
                     value={filters.os}
                     onValueChange={(value) => handleFilterChange("os", value)}
                   >
-                    <SelectTrigger className="bg-background">
+                    <SelectTrigger className="h-10 w-full">
                       <SelectValue placeholder="All OS" />
                     </SelectTrigger>
                     <SelectContent>
@@ -661,7 +644,7 @@ const ActivityLogs = () => {
                   </Select>
                 </div>
 
-                {/* Browser */}
+                {/* Browser Filter */}
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground ml-1">
                     Browser
@@ -672,7 +655,7 @@ const ActivityLogs = () => {
                       handleFilterChange("browser", value)
                     }
                   >
-                    <SelectTrigger className="bg-background">
+                    <SelectTrigger className="h-10 w-full">
                       <SelectValue placeholder="All Browsers" />
                     </SelectTrigger>
                     <SelectContent>
@@ -689,22 +672,118 @@ const ActivityLogs = () => {
                   </Select>
                 </div>
               </div>
+
+              {/* Quick Actions - Full width at bottom */}
+              <div className="flex gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="flex-1 h-9"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Clear Filters
+                </Button>
+                <Button
+                  onClick={handleSearch}
+                  disabled={loading}
+                  className="flex-1 h-9"
+                >
+                  {loading && filters.search === searchInput ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                  ) : (
+                    "Apply Filters"
+                  )}
+                </Button>
+              </div>
             </div>
           )}
 
-          {/* Active Filters Display & Results Count */}
-          <div className="flex items-center justify-between pt-2">
-            <div className="text-sm text-muted-foreground">
-              {/* Maybe show count here? */}
-            </div>
-
-            {hasActiveFilters && (
+          {/* Active Filters Display */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/20 rounded-lg border">
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Filter className="h-3 w-3" />
-                Filters Active
+                Active Filters
               </Badge>
-            )}
-          </div>
+
+              {filters.action !== "all" && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  Action: {filters.action}
+                  <button
+                    onClick={() => handleFilterChange("action", "all")}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+
+              {filters.resourceType !== "all" && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  Resource: {filters.resourceType}
+                  <button
+                    onClick={() => handleFilterChange("resourceType", "all")}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+
+              {filters.adminId !== "all" && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  Admin:{" "}
+                  {
+                    availableFilters.admins.find(
+                      (a) => a._id === filters.adminId
+                    )?.name
+                  }
+                  <button
+                    onClick={() => handleFilterChange("adminId", "all")}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+
+              {filters.search && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  Search: "{filters.search}"
+                  <button
+                    onClick={() => handleFilterChange("search", "")}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+
+              {(filters.dateFrom || filters.dateTo) && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  Date: {filters.dateFrom || "Any"} - {filters.dateTo || "Any"}
+                  <button
+                    onClick={() => {
+                      handleFilterChange("dateFrom", "");
+                      handleFilterChange("dateTo", "");
+                    }}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="ml-auto h-7 text-xs"
+              >
+                Clear All
+              </Button>
+            </div>
+          )}
 
           {/* Activity Logs Table */}
           <div className="overflow-x-auto">

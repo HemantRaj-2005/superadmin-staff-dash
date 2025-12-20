@@ -56,7 +56,8 @@ const OrganisationManagement = () => {
   const [selectedOrganisation, setSelectedOrganisation] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState(""); // Separate input state
+  const [searchTerm, setSearchTerm] = useState(""); // Actual search term
   const [industryFilter, setIndustryFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
@@ -88,6 +89,7 @@ const OrganisationManagement = () => {
     sortOrder !== "asc";
 
   const clearFilters = () => {
+    setSearchInput("");
     setSearchTerm("");
     setIndustryFilter("all");
     setTypeFilter("all");
@@ -102,13 +104,12 @@ const OrganisationManagement = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     pagination.page,
-    filters,
-    sortBy,
-    sortOrder,
     searchTerm,
     industryFilter,
     typeFilter,
     countryFilter,
+    sortBy,
+    sortOrder,
   ]);
 
   const fetchOrganisations = async () => {
@@ -148,6 +149,26 @@ const OrganisationManagement = () => {
       setStats(response.data);
     } catch (error) {
       console.error("Error fetching organisation stats:", error);
+    }
+  };
+
+  // Handle search button click
+  const handleSearch = () => {
+    setSearchTerm(searchInput);
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  // Handle clear search
+  const handleClearSearch = () => {
+    setSearchInput("");
+    setSearchTerm("");
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  // Handle Enter key press
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleSearch();
     }
   };
 
@@ -243,17 +264,9 @@ const OrganisationManagement = () => {
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          {/* <Button variant="outline" className="flex items-center space-x-2">
-            <Upload className="h-4 w-4" />
-            <span>Import</span>
-          </Button> */}
-          {/* <Button variant="outline" className="flex items-center space-x-2">
-            <Download className="h-4 w-4" />
-            <span>Export</span>
-          </Button> */}
           <Button
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            className="bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Organisation
@@ -264,7 +277,7 @@ const OrganisationManagement = () => {
       {/* Statistics Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
+          <Card className="bg-linear-to-br from-blue-500 to-blue-600 text-white shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -285,7 +298,7 @@ const OrganisationManagement = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg">
+          <Card className="bg-linear-to-br from-green-500 to-green-600 text-white shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -304,7 +317,7 @@ const OrganisationManagement = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg">
+          <Card className="bg-linear-to-br from-purple-500 to-purple-600 text-white shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -387,7 +400,7 @@ const OrganisationManagement = () => {
         <TabsContent value="all" className="space-y-6">
           {/* Search and Filters */}
           <Card className="shadow-lg border-0">
-            <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b">
+            <CardHeader className="bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Filter className="h-5 w-5 text-blue-600" />
@@ -405,13 +418,15 @@ const OrganisationManagement = () => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search by name, industry, type..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 border-2 focus:border-blue-500 transition-colors"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    className="pl-10 pr-10 h-10 border-2 focus:border-blue-500 transition-colors"
+                    disabled={loading}
                   />
-                  {searchTerm && (
+                  {searchInput && (
                     <button
-                      onClick={() => setSearchTerm("")}
+                      onClick={handleClearSearch}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
                       <X className="h-4 w-4" />
@@ -422,14 +437,14 @@ const OrganisationManagement = () => {
                 <Button
                   variant={showFilters ? "secondary" : "outline"}
                   onClick={() => setShowFilters(!showFilters)}
-                  className="px-4 gap-2"
+                  className="px-4 gap-2 h-10"
                 >
                   <Filter className="h-4 w-4" />
                   Filters
                   {hasActiveFilters && (
                     <Badge
                       variant="secondary"
-                      className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors ml-1 h-5 px-1.5 min-w-[1.25rem]"
+                      className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors ml-1 h-5 px-1.5 min-w-5"
                     >
                       !
                     </Badge>
@@ -440,9 +455,33 @@ const OrganisationManagement = () => {
                     <ChevronDown className="h-4 w-4 ml-auto" />
                   )}
                 </Button>
+
+                <Button
+                  onClick={handleSearch}
+                  disabled={loading}
+                  className="px-6 h-10"
+                >
+                  {loading && searchTerm === searchInput ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      Search
+                    </>
+                  )}
+                </Button>
               </div>
 
-              {/* Advanced Filters Section */}
+              {searchTerm && (
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Current search:{" "}
+                  <span className="font-medium text-foreground">
+                    "{searchTerm}"
+                  </span>
+                </p>
+              )}
+
+              {/* Advanced Filters Section - SIMPLE AND CLICKABLE */}
               {showFilters && (
                 <div className="bg-muted/30 p-4 rounded-lg border border-border animate-in fade-in slide-in-from-top-2">
                   <div className="flex justify-between items-center mb-4">
@@ -460,7 +499,8 @@ const OrganisationManagement = () => {
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Simple, consistent filter blocks */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* Industry Filter */}
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
@@ -470,7 +510,7 @@ const OrganisationManagement = () => {
                         value={industryFilter}
                         onValueChange={setIndustryFilter}
                       >
-                        <SelectTrigger className="border-2 focus:border-blue-500 transition-colors bg-background">
+                        <SelectTrigger className="h-10 w-full border-2 focus:border-blue-500 transition-colors">
                           <SelectValue placeholder="All industries" />
                         </SelectTrigger>
                         <SelectContent>
@@ -490,7 +530,7 @@ const OrganisationManagement = () => {
                         Type
                       </label>
                       <Select value={typeFilter} onValueChange={setTypeFilter}>
-                        <SelectTrigger className="border-2 focus:border-blue-500 transition-colors bg-background">
+                        <SelectTrigger className="h-10 w-full border-2 focus:border-blue-500 transition-colors">
                           <SelectValue placeholder="All types" />
                         </SelectTrigger>
                         <SelectContent>
@@ -513,7 +553,7 @@ const OrganisationManagement = () => {
                         value={countryFilter}
                         onValueChange={setCountryFilter}
                       >
-                        <SelectTrigger className="border-2 focus:border-blue-500 transition-colors bg-background">
+                        <SelectTrigger className="h-10 w-full border-2 focus:border-blue-500 transition-colors">
                           <SelectValue placeholder="All countries" />
                         </SelectTrigger>
                         <SelectContent>
@@ -536,7 +576,7 @@ const OrganisationManagement = () => {
                         Sort By
                       </label>
                       <Select value={sortBy} onValueChange={setSortBy}>
-                        <SelectTrigger className="border-2 bg-background">
+                        <SelectTrigger className="h-10 w-full border-2">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -553,21 +593,13 @@ const OrganisationManagement = () => {
                       </Select>
                     </div>
 
-                    {/* Sort Order - Adding as 5th item if needed or fitting in 4 cols? 
-                           Layout is lg:grid-cols-4. 
-                           Items: Industry, Type, Country, Sort By. 
-                           Sort Order is 5th. 
-                           Maybe move Sort Order to be separate or 5th.
-                           I'll put Sort Order as 5th item, it will wrap to next line.
-                           OR merge Sort By and Sort Order? No.
-                           I'll add Sort Order.
-                       */}
+                    {/* Sort Order */}
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
                         Order
                       </label>
                       <Select value={sortOrder} onValueChange={setSortOrder}>
-                        <SelectTrigger className="border-2 bg-background">
+                        <SelectTrigger className="h-10 w-full border-2">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -577,10 +609,133 @@ const OrganisationManagement = () => {
                       </Select>
                     </div>
                   </div>
+
+                  {/* Quick Actions - Full width at bottom */}
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      variant="outline"
+                      onClick={clearFilters}
+                      className="flex-1 h-9"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Clear Filters
+                    </Button>
+                    <Button
+                      onClick={handleSearch}
+                      disabled={loading}
+                      className="flex-1 h-9"
+                    >
+                      {loading && searchTerm === searchInput ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                      ) : (
+                        "Apply Filters"
+                      )}
+                    </Button>
+                  </div>
                 </div>
               )}
 
-              {/* Active Filters Display & Pagination Info */}
+              {/* Active Filters Display */}
+              {hasActiveFilters && (
+                <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/20 rounded-lg border">
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    <Filter className="h-3 w-3" />
+                    Active Filters
+                  </Badge>
+
+                  {searchTerm && (
+                    <Badge
+                      variant="outline"
+                      className="flex items-center gap-1"
+                    >
+                      Search: "{searchTerm}"
+                      <button
+                        onClick={handleClearSearch}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+
+                  {industryFilter !== "all" && (
+                    <Badge
+                      variant="outline"
+                      className="flex items-center gap-1"
+                    >
+                      Industry: {industryFilter}
+                      <button
+                        onClick={() => setIndustryFilter("all")}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+
+                  {typeFilter !== "all" && (
+                    <Badge
+                      variant="outline"
+                      className="flex items-center gap-1"
+                    >
+                      Type: {typeFilter}
+                      <button
+                        onClick={() => setTypeFilter("all")}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+
+                  {countryFilter !== "all" && (
+                    <Badge
+                      variant="outline"
+                      className="flex items-center gap-1"
+                    >
+                      Country: {countryFilter}
+                      <button
+                        onClick={() => setCountryFilter("all")}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+
+                  {(sortBy !== "name" || sortOrder !== "asc") && (
+                    <Badge
+                      variant="outline"
+                      className="flex items-center gap-1"
+                    >
+                      Sort: {sortBy} ({sortOrder})
+                      <button
+                        onClick={() => {
+                          setSortBy("name");
+                          setSortOrder("asc");
+                        }}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="ml-auto h-7 text-xs"
+                  >
+                    Clear All
+                  </Button>
+                </div>
+              )}
+
+              {/* Pagination Info */}
               <div className="flex items-center justify-between pt-2">
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
@@ -590,23 +745,13 @@ const OrganisationManagement = () => {
                   )}{" "}
                   of {pagination.total.toLocaleString()} organisations
                 </div>
-
-                {hasActiveFilters && (
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
-                    <Filter className="h-3 w-3" />
-                    Filters Active
-                  </Badge>
-                )}
               </div>
             </CardContent>
           </Card>
 
           {/* Organisations Table */}
           <Card className="shadow-lg border-0">
-            <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b">
+            <CardHeader className="bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b">
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center">

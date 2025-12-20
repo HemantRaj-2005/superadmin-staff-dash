@@ -11,7 +11,6 @@ import api from "@/services/api";
 // Shadcn UI Components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -434,8 +433,8 @@ const SchoolManagement = () => {
                 placeholder="Search by name, district, state, or UDISE code..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="w-full pl-10 pr-10"
+                onKeyDown={handleKeyPress}
+                className="w-full pl-10 pr-10 h-10"
                 disabled={loading}
               />
               {searchInput && (
@@ -451,7 +450,7 @@ const SchoolManagement = () => {
             <Button
               variant={showFilters ? "secondary" : "outline"}
               onClick={() => setShowFilters(!showFilters)}
-              className="px-4 gap-2"
+              className="px-4 gap-2 h-10"
             >
               <Filter className="h-4 w-4" />
               Filters
@@ -470,7 +469,7 @@ const SchoolManagement = () => {
               )}
             </Button>
 
-            <Button onClick={handleSearch} disabled={loading} className="px-6">
+            <Button onClick={handleSearch} disabled={loading} className="px-6 h-10">
               {loading && searchTerm === searchInput ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
               ) : (
@@ -491,7 +490,7 @@ const SchoolManagement = () => {
             </p>
           )}
 
-          {/* Advanced Filters Section */}
+          {/* Advanced Filters Section - SIMPLE AND CLICKABLE */}
           {showFilters && (
             <div className="bg-muted/30 p-4 rounded-lg border border-border animate-in fade-in slide-in-from-top-2">
               <div className="flex justify-between items-center mb-4">
@@ -508,7 +507,8 @@ const SchoolManagement = () => {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Simple, consistent filter blocks */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* State Filter with Search */}
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground ml-1">
@@ -520,7 +520,7 @@ const SchoolManagement = () => {
                       handleFilterChange("state", value)
                     }
                   >
-                    <SelectTrigger id="state" className="bg-background">
+                    <SelectTrigger className="h-10 w-full">
                       <SelectValue placeholder="All States" />
                     </SelectTrigger>
                     <SelectContent className="max-h-[300px]">
@@ -561,7 +561,7 @@ const SchoolManagement = () => {
                     }
                     disabled={!filters.state || filters.state === "all"}
                   >
-                    <SelectTrigger id="district" className="bg-background">
+                    <SelectTrigger className="h-10 w-full">
                       <SelectValue
                         placeholder={
                           !filters.state || filters.state === "all"
@@ -602,7 +602,7 @@ const SchoolManagement = () => {
                       handleFilterChange("sortBy", value)
                     }
                   >
-                    <SelectTrigger id="sortBy" className="bg-background">
+                    <SelectTrigger className="h-10 w-full">
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
@@ -626,7 +626,7 @@ const SchoolManagement = () => {
                       handleFilterChange("sortOrder", value)
                     }
                   >
-                    <SelectTrigger id="sortOrder" className="bg-background">
+                    <SelectTrigger className="h-10 w-full">
                       <SelectValue placeholder="Sort order" />
                     </SelectTrigger>
                     <SelectContent>
@@ -636,30 +636,101 @@ const SchoolManagement = () => {
                   </Select>
                 </div>
               </div>
+
+              {/* Quick Actions - Full width at bottom */}
+              <div className="flex gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="flex-1 h-9"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Clear Filters
+                </Button>
+                <Button
+                  onClick={handleSearch}
+                  disabled={loading}
+                  className="flex-1 h-9"
+                >
+                  {loading && searchTerm === searchInput ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                  ) : (
+                    "Apply Filters"
+                  )}
+                </Button>
+              </div>
             </div>
           )}
 
-          {/* Results Count */}
-          <div className="flex items-center justify-between pt-2">
-            <div className="text-sm text-muted-foreground">
-              Showing{" "}
-              <span className="font-medium text-foreground">
-                {schools.length}
-              </span>{" "}
-              of{" "}
-              <span className="font-medium text-foreground">
-                {pagination.total}
-              </span>{" "}
-              schools
-            </div>
-
-            {hasActiveFilters && (
+          {/* Active Filters Display */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/20 rounded-lg border">
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Filter className="h-3 w-3" />
-                Filters Active
+                Active Filters
               </Badge>
-            )}
-          </div>
+
+              {searchTerm && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  Search: "{searchTerm}"
+                  <button
+                    onClick={handleClearSearch}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+
+              {filters.state !== "all" && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  State: {filters.state}
+                  <button
+                    onClick={() => handleFilterChange("state", "all")}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+
+              {filters.district !== "all" && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  District: {filters.district}
+                  <button
+                    onClick={() => handleFilterChange("district", "all")}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+
+              {filters.sortBy !== "school_name" && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  Sort: {filters.sortBy} ({filters.sortOrder})
+                  <button
+                    onClick={() => {
+                      handleFilterChange("sortBy", "school_name");
+                      handleFilterChange("sortOrder", "asc");
+                    }}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="ml-auto h-7 text-xs"
+              >
+                Clear All
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

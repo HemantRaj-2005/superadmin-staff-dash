@@ -462,11 +462,6 @@ const EventManagement = () => {
               </div>
             </PopoverContent>
           </Popover>
-          {/* 
-          <Button className="flex items-center space-x-2">
-            <Plus className="h-4 w-4" />
-            <span>New Event</span>
-          </Button> */}
         </div>
       </div>
 
@@ -515,8 +510,8 @@ const EventManagement = () => {
                     placeholder="Title, description, location..."
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="pl-10 pr-10"
+                    onKeyDown={handleKeyPress}
+                    className="pl-10 pr-10 h-10"
                     disabled={loading}
                   />
                   {searchInput && (
@@ -532,7 +527,7 @@ const EventManagement = () => {
                 <Button
                   variant={showFilters ? "secondary" : "outline"}
                   onClick={() => setShowFilters(!showFilters)}
-                  className="px-4 gap-2"
+                  className="px-4 gap-2 h-10"
                 >
                   <Filter className="h-4 w-4" />
                   Filters
@@ -554,7 +549,7 @@ const EventManagement = () => {
                 <Button
                   onClick={handleSearch}
                   disabled={loading}
-                  className="px-6"
+                  className="px-6 h-10"
                 >
                   {loading && searchTerm === searchInput ? (
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
@@ -576,7 +571,7 @@ const EventManagement = () => {
                 </p>
               )}
 
-              {/* Advanced Filters Section */}
+              {/* Advanced Filters Section - SIMPLE AND CLICKABLE */}
               {showFilters && (
                 <div className="bg-muted/30 p-4 rounded-lg border border-border animate-in fade-in slide-in-from-top-2">
                   <div className="flex justify-between items-center mb-4">
@@ -594,7 +589,8 @@ const EventManagement = () => {
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Simple, consistent filter blocks */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* Event Type */}
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-muted-foreground ml-1">
@@ -606,7 +602,7 @@ const EventManagement = () => {
                           handleFilterChange("event_type", value)
                         }
                       >
-                        <SelectTrigger className="bg-background">
+                        <SelectTrigger className="h-10 w-full">
                           <SelectValue placeholder="All Types" />
                         </SelectTrigger>
                         <SelectContent>
@@ -631,7 +627,7 @@ const EventManagement = () => {
                           handleFilterChange("status", value)
                         }
                       >
-                        <SelectTrigger className="bg-background">
+                        <SelectTrigger className="h-10 w-full">
                           <SelectValue placeholder="All Status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -656,7 +652,7 @@ const EventManagement = () => {
                           handleFilterChange("is_paid", value)
                         }
                       >
-                        <SelectTrigger className="bg-background">
+                        <SelectTrigger className="h-10 w-full">
                           <SelectValue placeholder="All" />
                         </SelectTrigger>
                         <SelectContent>
@@ -676,7 +672,7 @@ const EventManagement = () => {
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
-                            className="w-full justify-start text-left font-normal bg-background"
+                            className="w-full justify-start text-left font-normal h-10"
                           >
                             <Calendar className="mr-2 h-4 w-4" />
                             {formatDateRangeDisplay()}
@@ -713,25 +709,113 @@ const EventManagement = () => {
                       </Popover>
                     </div>
                   </div>
+
+                  {/* Quick Actions - Full width at bottom */}
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      variant="outline"
+                      onClick={clearFilters}
+                      className="flex-1 h-9"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Clear Filters
+                    </Button>
+                    <Button
+                      onClick={handleSearch}
+                      disabled={loading}
+                      className="flex-1 h-9"
+                    >
+                      {loading && searchTerm === searchInput ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                      ) : (
+                        "Apply Filters"
+                      )}
+                    </Button>
+                  </div>
                 </div>
               )}
 
-              {/* Active Filters Display & Results Count */}
-              <div className="flex items-center justify-between pt-2">
-                <div className="text-sm text-muted-foreground">
-                  {/* Maybe show count here? */}
-                </div>
-
-                {hasActiveFilters && (
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
+              {/* Active Filters Display */}
+              {hasActiveFilters && (
+                <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/20 rounded-lg border">
+                  <Badge variant="secondary" className="flex items-center gap-1">
                     <Filter className="h-3 w-3" />
-                    Filters Active
+                    Active Filters
                   </Badge>
-                )}
-              </div>
+
+                  {searchTerm && (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      Search: "{searchTerm}"
+                      <button
+                        onClick={handleClearSearch}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+
+                  {filters.event_type !== "all" && (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      Type: {filters.event_type}
+                      <button
+                        onClick={() => handleFilterChange("event_type", "all")}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+
+                  {filters.status !== "all" && (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      Status: {filters.status}
+                      <button
+                        onClick={() => handleFilterChange("status", "all")}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+
+                  {filters.is_paid !== "all" && (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      Payment: {filters.is_paid === "true" ? "Paid" : "Free"}
+                      <button
+                        onClick={() => handleFilterChange("is_paid", "all")}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+
+                  {filters.date_range && (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      Date: {formatDateRangeDisplay()}
+                      <button
+                        onClick={() => {
+                          handleFilterChange("date_range", "");
+                          setDateRange({ from: undefined, to: undefined });
+                        }}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="ml-auto h-7 text-xs"
+                  >
+                    Clear All
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -745,8 +829,8 @@ const EventManagement = () => {
 
           {/* Pagination */}
           {pagination.totalPages > 0 && (
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-muted-foreground text-center sm:text-left">
                 Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
                 {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
                 of {pagination.total} events

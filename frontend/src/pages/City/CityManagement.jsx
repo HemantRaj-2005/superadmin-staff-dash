@@ -348,21 +348,7 @@ const CityManagement = () => {
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          {/* <Button variant="outline" className="flex items-center space-x-2">
-            <Upload className="h-4 w-4" />
-            <span>Import</span>
-          </Button>
-          <Button variant="outline" className="flex items-center space-x-2">
-            <Download className="h-4 w-4" />
-            <span>Export</span>
-          </Button>
-          <Button 
-            onClick={() => setIsCreateModalOpen(true)} 
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add City
-          </Button> */}
+          {/* Add City button commented out per original code */}
         </div>
       </div>
 
@@ -459,7 +445,6 @@ const CityManagement = () => {
       )}
 
       {/* Search and Filters */}
-      {/* Search and Filters */}
       <Card className="shadow-lg border-0">
         <CardHeader className="bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b">
           <div className="flex items-center justify-between">
@@ -481,8 +466,8 @@ const CityManagement = () => {
                 placeholder="Search by city, state, or country..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="pl-10 pr-10 border-2 focus:border-blue-500 transition-colors"
+                onKeyDown={handleKeyPress}
+                className="pl-10 pr-10 h-10 border-2 focus:border-blue-500 transition-colors"
                 disabled={loading}
               />
               {searchInput && (
@@ -498,7 +483,7 @@ const CityManagement = () => {
             <Button
               variant={showFilters ? "secondary" : "outline"}
               onClick={() => setShowFilters(!showFilters)}
-              className="px-4 gap-2"
+              className="px-4 gap-2 h-10"
             >
               <Filter className="h-4 w-4" />
               Filters
@@ -517,7 +502,7 @@ const CityManagement = () => {
               )}
             </Button>
 
-            <Button onClick={handleSearch} disabled={loading} className="px-6">
+            <Button onClick={handleSearch} disabled={loading} className="px-6 h-10">
               {loading && searchTerm === searchInput ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
               ) : (
@@ -536,7 +521,7 @@ const CityManagement = () => {
             </p>
           )}
 
-          {/* Advanced Filters Section */}
+          {/* Advanced Filters Section - SIMPLE AND CLICKABLE */}
           {showFilters && (
             <div className="bg-muted/30 p-4 rounded-lg border border-border animate-in fade-in slide-in-from-top-2">
               <div className="flex justify-between items-center mb-4">
@@ -553,7 +538,9 @@ const CityManagement = () => {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Simple, consistent filter blocks */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Country Filter */}
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
                     Country
@@ -564,7 +551,7 @@ const CityManagement = () => {
                       handleFilterChange("country", value)
                     }
                   >
-                    <SelectTrigger className="border-2 focus:border-blue-500 transition-colors bg-background">
+                    <SelectTrigger className="h-10 w-full border-2 focus:border-blue-500 transition-colors">
                       <SelectValue placeholder="All countries" />
                     </SelectTrigger>
                     <SelectContent>
@@ -581,6 +568,7 @@ const CityManagement = () => {
                   </Select>
                 </div>
 
+                {/* State Filter */}
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
                     State
@@ -592,7 +580,7 @@ const CityManagement = () => {
                     }
                     disabled={!countryFilter || countryFilter === "all"}
                   >
-                    <SelectTrigger className="border-2 focus:border-blue-500 transition-colors bg-background">
+                    <SelectTrigger className="h-10 w-full border-2 focus:border-blue-500 transition-colors">
                       <SelectValue
                         placeholder={
                           !countryFilter || countryFilter === "all"
@@ -612,12 +600,13 @@ const CityManagement = () => {
                   </Select>
                 </div>
 
+                {/* Sort By */}
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
                     Sort By
                   </label>
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="border-2 bg-background">
+                    <SelectTrigger className="h-10 w-full border-2">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -629,12 +618,13 @@ const CityManagement = () => {
                   </Select>
                 </div>
 
+                {/* Sort Order */}
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
                     Order
                   </label>
                   <Select value={sortOrder} onValueChange={setSortOrder}>
-                    <SelectTrigger className="border-2 bg-background">
+                    <SelectTrigger className="h-10 w-full border-2">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -644,26 +634,109 @@ const CityManagement = () => {
                   </Select>
                 </div>
               </div>
+
+              {/* Quick Actions - Full width at bottom */}
+              <div className="flex gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="flex-1 h-9"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Clear Filters
+                </Button>
+                <Button
+                  onClick={handleSearch}
+                  disabled={loading}
+                  className="flex-1 h-9"
+                >
+                  {loading && searchTerm === searchInput ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                  ) : (
+                    "Apply Filters"
+                  )}
+                </Button>
+              </div>
             </div>
           )}
 
-          {/* Active Filters Display & Pagination Info */}
+          {/* Active Filters Display */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/20 rounded-lg border">
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Filter className="h-3 w-3" />
+                Active Filters
+              </Badge>
+
+              {searchTerm && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  Search: "{searchTerm}"
+                  <button
+                    onClick={handleClearSearch}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+
+              {countryFilter !== "all" && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  Country: {countryFilter}
+                  <button
+                    onClick={() => handleFilterChange("country", "all")}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+
+              {stateFilter !== "all" && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  State: {stateFilter}
+                  <button
+                    onClick={() => handleFilterChange("state", "all")}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+
+              {(sortBy !== "CITY_NAME" || sortOrder !== "asc") && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  Sort: {sortBy.replace("_", " ")} ({sortOrder})
+                  <button
+                    onClick={() => {
+                      setSortBy("CITY_NAME");
+                      setSortOrder("asc");
+                    }}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="ml-auto h-7 text-xs"
+              >
+                Clear All
+              </Button>
+            </div>
+          )}
+
+          {/* Pagination Info */}
           <div className="flex items-center justify-between pt-2">
             <div className="text-sm text-gray-600 dark:text-gray-400">
               Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
               {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
               of {pagination.total.toLocaleString()} cities
             </div>
-
-            {hasActiveFilters && (
-              <div className="flex flex-wrap gap-2">
-                {/* Simplified badges or just 'Filters Active' */}
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  <Filter className="h-3 w-3" />
-                  Filters Active
-                </Badge>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
