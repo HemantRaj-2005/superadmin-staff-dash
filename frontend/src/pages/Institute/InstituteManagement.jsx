@@ -16,6 +16,8 @@ import {
   Download,
   Upload,
   Users,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import InstituteTable from "./InstituteTable";
 import InstituteDetailModal from "./InstituteDetailModal";
@@ -62,6 +64,7 @@ const InstituteManagement = () => {
 
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
+  const [showFilters, setShowFilters] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState(null);
@@ -79,6 +82,24 @@ const InstituteManagement = () => {
   });
 
   const controllerRef = useRef(null);
+
+  const hasActiveFilters =
+    searchTerm !== "" ||
+    cityFilter !== "all" ||
+    stateFilter !== "all" ||
+    typeFilter !== "all" ||
+    sortBy !== "name" ||
+    sortOrder !== "asc";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setCityFilter("all");
+    setStateFilter("all");
+    setTypeFilter("all");
+    setSortBy("name");
+    setSortOrder("asc");
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
 
   // Debounce searchTerm -> debouncedSearch
   useEffect(() => {
@@ -282,26 +303,10 @@ const InstituteManagement = () => {
     }
   };
 
-  const clearFilters = () => {
-    setSearchTerm("");
-    setCityFilter("all");
-    setStateFilter("all");
-    setTypeFilter("all");
-    setSortBy("name");
-    setSortOrder("asc");
-    setPagination((prev) => ({ ...prev, page: 1 }));
-  };
-
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > (pagination.totalPages || 1)) return;
     setPagination((prev) => ({ ...prev, page: newPage }));
   };
-
-  const hasActiveFilters =
-    Boolean(searchTerm) ||
-    cityFilter !== "all" ||
-    stateFilter !== "all" ||
-    typeFilter !== "all";
 
   const getDisplayCity = (institute) =>
     institute?.City || institute?.city || "N/A";
@@ -474,217 +479,205 @@ const InstituteManagement = () => {
       {/* Filters */}
       <Card className="shadow-lg border-0">
         <CardHeader className="bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b">
-          <CardTitle className="flex items-center text-lg">
-            <Filter className="h-5 w-5 mr-2" />
-            Advanced Filters & Search
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-blue-600" />
+              <CardTitle className="text-lg">Filters & Search</CardTitle>
+            </div>
+          </div>
           <CardDescription>
             Find institutes by name, location, or hospital type
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="p-6 space-y-6">
-          <div className="flex flex-col lg:flex-row gap-4 lg:items-end justify-between">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
-              <div className="space-y-2">
-                <label
-                  htmlFor="searchInput"
-                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  Search Institutes
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="searchInput"
-                    placeholder="Search by name, city, or state..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 border-2 focus:border-blue-500 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Filter by City
-                </label>
-                <Select value={cityFilter} onValueChange={setCityFilter}>
-                  <SelectTrigger className="border-2 focus:border-blue-500 transition-colors">
-                    <SelectValue placeholder="All cities" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All cities</SelectItem>
-                    {validCities.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Filter by State
-                </label>
-                <Select value={stateFilter} onValueChange={setStateFilter}>
-                  <SelectTrigger className="border-2 focus:border-blue-500 transition-colors">
-                    <SelectValue placeholder="All states" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All states</SelectItem>
-                    {validStates.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Filter by Type
-                </label>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="border-2 focus:border-blue-500 transition-colors">
-                    <SelectValue placeholder="All types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All types</SelectItem>
-                    {validHospitalTypes.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={clearFilters}
-                disabled={!hasActiveFilters || loading}
-                className="whitespace-nowrap border-2"
-              >
-                <X className="h-4 w-4 mr-2" />
-                Clear Filters
-              </Button>
-            </div>
-          </div>
-
-          {/* Sort + info */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Sort by:
-              </span>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40 border-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Institute Name</SelectItem>
-                  <SelectItem value="hospitalType">Hospital Type</SelectItem>
-                  <SelectItem value="city">City</SelectItem>
-                  <SelectItem value="state">State</SelectItem>
-                  <SelectItem value="createdAt">Date Added</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={sortOrder} onValueChange={setSortOrder}>
-                <SelectTrigger className="w-32 border-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="asc">Ascending</SelectItem>
-                  <SelectItem value="desc">Descending</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {(() => {
-              const total = Number(pagination?.total ?? 0);
-              const page = Number(pagination?.page ?? 1);
-              const limit = Number(pagination?.limit ?? 10);
-              const from = total === 0 ? 0 : (page - 1) * limit + 1;
-              const to = Math.min(page * limit, total);
-              return (
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Showing {from} to {to} of {total.toLocaleString()} institutes
-                </div>
-              );
-            })()}
-          </div>
-
-          {/* Active filters chips */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap gap-2 pt-4 border-t">
+        <CardContent className="p-6 space-y-4">
+          {/* Search and Filters Bar */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by name, city, or state..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 border-2 focus:border-blue-500 transition-colors"
+                id="searchInput"
+              />
               {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            <Button
+              variant={showFilters ? "secondary" : "outline"}
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-4 gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Filters
+              {hasActiveFilters && (
                 <Badge
                   variant="secondary"
-                  className="flex items-center space-x-1"
+                  className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors ml-1 h-5 px-1.5 min-w-[1.25rem]"
                 >
-                  <span>Search: "{searchTerm}"</span>
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="ml-2"
-                    aria-label="Clear search"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  !
                 </Badge>
               )}
-              {cityFilter !== "all" && (
-                <Badge
-                  variant="secondary"
-                  className="flex items-center space-x-1"
-                >
-                  <span>City: "{cityFilter}"</span>
-                  <button
-                    onClick={() => setCityFilter("all")}
-                    className="ml-2"
-                    aria-label="Clear city filter"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
+              {showFilters ? (
+                <ChevronUp className="h-4 w-4 ml-auto" />
+              ) : (
+                <ChevronDown className="h-4 w-4 ml-auto" />
               )}
-              {stateFilter !== "all" && (
-                <Badge
-                  variant="secondary"
-                  className="flex items-center space-x-1"
+            </Button>
+          </div>
+
+          {/* Advanced Filters Section */}
+          {showFilters && (
+            <div className="bg-muted/30 p-4 rounded-lg border border-border animate-in fade-in slide-in-from-top-2">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-primary" /> Advanced Filters
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="h-8 text-xs text-muted-foreground hover:text-destructive"
                 >
-                  <span>State: "{stateFilter}"</span>
-                  <button
-                    onClick={() => setStateFilter("all")}
-                    className="ml-2"
-                    aria-label="Clear state filter"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
-              {typeFilter !== "all" && (
-                <Badge
-                  variant="secondary"
-                  className="flex items-center space-x-1"
-                >
-                  <span>Type: "{typeFilter}"</span>
-                  <button
-                    onClick={() => setTypeFilter("all")}
-                    className="ml-2"
-                    aria-label="Clear type filter"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
+                  <X className="h-3 w-3 mr-1" /> Clear All
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* City Filter */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
+                    City
+                  </label>
+                  <Select value={cityFilter} onValueChange={setCityFilter}>
+                    <SelectTrigger className="border-2 focus:border-blue-500 transition-colors bg-background">
+                      <SelectValue placeholder="All cities" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All cities</SelectItem>
+                      {validCities.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* State Filter */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
+                    State
+                  </label>
+                  <Select value={stateFilter} onValueChange={setStateFilter}>
+                    <SelectTrigger className="border-2 focus:border-blue-500 transition-colors bg-background">
+                      <SelectValue placeholder="All states" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All states</SelectItem>
+                      {validStates.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Type Filter */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
+                    Type
+                  </label>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="border-2 focus:border-blue-500 transition-colors bg-background">
+                      <SelectValue placeholder="All types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All types</SelectItem>
+                      {validHospitalTypes.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Sort By */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
+                    Sort By
+                  </label>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="border-2 bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name">Institute Name</SelectItem>
+                      <SelectItem value="hospitalType">
+                        Hospital Type
+                      </SelectItem>
+                      <SelectItem value="city">City</SelectItem>
+                      <SelectItem value="state">State</SelectItem>
+                      <SelectItem value="createdAt">Date Added</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Sort Order */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
+                    Order
+                  </label>
+                  <Select value={sortOrder} onValueChange={setSortOrder}>
+                    <SelectTrigger className="border-2 bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">Ascending</SelectItem>
+                      <SelectItem value="desc">Descending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
           )}
+
+          {/* Active Filters Display & Pagination Info */}
+          <div className="flex items-center justify-between pt-2">
+            <div>
+              {(() => {
+                const total = Number(pagination?.total ?? 0);
+                const page = Number(pagination?.page ?? 1);
+                const limit = Number(pagination?.limit ?? 10);
+                const from = total === 0 ? 0 : (page - 1) * limit + 1;
+                const to = Math.min(page * limit, total);
+                return (
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Showing {from} to {to} of {total.toLocaleString()}{" "}
+                    institutes
+                  </div>
+                );
+              })()}
+            </div>
+
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Filter className="h-3 w-3" />
+                Filters Active
+              </Badge>
+            )}
+          </div>
         </CardContent>
       </Card>
 

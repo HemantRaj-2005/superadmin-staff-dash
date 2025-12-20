@@ -37,6 +37,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 
 const SchoolManagement = () => {
@@ -48,6 +50,7 @@ const SchoolManagement = () => {
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(""); // For the input field
   const [searchTerm, setSearchTerm] = useState(""); // For actual search
+  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     state: "all",
     district: "all",
@@ -409,7 +412,6 @@ const SchoolManagement = () => {
       {/* School Statistics */}
       <SchoolStats />
 
-      {/* Filters Section */}
       <Card>
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
@@ -417,196 +419,225 @@ const SchoolManagement = () => {
               <Filter className="h-5 w-5 text-muted-foreground" />
               <CardTitle className="text-lg">Filters & Search</CardTitle>
             </div>
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="flex items-center gap-2 h-8"
-              >
-                <X className="h-3 w-3" />
-                Clear Filters
-              </Button>
-            )}
           </div>
           <CardDescription>
             Filter and search through the school database
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Search Input with Button */}
-          <div className="space-y-2">
-            <Label htmlFor="search">Search Schools</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search"
-                  placeholder="Search by name, district, state, or UDISE code..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="w-full pl-10 pr-10"
-                  disabled={loading}
-                />
-                {searchInput && (
-                  <button
-                    onClick={handleClearSearch}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              <Button
-                onClick={handleSearch}
+          {/* Search and Filters Bar */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="search"
+                placeholder="Search by name, district, state, or UDISE code..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="w-full pl-10 pr-10"
                 disabled={loading}
-                className="px-6"
-              >
-                {loading && searchTerm === searchInput ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
-                  </>
-                )}
-              </Button>
+              />
+              {searchInput && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
-            {searchTerm && (
-              <p className="text-sm text-muted-foreground">
-                Current search:{" "}
-                <span className="font-medium text-foreground">
-                  "{searchTerm}"
-                </span>
-              </p>
-            )}
+
+            <Button
+              variant={showFilters ? "secondary" : "outline"}
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-4 gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Filters
+              {hasActiveFilters && (
+                <Badge
+                  variant="secondary"
+                  className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors ml-1 h-5 px-1.5 min-w-[1.25rem]"
+                >
+                  !
+                </Badge>
+              )}
+              {showFilters ? (
+                <ChevronUp className="h-4 w-4 ml-auto" />
+              ) : (
+                <ChevronDown className="h-4 w-4 ml-auto" />
+              )}
+            </Button>
+
+            <Button onClick={handleSearch} disabled={loading} className="px-6">
+              {loading && searchTerm === searchInput ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </>
+              )}
+            </Button>
           </div>
 
-          {/* Filter Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* State Filter with Search */}
-            <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Select
-                value={filters.state}
-                onValueChange={(value) => handleFilterChange("state", value)}
-              >
-                <SelectTrigger id="state">
-                  <SelectValue placeholder="All States" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {/* Search input for states */}
-                  <div className="flex items-center border-b px-3 py-2">
-                    <Search className="h-4 w-4 text-muted-foreground mr-2" />
-                    <input
-                      placeholder="Search states..."
-                      className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground text-sm"
-                      value={stateSearch}
-                      onChange={(e) => setStateSearch(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                  <SelectItem value="all">All States</SelectItem>
-                  {filteredStates.map((state) => (
-                    <SelectItem key={state} value={state}>
-                      {state}
-                    </SelectItem>
-                  ))}
-                  {filteredStates.length === 0 && (
-                    <div className="py-2 px-3 text-sm text-muted-foreground text-center">
-                      No states found
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+          {searchTerm && (
+            <p className="text-sm text-muted-foreground">
+              Current search:{" "}
+              <span className="font-medium text-foreground">
+                "{searchTerm}"
+              </span>
+            </p>
+          )}
 
-            {/* District Filter with Search */}
-            <div className="space-y-2">
-              <Label htmlFor="district">District</Label>
-              <Select
-                value={filters.district}
-                onValueChange={(value) => handleFilterChange("district", value)}
-                disabled={!filters.state || filters.state === "all"}
-              >
-                <SelectTrigger id="district">
-                  <SelectValue
-                    placeholder={
-                      !filters.state || filters.state === "all"
-                        ? "Select state first"
-                        : "All Districts"
+          {/* Advanced Filters Section */}
+          {showFilters && (
+            <div className="bg-muted/30 p-4 rounded-lg border border-border animate-in fade-in slide-in-from-top-2">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-primary" /> Advanced Filters
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="h-8 text-xs text-muted-foreground hover:text-destructive"
+                >
+                  <X className="h-3 w-3 mr-1" /> Clear All
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* State Filter with Search */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">
+                    State
+                  </label>
+                  <Select
+                    value={filters.state}
+                    onValueChange={(value) =>
+                      handleFilterChange("state", value)
                     }
-                  />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {/* Search input for districts */}
-                  <div className="flex items-center border-b px-3 py-2">
-                    <Search className="h-4 w-4 text-muted-foreground mr-2" />
-                    <input
-                      placeholder="Search districts..."
-                      className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground text-sm"
-                      value={districtSearch}
-                      onChange={(e) => setDistrictSearch(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                  <SelectItem value="all">All Districts</SelectItem>
-                  {filteredDistricts.map((district) => (
-                    <SelectItem key={district} value={district}>
-                      {district}
-                    </SelectItem>
-                  ))}
-                  {filteredDistricts.length === 0 && (
-                    <div className="py-2 px-3 text-sm text-muted-foreground text-center">
-                      {!filters.state || filters.state === "all"
-                        ? "Please select a state first"
-                        : "No districts found"}
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+                  >
+                    <SelectTrigger id="state" className="bg-background">
+                      <SelectValue placeholder="All States" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      <div className="flex items-center border-b px-3 py-2">
+                        <Search className="h-4 w-4 text-muted-foreground mr-2" />
+                        <input
+                          placeholder="Search states..."
+                          className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground text-sm"
+                          value={stateSearch}
+                          onChange={(e) => setStateSearch(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <SelectItem value="all">All States</SelectItem>
+                      {filteredStates.map((state) => (
+                        <SelectItem key={state} value={state}>
+                          {state}
+                        </SelectItem>
+                      ))}
+                      {filteredStates.length === 0 && (
+                        <div className="py-2 px-3 text-sm text-muted-foreground text-center">
+                          No states found
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* Sort By */}
-            <div className="space-y-2">
-              <Label htmlFor="sortBy">Sort By</Label>
-              <Select
-                value={filters.sortBy}
-                onValueChange={(value) => handleFilterChange("sortBy", value)}
-              >
-                <SelectTrigger id="sortBy">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="school_name">School Name</SelectItem>
-                  <SelectItem value="state">State</SelectItem>
-                  <SelectItem value="district">District</SelectItem>
-                  <SelectItem value="udise_code">UDISE Code</SelectItem>
-                  <SelectItem value="createdAt">Created Date</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                {/* District Filter with Search */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">
+                    District
+                  </label>
+                  <Select
+                    value={filters.district}
+                    onValueChange={(value) =>
+                      handleFilterChange("district", value)
+                    }
+                    disabled={!filters.state || filters.state === "all"}
+                  >
+                    <SelectTrigger id="district" className="bg-background">
+                      <SelectValue
+                        placeholder={
+                          !filters.state || filters.state === "all"
+                            ? "Select state first"
+                            : "All Districts"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      <div className="flex items-center border-b px-3 py-2">
+                        <Search className="h-4 w-4 text-muted-foreground mr-2" />
+                        <input
+                          placeholder="Search districts..."
+                          className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground text-sm"
+                          value={districtSearch}
+                          onChange={(e) => setDistrictSearch(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <SelectItem value="all">All Districts</SelectItem>
+                      {filteredDistricts.map((district) => (
+                        <SelectItem key={district} value={district}>
+                          {district}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* Sort Order */}
-            <div className="space-y-2">
-              <Label htmlFor="sortOrder">Order</Label>
-              <Select
-                value={filters.sortOrder}
-                onValueChange={(value) =>
-                  handleFilterChange("sortOrder", value)
-                }
-              >
-                <SelectTrigger id="sortOrder">
-                  <SelectValue placeholder="Sort order" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="asc">Ascending</SelectItem>
-                  <SelectItem value="desc">Descending</SelectItem>
-                </SelectContent>
-              </Select>
+                {/* Sort By */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">
+                    Sort By
+                  </label>
+                  <Select
+                    value={filters.sortBy}
+                    onValueChange={(value) =>
+                      handleFilterChange("sortBy", value)
+                    }
+                  >
+                    <SelectTrigger id="sortBy" className="bg-background">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="school_name">School Name</SelectItem>
+                      <SelectItem value="state">State</SelectItem>
+                      <SelectItem value="district">District</SelectItem>
+                      <SelectItem value="udise_code">UDISE Code</SelectItem>
+                      <SelectItem value="createdAt">Created Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Sort Order */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">
+                    Order
+                  </label>
+                  <Select
+                    value={filters.sortOrder}
+                    onValueChange={(value) =>
+                      handleFilterChange("sortOrder", value)
+                    }
+                  >
+                    <SelectTrigger id="sortOrder" className="bg-background">
+                      <SelectValue placeholder="Sort order" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">Ascending</SelectItem>
+                      <SelectItem value="desc">Descending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Results Count */}
           <div className="flex items-center justify-between pt-2">

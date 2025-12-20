@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Filter, X, Plus, Calendar, Download } from "lucide-react";
+import {
+  Search,
+  Filter,
+  X,
+  Calendar,
+  Download,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import EventTable from "./EventTable";
 import EventDetailModal from "./EventDetailModal";
 import EventStats from "./EventStats";
@@ -42,11 +50,12 @@ const EventManagement = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   // Separate search input and search term
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  
+
+  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     event_type: "all",
     status: "all",
@@ -70,9 +79,9 @@ const EventManagement = () => {
 
   // Track last logged search to avoid duplicates
   const lastLoggedSearchRef = useRef({
-    search: '',
+    search: "",
     filters: {},
-    page: 1
+    page: 1,
   });
 
   useEffect(() => {
@@ -93,48 +102,60 @@ const EventManagement = () => {
   }, [dateRange]);
 
   // Function to log search activity
-  const logSearchActivity = async (currentSearchTerm, currentFilters, resultsCount = 0) => {
+  const logSearchActivity = async (
+    currentSearchTerm,
+    currentFilters,
+    resultsCount = 0
+  ) => {
     try {
       const currentSearchData = {
         search: currentSearchTerm,
         filters: { ...currentFilters },
-        page: pagination.page
+        page: pagination.page,
       };
 
       const lastLogged = lastLoggedSearchRef.current;
-      
+
       // Skip if same search was just logged
       if (
         currentSearchData.search === lastLogged.search &&
-        JSON.stringify(currentSearchData.filters) === JSON.stringify(lastLogged.filters) &&
+        JSON.stringify(currentSearchData.filters) ===
+          JSON.stringify(lastLogged.filters) &&
         currentSearchData.page === lastLogged.page
       ) {
         return;
       }
 
       // Build description based on active filters
-      let description = 'Searched for events';
+      let description = "Searched for events";
       const activeFilters = [];
-      
+
       if (currentSearchTerm) {
         activeFilters.push(`search: "${currentSearchTerm}"`);
       }
-      if (currentFilters.event_type && currentFilters.event_type !== 'all') {
+      if (currentFilters.event_type && currentFilters.event_type !== "all") {
         activeFilters.push(`event type: "${currentFilters.event_type}"`);
       }
-      if (currentFilters.status && currentFilters.status !== 'all') {
+      if (currentFilters.status && currentFilters.status !== "all") {
         activeFilters.push(`status: "${currentFilters.status}"`);
       }
-      if (currentFilters.is_paid && currentFilters.is_paid !== 'all') {
-        activeFilters.push(`payment: ${currentFilters.is_paid === 'true' ? 'Paid' : 'Free'}`);
+      if (currentFilters.is_paid && currentFilters.is_paid !== "all") {
+        activeFilters.push(
+          `payment: ${currentFilters.is_paid === "true" ? "Paid" : "Free"}`
+        );
       }
       if (currentFilters.date_range) {
-        const [from, to] = currentFilters.date_range.split('_');
-        activeFilters.push(`date range: ${format(new Date(from), 'MMM dd, yyyy')} - ${format(new Date(to), 'MMM dd, yyyy')}`);
+        const [from, to] = currentFilters.date_range.split("_");
+        activeFilters.push(
+          `date range: ${format(new Date(from), "MMM dd, yyyy")} - ${format(
+            new Date(to),
+            "MMM dd, yyyy"
+          )}`
+        );
       }
-      
+
       if (activeFilters.length > 0) {
-        description += ` with ${activeFilters.join(', ')}`;
+        description += ` with ${activeFilters.join(", ")}`;
       }
 
       await api.post("/activity-logs", {
@@ -151,7 +172,7 @@ const EventManagement = () => {
           totalResults: pagination.total,
           page: pagination.page,
           timestamp: new Date().toISOString(),
-        }
+        },
       });
 
       // Update last logged search
@@ -187,12 +208,12 @@ const EventManagement = () => {
       }));
 
       // Log search activity after successful fetch
-      const hasActiveSearch = 
-        searchTerm.trim() !== '' || 
-        filters.event_type !== 'all' || 
-        filters.status !== 'all' || 
-        filters.is_paid !== 'all' || 
-        filters.date_range !== '';
+      const hasActiveSearch =
+        searchTerm.trim() !== "" ||
+        filters.event_type !== "all" ||
+        filters.status !== "all" ||
+        filters.is_paid !== "all" ||
+        filters.date_range !== "";
 
       if (hasActiveSearch) {
         logSearchActivity(searchTerm, filters, response.data.events.length);
@@ -395,7 +416,9 @@ const EventManagement = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Event Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Event Management
+          </h1>
           <p className="text-muted-foreground">
             Manage and organize all events on the platform
           </p>
@@ -439,7 +462,7 @@ const EventManagement = () => {
               </div>
             </PopoverContent>
           </Popover>
-{/* 
+          {/* 
           <Button className="flex items-center space-x-2">
             <Plus className="h-4 w-4" />
             <span>New Event</span>
@@ -476,221 +499,237 @@ const EventManagement = () => {
           {/* Filters Section */}
           <Card>
             <CardHeader className="pb-4">
-              <CardTitle className="text-sm font-medium flex items-center">
-                <Filter className="h-4 w-4 mr-2" />
-                Filters & Search
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-5 w-5 text-muted-foreground" />
+                  <CardTitle className="text-lg">Filters & Search</CardTitle>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              {/* Search Input with Button */}
-              <div className="mb-4 space-y-2">
-                <label className="text-sm font-medium">Search Events</label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Title, description, location..."
-                      value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      className="pl-10 pr-10"
-                      disabled={loading}
-                    />
-                    {searchInput && (
-                      <button
-                        onClick={handleClearSearch}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                  <Button
-                    onClick={handleSearch}
+            <CardContent className="space-y-4">
+              {/* Search and Filters Bar */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Title, description, location..."
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="pl-10 pr-10"
                     disabled={loading}
-                    className="px-6"
-                  >
-                    {loading && searchTerm === searchInput ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
-                    ) : (
-                      <>
-                        <Search className="h-4 w-4 mr-2" />
-                        Search
-                      </>
-                    )}
-                  </Button>
-                </div>
-                {searchTerm && (
-                  <p className="text-sm text-muted-foreground">
-                    Current search: <span className="font-medium text-foreground">"{searchTerm}"</span>
-                  </p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Event Type */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Event Type</label>
-                  <Select
-                    value={filters.event_type}
-                    onValueChange={(value) => handleFilterChange("event_type", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      {availableFilters.eventTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Status */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Status</label>
-                  <Select
-                    value={filters.status}
-                    onValueChange={(value) => handleFilterChange("status", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      {availableFilters.statusTypes.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Paid/Free */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Payment Type</label>
-                  <Select
-                    value={filters.is_paid}
-                    onValueChange={(value) => handleFilterChange("is_paid", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="true">Paid</SelectItem>
-                      <SelectItem value="false">Free</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Date Range */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Date Range</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                      >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {formatDateRangeDisplay()}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange.from}
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        numberOfMonths={2}
-                        className="p-3"
-                      />
-                      <div className="flex items-center justify-between p-3 border-t">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setDateRange({ from: undefined, to: undefined })}
-                        >
-                          Clear
-                        </Button>
-                        <Button size="sm" onClick={() => document.body.click()}>
-                          Apply
-                        </Button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-
-              {/* Active Filters & Clear Button */}
-              <div className="flex justify-between items-center mt-4">
-                <div className="flex flex-wrap gap-2">
-                  {hasActiveFilters && (
-                    <>
-                      {searchTerm && (
-                        <Badge variant="secondary" className="flex items-center space-x-1">
-                          <span>Search: "{searchTerm}"</span>
-                          <button onClick={handleClearSearch}>
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      )}
-                      {filters.event_type !== "all" && (
-                        <Badge variant="secondary" className="flex items-center space-x-1">
-                          <span>Type: {filters.event_type}</span>
-                          <button onClick={() => handleFilterChange("event_type", "all")}>
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      )}
-                      {filters.status !== "all" && (
-                        <Badge variant="secondary" className="flex items-center space-x-1">
-                          <span>Status: {filters.status}</span>
-                          <button onClick={() => handleFilterChange("status", "all")}>
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      )}
-                      {filters.is_paid !== "all" && (
-                        <Badge variant="secondary" className="flex items-center space-x-1">
-                          <span>Payment: {filters.is_paid === "true" ? "Paid" : "Free"}</span>
-                          <button onClick={() => handleFilterChange("is_paid", "all")}>
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      )}
-                      {filters.date_range && (
-                        <Badge variant="secondary" className="flex items-center space-x-1">
-                          <span>Date: {formatDateRangeDisplay()}</span>
-                          <button
-                            onClick={() => {
-                              setDateRange({ from: undefined, to: undefined });
-                              handleFilterChange("date_range", "");
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      )}
-                    </>
+                  />
+                  {searchInput && (
+                    <button
+                      onClick={handleClearSearch}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   )}
                 </div>
 
+                <Button
+                  variant={showFilters ? "secondary" : "outline"}
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="px-4 gap-2"
+                >
+                  <Filter className="h-4 w-4" />
+                  Filters
+                  {hasActiveFilters && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors ml-1 h-5 px-1.5 min-w-5"
+                    >
+                      !
+                    </Badge>
+                  )}
+                  {showFilters ? (
+                    <ChevronUp className="h-4 w-4 ml-auto" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 ml-auto" />
+                  )}
+                </Button>
+
+                <Button
+                  onClick={handleSearch}
+                  disabled={loading}
+                  className="px-6"
+                >
+                  {loading && searchTerm === searchInput ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      Search
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {searchTerm && (
+                <p className="text-sm text-muted-foreground">
+                  Current search:{" "}
+                  <span className="font-medium text-foreground">
+                    "{searchTerm}"
+                  </span>
+                </p>
+              )}
+
+              {/* Advanced Filters Section */}
+              {showFilters && (
+                <div className="bg-muted/30 p-4 rounded-lg border border-border animate-in fade-in slide-in-from-top-2">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <Filter className="h-4 w-4 text-primary" /> Advanced
+                      Filters
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="h-8 text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-3 w-3 mr-1" /> Clear All
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Event Type */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground ml-1">
+                        Event Type
+                      </label>
+                      <Select
+                        value={filters.event_type}
+                        onValueChange={(value) =>
+                          handleFilterChange("event_type", value)
+                        }
+                      >
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="All Types" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          {availableFilters.eventTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Status */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground ml-1">
+                        Status
+                      </label>
+                      <Select
+                        value={filters.status}
+                        onValueChange={(value) =>
+                          handleFilterChange("status", value)
+                        }
+                      >
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="All Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          {availableFilters.statusTypes.map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {status}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Paid/Free */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground ml-1">
+                        Payment Type
+                      </label>
+                      <Select
+                        value={filters.is_paid}
+                        onValueChange={(value) =>
+                          handleFilterChange("is_paid", value)
+                        }
+                      >
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="true">Paid</SelectItem>
+                          <SelectItem value="false">Free</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Date Range */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground ml-1">
+                        Date Range
+                      </label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal bg-background"
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {formatDateRangeDisplay()}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            initialFocus
+                            mode="range"
+                            defaultMonth={dateRange.from}
+                            selected={dateRange}
+                            onSelect={setDateRange}
+                            numberOfMonths={2}
+                            className="p-3"
+                          />
+                          <div className="flex items-center justify-between p-3 border-t">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setDateRange({ from: undefined, to: undefined })
+                              }
+                            >
+                              Clear
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => document.body.click()}
+                            >
+                              Apply
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Active Filters Display & Results Count */}
+              <div className="flex items-center justify-between pt-2">
+                <div className="text-sm text-muted-foreground">
+                  {/* Maybe show count here? */}
+                </div>
+
                 {hasActiveFilters && (
-                  <Button
-                    variant="outline"
-                    onClick={clearFilters}
-                    className="flex items-center space-x-2"
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
                   >
-                    <X className="h-4 w-4" />
-                    <span>Clear Filters</span>
-                  </Button>
+                    <Filter className="h-3 w-3" />
+                    Filters Active
+                  </Badge>
                 )}
               </div>
             </CardContent>
@@ -709,8 +748,8 @@ const EventManagement = () => {
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
                 Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-                {pagination.total} events
+                {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
+                of {pagination.total} events
               </div>
 
               <Pagination>
@@ -719,7 +758,9 @@ const EventManagement = () => {
                     <PaginationPrevious
                       onClick={() => handlePageChange(pagination.page - 1)}
                       className={
-                        pagination.page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
+                        pagination.page === 1
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer"
                       }
                     />
                   </PaginationItem>

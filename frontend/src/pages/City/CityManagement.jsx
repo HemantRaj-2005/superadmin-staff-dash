@@ -12,6 +12,8 @@ import {
   Mountain,
   Users,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Download,
   Upload,
 } from "lucide-react";
@@ -59,6 +61,7 @@ const CityManagement = () => {
   const [stateFilter, setStateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("CITY_NAME");
   const [sortOrder, setSortOrder] = useState("asc");
+  const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState(null);
   const [filters, setFilters] = useState({ countries: [], states: [] });
@@ -456,236 +459,212 @@ const CityManagement = () => {
       )}
 
       {/* Search and Filters */}
+      {/* Search and Filters */}
       <Card className="shadow-lg border-0">
         <CardHeader className="bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b">
-          <CardTitle className="flex items-center text-lg">
-            <Filter className="h-5 w-5 mr-2 text-blue-600" />
-            Advanced Filters & Search
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-blue-600" />
+              <CardTitle className="text-lg">Filters & Search</CardTitle>
+            </div>
+          </div>
           <CardDescription>
             Find cities by name, country, state, or geographical data
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-6 space-y-6">
-          {/* Search Row with Button */}
-          <div className="flex flex-col lg:flex-row gap-4 lg:items-end justify-between">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Search Cities
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Search by city, state, or country..."
-                      value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      className="pl-10 pr-10 border-2 focus:border-blue-500 transition-colors"
-                      disabled={loading}
-                    />
-                    {searchInput && (
-                      <button
-                        onClick={handleClearSearch}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                  <Button
-                    onClick={handleSearch}
-                    disabled={loading}
-                    className="px-4"
-                  >
-                    {loading && searchTerm === searchInput ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
-                    ) : (
-                      <Search className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-                {searchTerm && (
-                  <p className="text-sm text-gray-500">
-                    Current search:{" "}
-                    <span className="font-medium">"{searchTerm}"</span>
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Filter by Country
-                </label>
-                <Select
-                  value={countryFilter}
-                  onValueChange={(value) =>
-                    handleFilterChange("country", value)
-                  }
+        <CardContent className="p-6 space-y-4">
+          {/* Search and Filters Bar */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by city, state, or country..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="pl-10 pr-10 border-2 focus:border-blue-500 transition-colors"
+                disabled={loading}
+              />
+              {searchInput && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  <SelectTrigger className="border-2 focus:border-blue-500 transition-colors">
-                    <SelectValue placeholder="All countries" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All countries</SelectItem>
-                    {validCountries.map((country) => (
-                      <SelectItem key={country} value={country}>
-                        <div className="flex items-center space-x-2">
-                          <span>{getCountryFlag(country)}</span>
-                          <span>{country}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Filter by State
-                </label>
-                <Select
-                  value={stateFilter}
-                  onValueChange={(value) => handleFilterChange("state", value)}
-                  disabled={!countryFilter || countryFilter === "all"}
-                >
-                  <SelectTrigger className="border-2 focus:border-blue-500 transition-colors">
-                    <SelectValue
-                      placeholder={
-                        !countryFilter || countryFilter === "all"
-                          ? "Select country first"
-                          : "All states"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All states</SelectItem>
-                    {validStates.map((state) => (
-                      <SelectItem key={state} value={state}>
-                        {state}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={clearFilters}
-                disabled={!hasActiveFilters}
-                className="whitespace-nowrap border-2"
-              >
-                <X className="h-4 w-4 mr-2" />
-                Clear Filters
-              </Button>
-            </div>
+            <Button
+              variant={showFilters ? "secondary" : "outline"}
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-4 gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Filters
+              {hasActiveFilters && (
+                <Badge
+                  variant="secondary"
+                  className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors ml-1 h-5 px-1.5 min-w-[1.25rem]"
+                >
+                  !
+                </Badge>
+              )}
+              {showFilters ? (
+                <ChevronUp className="h-4 w-4 ml-auto" />
+              ) : (
+                <ChevronDown className="h-4 w-4 ml-auto" />
+              )}
+            </Button>
+
+            <Button onClick={handleSearch} disabled={loading} className="px-6">
+              {loading && searchTerm === searchInput ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </>
+              )}
+            </Button>
           </div>
 
-          {/* Sort Row */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Sort by:
-              </span>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40 border-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CITY_NAME">City Name</SelectItem>
-                  <SelectItem value="COUNTRY_NAME_CODE">Country</SelectItem>
-                  <SelectItem value="STATE">State</SelectItem>
-                  <SelectItem value="city_id">City ID</SelectItem>
-                </SelectContent>
-              </Select>
+          {searchTerm && (
+            <p className="text-sm text-gray-500">
+              Current search:{" "}
+              <span className="font-medium">"{searchTerm}"</span>
+            </p>
+          )}
 
-              <Select value={sortOrder} onValueChange={setSortOrder}>
-                <SelectTrigger className="w-32 border-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="asc">Ascending</SelectItem>
-                  <SelectItem value="desc">Descending</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Advanced Filters Section */}
+          {showFilters && (
+            <div className="bg-muted/30 p-4 rounded-lg border border-border animate-in fade-in slide-in-from-top-2">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-primary" /> Advanced Filters
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="h-8 text-xs text-muted-foreground hover:text-destructive"
+                >
+                  <X className="h-3 w-3 mr-1" /> Clear All
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
+                    Country
+                  </label>
+                  <Select
+                    value={countryFilter}
+                    onValueChange={(value) =>
+                      handleFilterChange("country", value)
+                    }
+                  >
+                    <SelectTrigger className="border-2 focus:border-blue-500 transition-colors bg-background">
+                      <SelectValue placeholder="All countries" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All countries</SelectItem>
+                      {validCountries.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          <div className="flex items-center space-x-2">
+                            <span>{getCountryFlag(country)}</span>
+                            <span>{country}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
+                    State
+                  </label>
+                  <Select
+                    value={stateFilter}
+                    onValueChange={(value) =>
+                      handleFilterChange("state", value)
+                    }
+                    disabled={!countryFilter || countryFilter === "all"}
+                  >
+                    <SelectTrigger className="border-2 focus:border-blue-500 transition-colors bg-background">
+                      <SelectValue
+                        placeholder={
+                          !countryFilter || countryFilter === "all"
+                            ? "Select country first"
+                            : "All states"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All states</SelectItem>
+                      {validStates.map((state) => (
+                        <SelectItem key={state} value={state}>
+                          {state}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
+                    Sort By
+                  </label>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="border-2 bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CITY_NAME">City Name</SelectItem>
+                      <SelectItem value="COUNTRY_NAME_CODE">Country</SelectItem>
+                      <SelectItem value="STATE">State</SelectItem>
+                      <SelectItem value="city_id">City ID</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-1">
+                    Order
+                  </label>
+                  <Select value={sortOrder} onValueChange={setSortOrder}>
+                    <SelectTrigger className="border-2 bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">Ascending</SelectItem>
+                      <SelectItem value="desc">Descending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
+          )}
 
+          {/* Active Filters Display & Pagination Info */}
+          <div className="flex items-center justify-between pt-2">
             <div className="text-sm text-gray-600 dark:text-gray-400">
               Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
               {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
               of {pagination.total.toLocaleString()} cities
             </div>
-          </div>
 
-          {/* Active Filters */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap gap-2 pt-4 border-t">
-              {searchTerm && (
-                <Badge
-                  variant="secondary"
-                  className="flex items-center space-x-1 bg-blue-100 text-blue-800 border-blue-200"
-                >
-                  <span>Search: "{searchTerm}"</span>
-                  <button
-                    onClick={handleClearSearch}
-                    className="hover:text-blue-600"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+            {hasActiveFilters && (
+              <div className="flex flex-wrap gap-2">
+                {/* Simplified badges or just 'Filters Active' */}
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <Filter className="h-3 w-3" />
+                  Filters Active
                 </Badge>
-              )}
-              {countryFilter !== "all" && (
-                <Badge
-                  variant="secondary"
-                  className="flex items-center space-x-1 bg-green-100 text-green-800 border-green-200"
-                >
-                  <span>Country: "{countryFilter}"</span>
-                  <button
-                    onClick={() => handleFilterChange("country", "all")}
-                    className="hover:text-green-600"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
-              {stateFilter !== "all" && (
-                <Badge
-                  variant="secondary"
-                  className="flex items-center space-x-1 bg-purple-100 text-purple-800 border-purple-200"
-                >
-                  <span>State: "{stateFilter}"</span>
-                  <button
-                    onClick={() => handleFilterChange("state", "all")}
-                    className="hover:text-purple-600"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
-              {(sortBy !== "CITY_NAME" || sortOrder !== "asc") && (
-                <Badge
-                  variant="secondary"
-                  className="flex items-center space-x-1 bg-orange-100 text-orange-800 border-orange-200"
-                >
-                  <span>
-                    Sort: {sortBy} ({sortOrder})
-                  </span>
-                  <button
-                    onClick={() => {
-                      setSortBy("CITY_NAME");
-                      setSortOrder("asc");
-                    }}
-                    className="hover:text-orange-600"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
